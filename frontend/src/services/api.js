@@ -4,9 +4,23 @@ const API = axios.create({
     baseURL: 'http://localhost:8000',
 });
 
+// ----------------------------------------------------------------- Upload CSV File.
 export const uploadCSV = (formData) =>
     API.post('/upload', formData, {
         headers: { 'Content-Type' : 'multipart/form-data'}
     });
 
+// ----------------------------------------------------------------- Empties Entire Database.
+export const emptyDatabase = () => API.delete('/clear');
+
+// ----------------------------------------------------------------- Fetches All Transactions In DB.
 export const fetchTransactions = () => API.get('/transactions');
+
+// ----------------------------------------------------------------- Get All Files.
+export const getFiles = () => API.get('/files');
+
+// ----------------------------------------------------------------- Delete File By File Id.
+export const deleteFile = (fileId) => API.delete(`/files/${fileId}`);
+
+// ----------------------------------------------------------------- Rename File By File Id.
+export const renameFile = (fileId, newName) => API.patch(`/files/${fileId}`, { new_name: newName });

@@ -1,0 +1,34 @@
+# Delete DB File.
+
+del transactions.db
+
+# Run Backend.
+
+cd Desktop / financeOrganizer / backend
+venv\Scripts\activate
+uvicorn app.main: app --reload
+
+# Run Frontend.
+
+cd Desktop / financeOrganizer / Frontend
+npm run dev
+
+
+
+IDEK : 
+
+2025-03-19	Nic*-dep ST George Isl	NIC*-DEP ST GEORGE ISL -> Camping At Dr. Julian. St. George G. Bruce Island Fee
+
+2024-11-11	Festival B* Bars	FESTIVAL B* BARS -> EDC Drinks
+
+2024-09-10	Society OF Hispanic P	SQ *SOCIETY OF HISPANIC P -> SHPE Membership Fee
+
+2024-08-04	Reg Waterford 20	REG WATERFORD 20 0734 -> Regal Cinema Waterford
+
+2024-06-21	Reg Oviedo Mall	REG OVIEDO MALL 0380 -> Regal Oviedo Mall
+
+2024-07-28	At&t	AT&amp;T *PAYMENT	-> Handling HTML Break With Vendor Rules
+
+2024-06-05	K?s Cuts & Colors LLC	SQ *K?S CUTS &amp; COLORS LLC -> Hair Salon
+
+2024-05-26	Help.max.com	HELP.MAX.COM	-11.28 -> No Idea

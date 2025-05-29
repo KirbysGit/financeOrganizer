@@ -1,7 +1,9 @@
 import pandas as pd
 from io import BytesIO
 
-def parse_chase_csv(contents: bytes) -> pd.DataFrame:
+from app.routes.vendor_utils import normalize_vendor
+
+def parse_chase_csv(contents: bytes, filename: str) -> pd.DataFrame:
     df = pd.read_csv(BytesIO(contents))
 
     print("Raw columns:", df.columns.tolist())  
@@ -18,4 +20,7 @@ def parse_chase_csv(contents: bytes) -> pd.DataFrame:
     })
 
     df["date"] = pd.to_datetime(df["date"])
-    return df[["date", "description", "amount", "type"]]
+    df["vendor"] = df["description"].apply(normalize_vendor)
+    df["file"] = filename
+
+    return df[["date", "vendor", "description", "amount", "type", "file"]]

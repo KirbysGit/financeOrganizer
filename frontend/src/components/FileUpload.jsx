@@ -6,29 +6,30 @@ import { styled } from 'styled-components';
 // Local Imports.
 import { uploadCSV } from '../services/api';
 
-const FileUpload = ({ onUploadSuccess }) => {
-    const [file, setFile] = useState(null);                 // State For Tracking If File Exists After Upload.
-    const [uploading, setUploading] = useState(false);      // State For Tracking If File Is Currently Uploading.
-    const [uploaded, setUploaded] = useState(false);        // State For Tracking If File Is Uploaded.
-    const [notes, setNotes] = useState("");                 // State For Tracking If Notes Have Been Attached To Uploaded File.
 
-    const handleSubmit = async () => {
-        if (!file) return;
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('notes', notes);
+const FileUpload = ({ onUploadSuccess }) => {
+    const [file, setFile] = useState(null);                 // State 4 Tracking If File Exists After Upload.
+    const [uploading, setUploading] = useState(false);      // State 4 Tracking If File Is Currently Uploading.
+    const [uploaded, setUploaded] = useState(false);        // State 4 Tracking If File Is Uploaded.
+    const [notes, setNotes] = useState("");                 // State 4 Tracking If Notes Have Been Attached To Uploaded File.
+
+    const handleSubmit = async () => {              // Func For Submitting File.
+        if (!file) return;                          // If File Does Not Exist, Return.
+        const formData = new FormData();            // Create New FormData Item.
+        formData.append('file', file);              // Append 'file' To FormData.
+        formData.append('notes', notes);            // Append 'notes' To FormData.
 
         try {
-            setUploading(true);
-            await uploadCSV(formData);
-            setFile(null);
-            setNotes("");
-            setUploaded(true);
-            onUploadSuccess();
+            setUploading(true);                     // Set Uploading State To True.
+            await uploadCSV(formData);              // Await API Endpoint W/ FormData.
+            setFile(null);                          // Clear File State.
+            setNotes("");                           // Clear Notes State.
+            setUploaded(true);                      // Set Uploaded State To True.
+            onUploadSuccess();                      // Load Transactions Again On Upload Success.
         } catch (err) {
-            console.error('Upload failed:', err);
+            console.error('Upload failed:', err);   // If Error, Return Error.
         } finally {
-            setUploading(false);
+            setUploading(false);                    // Finally, Set Uploading State To False.
         }
     };
 

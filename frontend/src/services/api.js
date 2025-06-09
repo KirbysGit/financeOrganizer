@@ -24,3 +24,6 @@ export const deleteFile = (fileId) => API.delete(`/files/${fileId}`);
 
 // ----------------------------------------------------------------- Rename File By File Id.
 export const renameFile = (fileId, newName) => API.patch(`/files/${fileId}`, { new_name: newName });
+
+// ----------------------------------------------------------------- Manually Create Transaction.
+export const createTransaction = (data) => API.post('/transactions/', data);

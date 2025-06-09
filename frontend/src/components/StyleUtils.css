@@ -1,0 +1,8 @@
+:root {
+    --bg:          rgb(247 247 249);   /* almost white sorta color */
+    --surface:     rgb(255 255 255);   /* use for card / nav */
+    --border:      rgb(217 217 223);   /* 1-px strokes */
+    --text:        rgb(34 36 40);      /* primary color for text */
+    --text-muted:  rgb(110 111 117);   /* secondary color for text / hover */
+    --accent:      rgb(26 115 232);    /* link / button */
+} 

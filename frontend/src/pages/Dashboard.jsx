@@ -3,11 +3,9 @@ import React from 'react';
 import { styled } from 'styled-components';
 import { useState, useEffect } from 'react';
 
-
-// Local Imports.
-
 // Components.
 import FileList from '../components/FileList';
+import FilesActionsBar from '../components/ActionsBar';
 import FileUpload from '../components/FileUpload';
 import TransactionTable from '../components/TransactionTable';
 
@@ -18,88 +16,115 @@ import { emptyDatabase } from '../services/api';
 
 // Dashboard Component.
 const Dashboard = () => {
-    const [transactions, setTransactions] = useState([]);       // Transaction State.
-    const [files, setFiles] = useState([]);
+    const [transactions, setTransactions] = useState([]);       // State 4 Storing All Transactions.
+    const [files, setFiles] = useState([]);                     // State 4 Storing All Files.
 
-    // Load Transactions Function.
-    const loadTransactions = async () => {
-        try {                                           // Try.
-            const tx = await fetchTransactions();      // API Request For Fetch Transaction.   
-            const fi = await getFiles();             
-            setTransactions(tx.data);                  // Set 'res' For Transactions.
-            setFiles(fi.data);
-        } catch (err) {                                 // If Error.
-            console.error('Fetch Failed:', err);        // Display Error To Console.
-        }
-    };
+    const hasEverHadData = localStorage.getItem('hasEverHadData') === 'true';
+    const isEmpty = files.length === 0 && transactions.length === 0;
 
-    const clearDB = async () => {
-        try {
-            await emptyDatabase();
-            loadTransactions();
-            getFiles();
-        } catch (err) {
-            console.error('Delete Failed:', err);
-        }
-    };
-
-    const loadFiles = async () => {
-        try {
-            const res = await getFiles();
-            setFiles(res.data);
-        } catch (err) {
-            console.error('Fetched Failed: ', err);
-        }
-    }
-
-    const handleDelete = async(fileId) => {
-        try {
-            await deleteFile(fileId);
-            loadFiles();
-        } catch (err) {
-            console.error("Delete Failed:", err);
-        }
-    };
-    
-    const handleRename = async(fileId, newName) => {
-        try {
-            await renameFile(fileId, newName);
-            loadFiles();
-        } catch (err) {
-            console.error("Rename Failed:", err);
-        }
-    }
-
-    // UseEffect To Load Transactions.
     useEffect(() => {
         loadTransactions();
         loadFiles();
     }, []);
 
+    // -------------------------------------------------------- Load Transactions To Site.
+    const loadTransactions = async () => {
+        try {                                           // Try.
+            const tx = await fetchTransactions();           // API Request For Fetch Transaction.   
+            const sorted = tx.data.sort(
+                (a, b) => new Date(b.date) - new Date(a.date)
+            );
+            setTransactions(sorted);                       // Set Return Value For Transactions.
+
+            if (sorted.length > 0) {
+                localStorage.setItem('hasEverHadData', 'true');
+            }
+        } catch (err) {                                 // If Error.
+            console.error('Fetch Failed:', err);            // Display Error To Console.
+        }
+    };
+
+    // -------------------------------------------------------- Load All Files To Site.
+    const loadFiles = async () => {                 
+        try {                                           // Try.
+            const res = await getFiles();                   // API Request For Getting Files.
+            setFiles(res.data);                             // Set Files From Result.
+
+            if (res.data.length > 0) {
+                localStorage.setItem('hasEverHadData', 'true');
+            }
+        } catch (err) {                                 // If Error.
+            console.error('Fetched Failed: ', err);         // Display Error To Console.
+        }
+    };
+
+    // -------------------------------------------------------- Refreshes Contents Of Site (Tx's & Files).
+    const refreshSite = async() => {
+        try {                                           // Try.
+            loadTransactions();                             // Load All Transactions.
+            loadFiles();                                    // Load All Files.
+        } catch (err) {                                 // If Error.
+            console.error('Load Failed:', err);             // Display Error To Console.
+        }
+    };
+    
+    // -------------------------------------------------------- Clears Entire Database.
+    const clearDB = async () => {
+        try {                                           // Try.
+            await emptyDatabase();                          // API Request For Clearing Database.
+            loadTransactions();                             // Reload Transactions.
+            loadFiles();                                     // Reload Files.
+        } catch (err) {                                 // If Error.
+            console.error('Delete Failed:', err);           // Display Error To Console.
+        }
+    };
+
+    // -------------------------------------------------------- Deletes Requested File.
+    const handleDelete = async(fileId) => {
+        try {                                           // Try.
+            await deleteFile(fileId);                       // API Request For Deleting File by 'fileId'.
+            loadFiles();                                    // Reload Files.
+        } catch (err) {                                 // If Error.
+            console.error("Delete Failed:", err);           // Display Error To Console.
+        }
+    };
+    
+    // -------------------------------------------------------- Renames Requested File.
+    const handleRename = async(fileId, newName) => {
+        try {                                           // Try. 
+            await renameFile(fileId, newName);              // API Request For Renaming File by 'fileId' W/ 'newName'.
+            loadFiles();                                    // Reload Files.
+        } catch (err) {                                 // If Error.
+            console.error("Rename Failed:", err);           // Display Error To Console.
+        }
+    }
+
     // UI Component.
     return (
         <ExpenseContainer>
             <Header>Expense Tracker</Header>
-            { files.length === 0 && (
+            { !hasEverHadData && (
                 <FileUploadWrapper>
-                    <FileUpload onUploadSuccess={loadTransactions} />
+                    <FileUpload onUploadSuccess={refreshSite} />
                 </FileUploadWrapper>
             )}
-            { files.length > 0 && (
+            { hasEverHadData && (
                 <>
-                    <FileList files={files} onDelete={handleDelete} onRename={handleRename}/>
-                    <ClearDBButton onClick={() => clearDB()}>
-                        Delete
-                    </ClearDBButton>
-                    <TableSection>
-                        <TransactionTable transactions={transactions} />
-                    </TableSection>
+                    <FilesActionsBar onClear={clearDB} onUploadSuccess={refreshSite}/>
+                    <FileList 
+                        files={files} 
+                        onDelete={handleDelete} 
+                        onRename={handleRename}
+                    />
+                    <TransactionTable 
+                        transactions={transactions} 
+                    />
                 </>
             )}
         </ExpenseContainer>
     )
 }
-
+// -------------------------------------------------------- Entire Expense Website Container.
 const ExpenseContainer = styled.div`
     font-family: 'DM Sans', serif;
     display: flex;
@@ -109,11 +134,7 @@ const ExpenseContainer = styled.div`
     background-color: #f8f9fa;
     min-height: 100vh;
 `
-
-const ClearDBButton = styled.button`
-    display: flex;
-`
-
+// -------------------------------------------------------- Header Container.
 const Header = styled.div`
     font-size: 2rem;
     width: 100%;
@@ -124,18 +145,10 @@ const Header = styled.div`
     margin-bottom: 1.5rem;
     color: #343a40;
 `
-
+// -------------------------------------------------------- Container For File Upload Process.
 const FileUploadWrapper = styled.div`
     margin-bottom: 2rem;
     width: 100%;
-`
-
-const TableSection = styled.div`
-    width: 100%;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    background-color: white;
-    border-radius: 8px;
-    overflow: hidden;
 `
 
 export default Dashboard;

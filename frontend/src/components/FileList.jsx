@@ -3,24 +3,35 @@ import React from 'react';
 import { useState } from 'react';
 import { styled } from 'styled-components';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEdit, faTrash, faSave } from '@fortawesome/free-solid-svg-icons';
+import { faEdit, faPlus, faTrash, faSave } from '@fortawesome/free-solid-svg-icons';
 
-const FileList = ({ files, onDelete, onRename }) => {
-    const [editingId, setEditingId] = useState(null);
-    const [newName, setNewName] = useState("");
-    const [fileToDelete, setFileToDelete] = useState(null);
+const FileList = ({ files, onDelete, onRename, onUploadFile }) => {
+    const [editingId, setEditingId] = useState(null);           // State 4 Id Of Item That Is Being Edited.
+    const [newName, setNewName] = useState("");                 // State 4 Holding New Name For Item.
+    const [fileToDelete, setFileToDelete] = useState(null);     // State 4 Holding Name Of File To Delete.
 
-    const startEditing = (file) => {
-        setEditingId(file.id);
-        setNewName(file.filename);
+    const startEditing = (file) => {    // Beginning Of Rename Process.
+        setEditingId(file.id);          // Set Editing Id In Local State.
+        setNewName(file.filename);      // Sets New Name In Local State.
     };
 
-    const saveRename = (fileId) => {
-        if (newName.trim()) {
-            onRename(fileId, newName.trim())
+    const saveRename = (fileId) => {            // Save Rename Value By 'fileId'.
+        if (newName.trim()) {                   // If New Name Isn't Empty Spaces.
+            onRename(fileId, newName.trim())    // Call Rename Handler W/ Trimmed New Name.
         }
-        setEditingId(null);
-        setNewName("");
+        setEditingId(null);                     // Clear Editing State.
+        setNewName("");                         // Clear Input Value.
+    }
+
+    if (files.length === 0) {
+        return (
+            <EmptyStateCard>
+                <EmptyIcon>📁</EmptyIcon>
+                <EmptyTitle>No Files Found...</EmptyTitle>
+                <EmptyDescription>Upload A CSV File To Start Tracking Your Expenses.</EmptyDescription>
+                <EmptyAction>Click The Plus Icon Below To Get Started.</EmptyAction>
+            </EmptyStateCard>
+        )
     }
 
     return (
@@ -90,9 +101,40 @@ const FileList = ({ files, onDelete, onRename }) => {
     );
 };
 
-// -------------------------------------------------------- Entire List Container.
+// ----------------------------------------------------------------------------------- Empty State Container.
+const EmptyStateCard = styled.div`
+    width: 90%;
+    padding: 3rem 2rem;
+    margin: 2rem auto;
+    border-radius: 12px;
+    background: white;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    border: 4px dashed #dee2e6;
+    transition: box-shadow 0.3s ease-in-out;
+
+    &:hover {
+        box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.3);
+    }
+`
+const EmptyIcon = styled.div`
+    font-size: 3rem;
+    margin-bottom: 1rem;
+`
+const EmptyTitle = styled.h3`
+    color: #495057;
+`
+const EmptyDescription = styled.p`
+    color: #6c757d;
+
+`
+const EmptyAction = styled.p`
+    color: #0d6efd;
+    font-style: italic;
+`
+// ----------------------------------------------------------------------------------- Entire List Container.
 const ListContainer = styled.div`
-    width: 100%;
+    width: 90%;
     margin: 2rem auto;
     padding: 1rem;
     border-radius: 10px;

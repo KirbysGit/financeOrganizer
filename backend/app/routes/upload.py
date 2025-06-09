@@ -1,21 +1,25 @@
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Form
-from sqlalchemy.orm import Session
-from app.database import SessionLocal, Transaction, UploadedFile
-from datetime import date
-from app.parser import parse_chase_csv
-import traceback
+# Imports.
 import hashlib
+import traceback
+from sqlalchemy.orm import Session
+from app.database import SessionLocal
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Form
 
-router = APIRouter()
+# Local Imports.
+from app.parser import parse_chase_csv
+from app.database import Transaction, UploadedFile
+
+router = APIRouter()      # Sets Up Modular Sub-Router For FastAPI.
 
 def get_db():
-    db = SessionLocal()
+    db = SessionLocal()   # Create A New Database Session.
     try:
-        yield db
+        yield db          # Provide The Session To The Route That Depends On it.
     finally:
-        db.close()
+        db.close()        # Ensure Session Is Properly Closed After Request Finishes.
 
 
+# ----------------------------------------------------------------------- Upload CSV File.
 @router.post("/upload")
 async def upload_csv(
     file: UploadFile = File(...), 
@@ -23,22 +27,26 @@ async def upload_csv(
     db: Session = Depends(get_db)
 ):
     try:
-        # If Not CSV, Return Error.
-        if not file.filename.lower().endswith('.csv'):
-            raise HTTPException(status_code=400, detail="Only CSV files are allowed")
+        if not file.filename.lower().endswith('.csv'):                                  # If Not CSV File.
+            raise HTTPException(status_code=400, detail="Only CSV files are allowed")   # Return Error Message.
         
-        # Parse Contents Of File.
-        contents = await file.read()
-
-        # Obtain FileName.
+        contents = await file.read()                                                    # Parse Contents Of File.
         filename = file.filename;
+         
+        
+        # Create Hash From File Contents.                  
+        content_hash = hashlib.sha256(contents).hexdigest()       
 
-        content_hash = hashlib.sha256(contents).hexdigest()
+        # Check If File Already Exists.
+        existing_file = db.query(UploadedFile).filter_by(content_hash=content_hash).first()
 
-        # 1. Parse W/ Our Chase CSV Handler.
+        if existing_file:
+            raise HTTPException(status_code=400, detail="This file has already been uploaded.")                         
+
+        # Parse W/ Our Chase CSV Handler.
         df = parse_chase_csv(contents, filename)
 
-        # 2. Create UploadedFile Item.
+        # Create UploadedFile Item.
         uploaded_file = UploadedFile(
             filename=filename,
             num_transactions=len(df),
@@ -50,7 +58,7 @@ async def upload_csv(
         db.commit()
         db.refresh(uploaded_file)
 
-        # 3. Insert Transactions Items.
+        # Insert Transactions Items.
         for _, row in df.iterrows():
             tx = Transaction(
                 date=row["date"],
@@ -62,12 +70,13 @@ async def upload_csv(
             )
             db.add(tx)
 
-        
+        # Commit To Database.
         db.commit()
 
+        # Return Success Message.
         return {"message": f"Successfully uploaded {len(df)} transactions"}
     except Exception as e:
-        db.rollback()
-        print(f"Error processing file: {str(e)}")
-        print(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=str(e))
+        db.rollback()                                       # Undo Any Pending Changes To Database.
+        print(f"Error processing file: {str(e)}")           # Print Error Message.
+        print(traceback.format_exc())                       # Print Trace Of Error.
+        raise HTTPException(status_code=500, detail=str(e)) # Return Error Msg W/ HTTP 500.

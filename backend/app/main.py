@@ -1,17 +1,22 @@
+# Imports.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+# Local Imports.
 from app.routes import upload, transactions, files
 
+# Create Instance Of FastAPI Application.
 app = FastAPI()
 
-# Configure CORS
+# Configure CORS.
 origins = [
-    "http://localhost:5173",  # Vite dev server
-    "http://localhost:8000",  # Alternative React dev server
+    "http://localhost:5173",
+    "http://localhost:8000",
     "http://127.0.0.1:5173",
     "http://127.0.0.1:8000",
 ]
 
+# Adds The Middleware For CORS.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -20,6 +25,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Register Modular Route Groups.
+app.include_router(files.router)
 app.include_router(upload.router)
 app.include_router(transactions.router)
-app.include_router(files.router)

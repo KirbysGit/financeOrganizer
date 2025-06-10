@@ -37,3 +37,16 @@ class UploadedFileOut(BaseModel):
     
     class Config:
         from_attributes = True
+
+class LinkTokenRequest(BaseModel):
+    user_id: str
+
+class PublicTokenExchangeRequest(BaseModel):
+    public_token: str
+
+class LinkTokenResponse(BaseModel):
+    link_token: str
+
+class AccessTokenResponse(BaseModel):
+    access_token: str
+    item_id: str

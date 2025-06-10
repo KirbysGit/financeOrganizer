@@ -1,0 +1,87 @@
+/* ========================================
+   Color Variables for Finance Organizer
+   ======================================== */
+
+:root {
+  /* ---- Primary Background Colors ---- */
+  --bg-primary: white;
+  --bg-secondary: rgb(248, 249, 250);
+  --bg-zebra-row: rgb(236, 236, 236);
+  --bg-expanded-row: rgb(240, 249, 255);
+  --bg-expanded-hover: rgb(224, 242, 254);
+  --bg-hover: rgb(227, 242, 253);
+  --bg-tertiary: rgb(238, 237, 237);
+  --bg-selected-row: rgb(232, 244, 253);
+  
+  /* ---- Table Header Colors ---- */
+  --header-bg: rgb(236, 236, 236);
+  --header-text: rgb(73, 80, 87);
+  
+  /* ---- Border Colors ---- */
+  --border-light: rgb(241, 243, 245);
+  --border-medium: rgb(222, 226, 230);
+  --border-heavy: rgb(219, 219, 219);
+  --border-expanded: rgb(191, 219, 254);
+  --border-detail-item: rgb(225, 245, 254);
+  
+  /* ---- Text Colors ---- */
+  --text-primary: rgb(33, 37, 41);
+  --text-secondary: rgb(73, 80, 87);
+  --text-muted: rgb(108, 117, 125);
+  --text-light: rgb(51, 51, 51);
+  --text-label: rgb(2, 119, 189);
+  
+  /* ---- Amount Colors ---- */
+  --amount-positive: rgb(25, 135, 84);
+  --amount-negative: rgb(220, 53, 69);
+  
+  /* ---- Button Colors ---- */
+  --button-primary: rgb(13, 110, 253);
+  --button-primary-hover: rgb(0, 71, 177);
+  --button-disabled: rgb(204, 204, 204);
+  --icon-color: rgb(73, 80, 87);
+  --icon-hover: rgb(62, 68, 73);
+  
+  /* ---- Shadow Colors ---- */
+  --shadow-light: rgba(0, 0, 0, 0.06);
+  --shadow-medium: rgba(0, 0, 0, 0.1);
+  --shadow-strong: rgba(0, 0, 0, 0.3);
+  --shadow-blue: rgba(59, 130, 246, 0.15);
+  --shadow-detail: rgba(0, 0, 0, 0.05);
+  
+  /* ---- Empty State Colors ---- */
+  --empty-border: rgb(222, 226, 230);
+  --empty-bg: rgb(255, 255, 255);
+  --empty-title: rgb(73, 80, 87);
+  --empty-description: rgb(108, 117, 125);
+}
+
+/* ========================================
+   Dark Mode Support (Optional)
+   ======================================== */
+/*
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #2d2d2d;
+    --bg-zebra-row: #252525;
+    --bg-expanded-row: #1e3a8a;
+    --bg-expanded-hover: #1e40af;
+    --bg-hover: #374151;
+    
+    --header-bg: #374151;
+    --header-text: #d1d5db;
+    
+    --border-light: #374151;
+    --border-medium: #4b5563;
+    --border-expanded: #3b82f6;
+    
+    --text-primary: #f9fafb;
+    --text-secondary: #d1d5db;
+    --text-muted: #9ca3af;
+    --text-light: #e5e7eb;
+    --text-label: #60a5fa;
+  }
+} 
+
+*/

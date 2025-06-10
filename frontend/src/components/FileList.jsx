@@ -6,6 +6,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEdit, faPlus, faTrash, faSave } from '@fortawesome/free-solid-svg-icons';
 
 const FileList = ({ files, onDelete, onRename, onUploadFile }) => {
+    
     const [editingId, setEditingId] = useState(null);           // State 4 Id Of Item That Is Being Edited.
     const [newName, setNewName] = useState("");                 // State 4 Holding New Name For Item.
     const [fileToDelete, setFileToDelete] = useState(null);     // State 4 Holding Name Of File To Delete.

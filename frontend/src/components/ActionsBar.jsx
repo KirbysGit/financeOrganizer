@@ -6,6 +6,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBomb, faPlus, faRefresh } from '@fortawesome/free-solid-svg-icons';
 
 // Local Imports.
+import PlaidLink from './PlaidLink';
 import { createTransaction, uploadCSV } from '../services/api';
 
 const FilesActionsBar = ({ onClear, onUploadSuccess }) => {
@@ -14,6 +15,7 @@ const FilesActionsBar = ({ onClear, onUploadSuccess }) => {
     const [showAddMenu, setShowAddMenu] = useState(false);              // State 4 Whether Add Menu Is Open.
     const [uploadModal, setUploadModal] = useState(false);              // State 4 Whether Modal For Upload Is Open.
     const [transactionModal, setTransactionModal] = useState(false);    // State 4 Whether Transaction Modal Is Open.
+    const [plaidModal, setPlaidModal] = useState(false);                // State 4 Whether Plaid Modal Is Open.
 
     // Upload CSV States.
     const [file, setFile] = useState(null);                             // State 4 Storing Set File From Upload Modal.
@@ -28,40 +30,50 @@ const FilesActionsBar = ({ onClear, onUploadSuccess }) => {
     const [amount, setAmount] = useState('');                           // State 4 Storing Amount Of Transaction.
     const [description, setDescription] = useState('');                 // State 4 Storing Description Of Transaction.
 
+    // Plaid States.
+    const [plaidSuccess, setPlaidSuccess] = useState('');               // State 4 Storing Plaid Success Messages.
+    const [plaidError, setPlaidError] = useState('');                   // State 4 Storing Plaid Error Messages.
+
     // -------------------------------------------------------- Handle Uploading Of CSV.
     const handleUpload = async () => {
-        if (!file) return;                              // If File Does Not Exist. Return.
+        if (!file) {
+            alert("Please select a file first.");
+            return;
+        }
 
-        const formData = new FormData();                // Create New FormData Item.
-        formData.append('file', file);                  // Add 'file' to FormData.
-        formData.append('notes', notes);                // Add 'notes' to FormData.
+        setUploading(true);                                 // Let User Know Upload Is In Progress.
+        setUploadError('');                                 // Clear Any Previous Errors.
 
-        try {
-            setUploading(true);                         // Uploading Var Set To True.
-            setUploadError('');                         // Clear Any Previous Errors.
-            await uploadCSV(formData);                  // API Request For Upload.
-            setFile(null);                              // Clear File Var.
-            setNotes('');                               // Clear Notes Var.
-            setUploadModal(false);                      // Close Upload Modal.
-            onUploadSuccess();                          // 
-        } catch (error) {
-            console.error("Upload Failed : ", error);   // If Error, Return Error.
+        const formData = new FormData();                    // Create New FormData Object.
+        formData.append('file', file);                      // Add File To FormData.
+        formData.append('notes', notes);                    // Add Notes To FormData.
+
+        try {                                               // Try.
+            await uploadCSV(formData);                      // API Call For Uploading CSV.
+            alert("File uploaded successfully!");           // Let User Know File Uploaded.
+            setUploadModal(false);                          // Close Modal.
+            setFile(null);                                  // Clear File Selection.
+            setNotes('');                                   // Clear Notes.
+            onUploadSuccess();                              // Call Parent Function.
+        } catch (error) {                                   // If Error.
+            console.error("Upload failed:", error);         // Log Error.
+            let errorMessage = "Failed to upload file. Please try again.";
             
-            // Extract Error Messages From Response.
-            let errorMessage = "Upload failed. Please try again.";
             if (error.response?.data?.detail) {
-                errorMessage = error.response.data.detail;
-            } else if (error.message) {
-                errorMessage = error.message;
+                if (typeof error.response.data.detail === 'string') {
+                    errorMessage = error.response.data.detail;
+                } else if (Array.isArray(error.response.data.detail)) {
+                    errorMessage = error.response.data.detail.map(err => err.msg).join(', ');
+                }
             }
             
-            setUploadError(errorMessage);               // Set Error Message For Display.
-        } finally {
-            setUploading(false);                        // Verify Uploading Var Is Set To False.
+            setUploadError(errorMessage);
+        } finally {                                         // Finally.
+            setUploading(false);                             // Let User Know Upload Has Finished.
         }
-    };
+    }
 
-    // -------------------------------------------------------- Handle Dropping Of File Into Upload Modal.
+    // -------------------------------------------------------- Handle Drag & Drop On Upload Modal.
     const handleFileDrop = (e) => {
         e.preventDefault();                             // Prevent Default Browsing Behavior.
         const droppedFile = e.dataTransfer.files[0];    // Get First File In Dropped Items.
@@ -118,6 +130,30 @@ const FilesActionsBar = ({ onClear, onUploadSuccess }) => {
         }
     }
 
+    // -------------------------------------------------------- Handle Plaid Success.
+    const handlePlaidSuccess = (data) => {
+        setPlaidSuccess(`Successfully connected ${data.institution.name} and imported ${data.transactionCount} transactions!`);
+        setPlaidError('');
+        onUploadSuccess(); // Refresh the transaction list
+        setTimeout(() => {
+            setPlaidModal(false);
+            setPlaidSuccess('');
+        }, 3000);
+    };
+
+    // -------------------------------------------------------- Handle Plaid Error.
+    const handlePlaidError = (error) => {
+        setPlaidError(error);
+        setPlaidSuccess('');
+    };
+
+    // -------------------------------------------------------- Handle Closing Plaid Modal.
+    const closePlaidModal = () => {
+        setPlaidModal(false);
+        setPlaidSuccess('');
+        setPlaidError('');
+    };
+
     const TRANSACTION_TYPE_OPTIONS = {
         sale: "Purchase",
         payment: "Credit Card Payment",
@@ -162,6 +198,12 @@ const FilesActionsBar = ({ onClear, onUploadSuccess }) => {
                             }}>
                                 Add Transaction
                             </DropDownItem>
+                            <DropDownItem onClick={() => {
+                                setPlaidModal(true);
+                                setShowAddMenu(false);
+                            }}>
+                                Connect Bank
+                            </DropDownItem>
                         </DropDownMenu>
                     )}
                 </AddMenuWrapper>
@@ -174,6 +216,7 @@ const FilesActionsBar = ({ onClear, onUploadSuccess }) => {
                     <FontAwesomeIcon icon={faRefresh} />
                 </RefreshContentsButton>
             </BarWrapper>
+
             { uploadModal && (
                 <UploadModal onClick={closeUploadModal}>
                     <UploadModalContent onClick={e => e.stopPropagation()}>
@@ -203,6 +246,7 @@ const FilesActionsBar = ({ onClear, onUploadSuccess }) => {
                     </UploadModalContent>
                 </UploadModal>
             )}
+
             { transactionModal && (
                 <TransactionModal onClick={() => setTransactionModal(false)}>
                     <TransactionContent onClick={e => e.stopPropagation()}>
@@ -256,7 +300,32 @@ const FilesActionsBar = ({ onClear, onUploadSuccess }) => {
                         </TransactionInputs>
                     </TransactionContent>
                 </TransactionModal>
-            )}  
+            )}
+
+            { plaidModal && (
+                <PlaidModal onClick={closePlaidModal}>
+                    <PlaidModalContent onClick={e => e.stopPropagation()}>
+                        <h2>Connect Your Bank Account</h2>
+                        
+                        {plaidSuccess && (
+                            <SuccessMessage>
+                                {plaidSuccess}
+                            </SuccessMessage>
+                        )}
+                        
+                        {plaidError && (
+                            <ErrorMessage>
+                                {plaidError}
+                            </ErrorMessage>
+                        )}
+                        
+                        <PlaidLink 
+                            onSuccess={handlePlaidSuccess}
+                            onError={handlePlaidError}
+                        />
+                    </PlaidModalContent>
+                </PlaidModal>
+            )}
         </Actions>
     );  
 }
@@ -503,6 +572,46 @@ const ErrorMessage = styled.div`
     background-color: #f8d7da;
     border: 1px solid #f5c6cb;
     color: #721c24;
+    padding: 0.75rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    text-align: center;
+    margin: 0.5rem 0;
+`
+// -------------------------------------------------------- Transaction Modal Wrapper.
+const PlaidModal = styled.div`
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+`
+// -------------------------------------------------------- Content Of Transaction Modal.
+const PlaidModalContent = styled.div`
+    background: white;
+    padding: 2rem;
+    border-radius: 16px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
+    animation: fadeIn 0.25s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    h2 {
+        margin: 0;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid rgba(0, 0, 0, 0.2);
+    }
+`
+// -------------------------------------------------------- Success Message Display.
+const SuccessMessage = styled.div`
+    background-color: #d1e7dd;
+    border: 1px solid #badbcc;
+    color: #0f5132;
     padding: 0.75rem;
     border-radius: 6px;
     font-size: 0.9rem;

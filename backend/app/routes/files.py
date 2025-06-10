@@ -1,20 +1,13 @@
 # Imports.
 from sqlalchemy.orm import Session
-from app.database import SessionLocal
 from fastapi import APIRouter, Depends, HTTPException, Body
 
 # Local Imports.
-from app.models import UploadedFileOut, TransactionOut
+from app.utils.db_utils import get_db
 from app.database import UploadedFile, Transaction
+from app.models import UploadedFileOut, TransactionOut
 
 router = APIRouter()      # Sets Up Modular Sub-Router For FastAPI.
-
-def get_db():
-    db = SessionLocal()   # Create A New Database Session.
-    try:
-        yield db          # Provide The Session To The Route That Depends On it.
-    finally:
-        db.close()        # Ensure Session Is Properly Closed After Request Finishes.
 
 # ----------------------------------------------------------------------- Get All Files.
 @router.get("/files", response_model=list[UploadedFileOut])

@@ -9,3 +9,6 @@ TRANSACTION_TYPE_LABELS = {
     "transfer": "Transfer",
     "other": "Other",
 }
+
+NEGATIVE_TYPES = {"sale", "fee", "interest", "adjustment"}
+POSITIVE_TYPES = {"refund", "payment", "transfer"}

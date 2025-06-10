@@ -6,18 +6,11 @@ from app.database import SessionLocal
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Form
 
 # Local Imports.
+from app.utils.db_utils import get_db
 from app.parser import parse_chase_csv
 from app.database import Transaction, UploadedFile
 
 router = APIRouter()      # Sets Up Modular Sub-Router For FastAPI.
-
-def get_db():
-    db = SessionLocal()   # Create A New Database Session.
-    try:
-        yield db          # Provide The Session To The Route That Depends On it.
-    finally:
-        db.close()        # Ensure Session Is Properly Closed After Request Finishes.
-
 
 # ----------------------------------------------------------------------- Upload CSV File.
 @router.post("/upload")

@@ -10,9 +10,9 @@ import FileUpload from '../components/FileUpload';
 import TransactionTable from '../components/TransactionTable';
 
 // API.
-import { fetchTransactions } from '../services/api';
-import { deleteFile, renameFile, getFiles } from '../services/api';
 import { emptyDatabase } from '../services/api';
+import { deleteFile, renameFile, getFiles } from '../services/api';
+import { fetchTransactions, deleteTransaction } from '../services/api';
 
 // Dashboard Component.
 const Dashboard = () => {
@@ -80,10 +80,20 @@ const Dashboard = () => {
     };
 
     // -------------------------------------------------------- Deletes Requested File.
-    const handleDelete = async(fileId) => {
+    const handleDeleteFile = async(fileId) => {
         try {                                           // Try.
             await deleteFile(fileId);                       // API Request For Deleting File by 'fileId'.
-            loadFiles();                                    // Reload Files.
+            refreshSite();                                    // Reload Files.
+        } catch (err) {                                 // If Error.
+            console.error("Delete Failed:", err);           // Display Error To Console.
+        }
+    };
+
+    // -------------------------------------------------------- Deletes Requested Transaction.
+    const handleDeleteTransaction = async(transactionId) => {
+        try {                                           // Try.
+            await deleteTransaction(transactionId);        // API Request For Deleting Transaction by 'txId'.
+            refreshSite();                                  // Reload Transactions And Files.
         } catch (err) {                                 // If Error.
             console.error("Delete Failed:", err);           // Display Error To Console.
         }
@@ -110,14 +120,18 @@ const Dashboard = () => {
             )}
             { hasEverHadData && (
                 <>
-                    <FilesActionsBar onClear={clearDB} onUploadSuccess={refreshSite}/>
+                    <FilesActionsBar 
+                        onClear={clearDB} 
+                        onUploadSuccess={refreshSite}
+                    />
                     <FileList 
                         files={files} 
-                        onDelete={handleDelete} 
+                        onDelete={handleDeleteFile} 
                         onRename={handleRename}
                     />
                     <TransactionTable 
                         transactions={transactions} 
+                        onDelete={handleDeleteTransaction}
                     />
                 </>
             )}

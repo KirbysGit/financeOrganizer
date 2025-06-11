@@ -37,38 +37,124 @@ const PlaidLink = ({ onSuccess, onError }) => {
     // -------------------------------------------------------- Handle Successful Plaid Connection.
     const handlePlaidSuccess = async (publicToken, metadata) => {
         try {
+            console.log('\n🎉 PLAID LINK SUCCESS!');
+            console.log('📥 Public Token:', publicToken.substring(0, 20) + '...');
+            console.log('📊 Metadata received from Plaid Link:');
+            console.log('   - Institution:', metadata.institution);
+            console.log('   - Accounts:', metadata.accounts);
+            console.log('   - Link Session ID:', metadata.link_session_id);
+            console.log('   - Request ID:', metadata.request_id);
+            console.log('   - Full Metadata Object:', metadata);
+            
             // Set Loading State True.
             setLoading(true);
+            setError(''); // Clear any previous errors
             
             // Exchange Public Token For Access Token.
+            console.log('\n🔄 EXCHANGING PUBLIC TOKEN...');
             const tokenResponse = await exchangePublicToken(publicToken);
-            const accessToken = tokenResponse.data.access_token;
+            console.log('✅ Token Exchange Response:', tokenResponse.data);
             
-            // Fetch Transactions W/ Access Token.
-            const transactionsResponse = await fetchPlaidTransactions(accessToken);
+            const accessToken = tokenResponse.data.access_token;
+            console.log('🔑 Access Token:', accessToken.substring(0, 20) + '...');
             
             // Store Access Token For Future Use.
             localStorage.setItem('plaid_access_token', accessToken);
+            console.log('💾 Access token stored in localStorage');
             
-            // If Success, Save Data, And Refresh.
-            if (onSuccess) {
-                onSuccess({
-                    accessToken,
-                    institution: metadata.institution,
-                    accounts: metadata.accounts,
-                    transactionCount: transactionsResponse.data.new_transactions
-                });
-            }
+            // Fetch Transactions W/ Access Token (with retry handling).
+            console.log('\n💳 STARTING TRANSACTION FETCH...');
+            await fetchTransactionsWithRetry(accessToken, metadata);
             
         } catch (error) {
             // If Error, Display, And Handle Exit.
-            console.error('Error handling Plaid success:', error);
+            console.error('❌ Error handling Plaid success:', error);
+            console.error('   - Error message:', error.message);
+            console.error('   - Error response:', error.response?.data);
             if (onError) {
                 onError('Failed to connect bank account. Please try again.');
             }
         } finally {
             // Set Loading To False.
             setLoading(false);
+        }
+    };
+
+    // -------------------------------------------------------- Fetch Transactions with Retry Logic.
+    const fetchTransactionsWithRetry = async (accessToken, metadata, retryCount = 0) => {
+        const maxRetries = 3;
+        
+        console.log(`\n🔄 FETCH ATTEMPT ${retryCount + 1}/${maxRetries + 1}`);
+        console.log('🔑 Using Access Token:', accessToken.substring(0, 20) + '...');
+        
+        try {
+            const transactionsResponse = await fetchPlaidTransactions(accessToken);
+            console.log('✅ TRANSACTION FETCH SUCCESS!');
+            console.log('📊 Response Data:', transactionsResponse.data);
+            
+            // Success! Show results
+            if (onSuccess) {
+                const successData = {
+                    accessToken,
+                    institution: metadata.institution,
+                    accounts: metadata.accounts,
+                    transactionCount: transactionsResponse.data.new_transactions,
+                    totalFetched: transactionsResponse.data.total_fetched,
+                    attempts: transactionsResponse.data.attempts
+                };
+                
+                console.log('🎯 Calling onSuccess with data:', successData);
+                onSuccess(successData);
+            }
+            
+        } catch (error) {
+            console.log(`❌ FETCH ATTEMPT ${retryCount + 1} FAILED`);
+            console.log('   - Error:', error.message);
+            console.log('   - Status:', error.response?.status);
+            console.log('   - Response Data:', error.response?.data);
+            
+            const errorData = error.response?.data?.detail;
+            
+            // Check if this is a PRODUCT_NOT_READY error (status 202)
+            if (error.response?.status === 202 && errorData?.error === 'PRODUCT_NOT_READY') {
+                console.log('⏰ PRODUCT_NOT_READY detected');
+                
+                if (retryCount < maxRetries) {
+                    // Show user-friendly message about the delay
+                    const message = `Processing your bank data... This may take a moment in sandbox mode. Attempt ${retryCount + 1}/${maxRetries + 1}`;
+                    console.log('📢 User message:', message);
+                    setError(message);
+                    
+                    // Wait and retry
+                    console.log('⏳ Waiting 5 seconds before retry...');
+                    setTimeout(() => {
+                        fetchTransactionsWithRetry(accessToken, metadata, retryCount + 1);
+                    }, 5000); // Wait 5 seconds before retry
+                    
+                    return; // Don't proceed to error handling
+                } else {
+                    // Max retries reached
+                    console.log('🏁 Max retries reached - showing partial success');
+                    if (onSuccess) {
+                        const partialSuccessData = {
+                            accessToken,
+                            institution: metadata.institution,
+                            accounts: metadata.accounts,
+                            transactionCount: 0,
+                            message: "Bank connected successfully! Transaction data is still processing and will be available shortly.",
+                            isProcessing: true
+                        };
+                        
+                        console.log('🎯 Calling onSuccess with partial data:', partialSuccessData);
+                        onSuccess(partialSuccessData);
+                    }
+                    return;
+                }
+            }
+            
+            // Other errors
+            console.log('💥 Non-retryable error - throwing');
+            throw error;
         }
     };
 

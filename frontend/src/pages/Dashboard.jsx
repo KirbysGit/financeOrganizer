@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 // Components.
 import FileList from '../components/FileList';
 import FilesActionsBar from '../components/ActionsBar';
-import FileUpload from '../components/FileUpload';
+import WelcomeScreen from '../components/WelcomeScreen';
 import TransactionTable from '../components/TransactionTable';
 
 // API.
@@ -19,9 +19,9 @@ const Dashboard = () => {
     const [transactions, setTransactions] = useState([]);       // State 4 Storing All Transactions.
     const [files, setFiles] = useState([]);                     // State 4 Storing All Files.
 
-    const hasEverHadData = localStorage.getItem('hasEverHadData') === 'true';
-    const isEmpty = files.length === 0 && transactions.length === 0;
+    const hasEverHadData = localStorage.getItem('hasEverHadData') === 'true'; // Var 4 Storing If User Ever Loaded Site.
 
+    // -------------------------------------------------------- On Site Mount, Load ALl Data.
     useEffect(() => {
         loadTransactions();
         loadFiles();
@@ -112,11 +112,8 @@ const Dashboard = () => {
     // UI Component.
     return (
         <ExpenseContainer>
-            <Header>Expense Tracker</Header>
             { !hasEverHadData && (
-                <FileUploadWrapper>
-                    <FileUpload onUploadSuccess={refreshSite} />
-                </FileUploadWrapper>
+                <WelcomeScreen onSuccess={refreshSite} />
             )}
             { hasEverHadData && (
                 <>
@@ -145,7 +142,7 @@ const ExpenseContainer = styled.div`
     flex-direction: column;
     align-items: center;
     padding: 2rem;
-    background-color: #f8f9fa;
+    background: linear-gradient(135deg,rgb(231, 240, 250) 0%, #e9ecef 100%);
     min-height: 100vh;
 `
 // -------------------------------------------------------- Header Container.
@@ -158,11 +155,6 @@ const Header = styled.div`
     justify-content: flex-start;
     margin-bottom: 1.5rem;
     color: #343a40;
-`
-// -------------------------------------------------------- Container For File Upload Process.
-const FileUploadWrapper = styled.div`
-    margin-bottom: 2rem;
-    width: 100%;
 `
 
 export default Dashboard;

@@ -1,11 +1,12 @@
 import React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { styled } from 'styled-components';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEllipsisV, faTrash } from '@fortawesome/free-solid-svg-icons';
 
 // Local Imports.
 import '../styles/colors.css';
+import {getStats } from '../services/api.js';
 
 const TransactionTable = ({ transactions, onDelete }) => {
 
@@ -244,7 +245,7 @@ const Controls = styled.div`
 // -------------------------------------------------------- Table Wrapper.
 const StyledTable = styled.table`
     table-layout: fixed;
-    width: 80%;
+    width: 90%;
     border-collapse: separate;
     overflow: hidden;
     border-spacing: 0;

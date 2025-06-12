@@ -5,6 +5,8 @@ import { useState, useEffect } from 'react';
 
 // Components.
 import FileList from '../components/FileList';
+import AccountList  from '../components/AccountList';
+import StatsSection from '../components/StatsSection';
 import FilesActionsBar from '../components/ActionsBar';
 import WelcomeScreen from '../components/WelcomeScreen';
 import TransactionTable from '../components/TransactionTable';
@@ -117,15 +119,17 @@ const Dashboard = () => {
             )}
             { hasEverHadData && (
                 <>
-                    <FilesActionsBar 
+                    <StatsSection />
+                    <AccountList />
+                    {/*<FilesActionsBar 
                         onClear={clearDB} 
                         onUploadSuccess={refreshSite}
-                    />
-                    <FileList 
+                    />*/}
+                    {/*<FileList 
                         files={files} 
                         onDelete={handleDeleteFile} 
                         onRename={handleRename}
-                    />
+                    />*/}
                     <TransactionTable 
                         transactions={transactions} 
                         onDelete={handleDeleteTransaction}

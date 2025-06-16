@@ -832,6 +832,12 @@ const PlaidModalContent = styled.div`
     overflow-y: auto;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     animation: modalSlideIn 0.3s ease-out;
+    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;  /* IE and Edge */
+
+    &::-webkit-scrollbar {
+        display: none;  /* Chrome, Safari, Opera */
+    }
 
     @keyframes modalSlideIn {
         from {
@@ -898,6 +904,13 @@ const PlaidModalBody = styled.div`
     display: flex;
     flex-direction: column;
     gap: 2.5rem;
+    overflow-y: auto;
+    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;  /* IE and Edge */
+
+    &::-webkit-scrollbar {
+        display: none;  /* Chrome, Safari, Opera */
+    }
 `;
 
 const SecuritySection = styled.div`
@@ -908,6 +921,7 @@ const SecuritySection = styled.div`
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+    overflow: hidden;
 `;
 
 const SecurityTitle = styled.h3`
@@ -961,6 +975,7 @@ const BenefitsSection = styled.div`
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+    overflow: hidden;
 `;
 
 const BenefitsTitle = styled.h3`
@@ -994,6 +1009,7 @@ const PlaidButtonSection = styled.div`
     background: linear-gradient(135deg, #f0f8ff, #ffffff);
     border-radius: 16px;
     border: 1px solid #e3f2fd;
+    overflow: hidden;
 `;
 
 const DisclaimerText = styled.p`

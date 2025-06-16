@@ -1,8 +1,9 @@
 # Imports.
-from sqlalchemy import func
+from sqlalchemy import func, extract
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from fastapi import APIRouter, Depends
+from datetime import datetime, timedelta
 
 # Local Imports.
 from app.utils.db_utils import get_db
@@ -160,44 +161,134 @@ def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):
 # ----------------------------------------------------------------------- Get Transaction Statistics.
 @router.get("/stats")
 def get_transaction_stats(db: Session = Depends(get_db)):
-    # Basic Counts For Transactions & Accounts.
+
+    # Get current date and calculate time ranges
+    now = datetime.now()
+    start_of_month = datetime(now.year, now.month, 1)
+    start_of_week = now - timedelta(days=now.weekday())
+    thirty_days_ago = now - timedelta(days=30)
+
+    # Basic Counts For Transactions & Accounts
     total_transactions = db.query(Transaction).count()
     total_accounts = db.query(Account).filter(Account.is_active == True).count()
     
-    # Breakdown Amount From Each Source.
+    # Breakdown Amount From Each Source
     plaid_count = db.query(Transaction).filter(Transaction.source == "plaid").count()
     csv_count = db.query(Transaction).filter(Transaction.source == "csv").count()
     manual_count = db.query(Transaction).filter(Transaction.source == "manual").count()
     
-    # Category Breakdown (Top 5 Spending Categories).
+    # Time-based spending analysis
+    total_spending = db.query(func.sum(Transaction.amount)).filter(Transaction.amount < 0).scalar() or 0
+    monthly_spending = db.query(func.sum(Transaction.amount)).filter(
+        Transaction.amount < 0,
+        Transaction.date >= start_of_month
+    ).scalar() or 0
+    weekly_spending = db.query(func.sum(Transaction.amount)).filter(
+        Transaction.amount < 0,
+        Transaction.date >= start_of_week
+    ).scalar() or 0
+    thirty_day_spending = db.query(func.sum(Transaction.amount)).filter(
+        Transaction.amount < 0,
+        Transaction.date >= thirty_days_ago
+    ).scalar() or 0
+
+    # Income analysis
+    total_income = db.query(func.sum(Transaction.amount)).filter(Transaction.amount > 0).scalar() or 0
+    monthly_income = db.query(func.sum(Transaction.amount)).filter(
+        Transaction.amount > 0,
+        Transaction.date >= thirty_days_ago
+    ).scalar() or 0
+
+    # Monthly spending (last 30 days)
+    monthly_spending = db.query(func.sum(Transaction.amount)).filter(
+        Transaction.amount < 0,
+        Transaction.date >= thirty_days_ago
+    ).scalar() or 0
+
+    # Calculate monthly cash flow
+    monthly_cash_flow = monthly_income + monthly_spending  # monthly_spending is already negative
+
+    # Category Breakdown (Top 5 Spending Categories)
     top_categories = db.query(
         Transaction.category_primary,
         func.count(Transaction.id).label('count'),
         func.sum(Transaction.amount).label('total_amount')
     ).group_by(Transaction.category_primary).order_by(func.count(Transaction.id).desc()).limit(5).all()
     
-    # Account Balanaces.
-    total_balance = db.query(func.sum(Account.current_balance)).filter(Account.is_active == True).scalar() or 0
-    
-    # Return Stats For All Transactions.
+    # Monthly category breakdown
+    monthly_categories = db.query(
+        Transaction.category_primary,
+        func.sum(Transaction.amount).label('total_amount')
+    ).filter(
+        Transaction.date >= start_of_month
+    ).group_by(Transaction.category_primary).all()
+
+    # Account Balances
+    total_assets = db.query(func.sum(Account.current_balance)).filter(
+        Account.is_active == True,
+        Account.type.in_(['depository', 'investment'])
+    ).scalar() or 0
+
+    total_liabilities = db.query(func.sum(Account.current_balance)).filter(
+        Account.is_active == True,
+        Account.type.in_(['credit', 'loan'])
+    ).scalar() or 0
+
+    net_worth = total_assets - total_liabilities
+
+    # Average transaction amount
+    avg_transaction = db.query(func.avg(Transaction.amount)).scalar() or 0
+
+    # Return enhanced stats
     return {
         "totals": {
             "transactions": total_transactions,
             "accounts": total_accounts,
-            "total_balance": total_balance
+            "total_assets": float(total_assets),
+            "total_liabilities": float(total_liabilities),
+            "net_worth": float(net_worth),
+            "average_transaction": float(avg_transaction)
+        },
+        "spending": {
+            "total": float(total_spending),
+            "this_month": float(monthly_spending),
+            "this_week": float(weekly_spending),
+            "last_30_days": float(monthly_spending)
+        },
+        "income": {
+            "total": float(total_income),
+            "this_month": float(monthly_income),
+            "last_30_days": float(monthly_income)
+        },
+        "cash_flow": {
+            "last_30_days": float(monthly_cash_flow)
         },
         "sources": {
             "plaid": plaid_count,
             "csv": csv_count,
             "manual": manual_count
         },
-        "top_categories": [
-            {
-                "category": cat.category_primary,
-                "count": cat.count,
-                "total_amount": float(cat.total_amount) if cat.total_amount else 0
-            }
-            for cat in top_categories
-        ]
+        "categories": {
+            "top_spending": [
+                {
+                    "category": cat.category_primary,
+                    "count": cat.count,
+                    "total_amount": float(cat.total_amount) if cat.total_amount else 0
+                }
+                for cat in top_categories
+            ],
+            "monthly_breakdown": [
+                {
+                    "category": cat.category_primary,
+                    "total_amount": float(cat.total_amount) if cat.total_amount else 0
+                }
+                for cat in monthly_categories
+            ]
+        },
+        "time_periods": {
+            "current_month": start_of_month.strftime("%Y-%m-%d"),
+            "current_week": start_of_week.strftime("%Y-%m-%d"),
+            "thirty_days_ago": thirty_days_ago.strftime("%Y-%m-%d")
+        }
     }
 

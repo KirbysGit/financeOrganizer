@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import FileList from '../components/FileList';
 import AccountList  from '../components/AccountList';
 import StatsSection from '../components/StatsSection';
+import SpendingGrid from '../components/SpendingGrid';
 import FilesActionsBar from '../components/ActionsBar';
 import WelcomeScreen from '../components/WelcomeScreen';
 import TransactionTable from '../components/TransactionTable';
@@ -120,11 +121,12 @@ const Dashboard = () => {
             { hasEverHadData && (
                 <>
                     <StatsSection />
+                    <SpendingGrid />
                     <AccountList />
-                    {/*<FilesActionsBar 
+                    <FilesActionsBar 
                         onClear={clearDB} 
                         onUploadSuccess={refreshSite}
-                    />*/}
+                    />
                     {/*<FileList 
                         files={files} 
                         onDelete={handleDeleteFile} 

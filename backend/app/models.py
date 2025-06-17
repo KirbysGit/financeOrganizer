@@ -39,6 +39,13 @@ class TransactionOut(BaseModel):
     created_at: Optional[datetime]
     updated_at: Optional[datetime]
     notes: Optional[str]
+    
+    # Enhanced fields
+    is_duplicate: Optional[bool] = False
+    duplicate_count: Optional[int] = 0
+    last_updated: Optional[datetime] = None
+    account_details: Optional[dict] = None
+    institution_details: Optional[dict] = None
 
     class Config:
         from_attributes = True
@@ -58,7 +65,7 @@ class FileUploadOut(BaseModel):
     class Config:
         from_attributes = True
 
-# Plaid Models
+# Plaid Models.
 class LinkTokenRequest(BaseModel):
     user_id: str
 

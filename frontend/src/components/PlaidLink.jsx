@@ -3,20 +3,23 @@ import { styled } from 'styled-components';
 import React, { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBank, faSpinner } from '@fortawesome/free-solid-svg-icons';
+
+// Local Imports.
 import { createLinkToken, exchangePublicToken, fetchPlaidTransactions } from '../services/api';
 
+// -------------------------------------------------------- PlaidLink Component.
 const PlaidLink = ({ onSuccess, onError }) => {
     
     const [error, setError] = useState('');                 // State 4 Storing Error Message.
     const [loading, setLoading] = useState(false);          // State 4 Storing If Modal Is Loading.
     const [linkToken, setLinkToken] = useState(null);       // State 4 Storing Link Token.
 
-    // -------------------------------------------------------- Set Link Upon Component Mount.
+    // Set Link Upon Component Mount.
     useEffect(() => {
         initializePlaidLink();
     }, []);
 
-    // -------------------------------------------------------- Initialize The Link For Plaid API.
+    // Initialize The Link For Plaid API.
     const initializePlaidLink = async () => {
         try {
             // Create UserID, Set Up Response For Plaid Link Token.
@@ -34,7 +37,7 @@ const PlaidLink = ({ onSuccess, onError }) => {
         }
     };
 
-    // -------------------------------------------------------- Handle Successful Plaid Connection.
+    // Handle Successful Plaid Connection.
     const handlePlaidSuccess = async (publicToken, metadata) => {
         try {
             console.log('\n🎉 PLAID LINK SUCCESS!');
@@ -80,7 +83,7 @@ const PlaidLink = ({ onSuccess, onError }) => {
         }
     };
 
-    // -------------------------------------------------------- Fetch Transactions with Retry Logic.
+    // Fetch Transactions With Retry Logic.
     const fetchTransactionsWithRetry = async (accessToken, metadata, retryCount = 0) => {
         const maxRetries = 3;
         
@@ -158,7 +161,7 @@ const PlaidLink = ({ onSuccess, onError }) => {
         }
     };
 
-    // -------------------------------------------------------- Handle Plaid Exit.
+    // Handle Plaid Exit.
     const handlePlaidExit = (error, metadata) => {
         if (error) {
             // Display Error & Exit Properly.
@@ -169,7 +172,7 @@ const PlaidLink = ({ onSuccess, onError }) => {
         }
     };
 
-    // -------------------------------------------------------- Open Plaid Link.
+    // Open Plaid Link.
     const openPlaidLink = () => {
         // If No Link Token, Error & Exit.
         if (!linkToken) {
@@ -190,7 +193,7 @@ const PlaidLink = ({ onSuccess, onError }) => {
         handler.open();
     };
 
-    // -------------------------------------------------------- Load Plaid Script If Not Loaded.
+    // Load Plaid Script If Not Loaded.
     useEffect(() => {
         if (!window.Plaid) {
             const script = document.createElement('script');

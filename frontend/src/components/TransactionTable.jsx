@@ -6,10 +6,11 @@ import { faEllipsisV, faTrash } from '@fortawesome/free-solid-svg-icons';
 
 // Local Imports.
 import '../styles/colors.css';
-import {getStats } from '../services/api.js';
+import { getStats } from '../services/api.js';
 
+// -------------------------------------------------------- TransactionTable Component.
 const TransactionTable = ({ transactions, onDelete }) => {
-
+    // States.
     const [currentPage, setCurrentPage] = useState(1);                          // Use State 4 Setting Pages. Default Page #1.
     const [entriesPerPage, setEntriesPerPage] = useState(10);                   // Use State 4 Amount Of Entries Per Page. Default Page #10.
     const [selectedIds, setSelectedIds] = useState(new Set());                  // Use State 4 Storing All Transactions That Are Selected.

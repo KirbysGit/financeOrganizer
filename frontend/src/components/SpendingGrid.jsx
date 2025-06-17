@@ -30,6 +30,7 @@ const SpendingGrid = () => {
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [chartData, setChartData] = useState(null);
+    const [viewMode, setViewMode] = useState('daily'); // 'daily' or 'cumulative'
 
     useEffect(() => {
         const getTransactions = async () => {
@@ -55,16 +56,14 @@ const SpendingGrid = () => {
     }, []);
 
     const processChartData = (transactions) => {
-        // Get the last 30 days of data
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-        // Filter transactions from last 30 days
         const recentTransactions = transactions.filter(tx => 
             new Date(tx.date) >= thirtyDaysAgo
         );
 
-        // Create an array of dates for the last 30 days
+        // Create array of dates for the last 30 days
         const dates = Array.from({ length: 30 }, (_, i) => {
             const date = new Date();
             date.setDate(date.getDate() - (29 - i));
@@ -87,7 +86,10 @@ const SpendingGrid = () => {
             }
         });
 
-        // Calculate running totals
+        // Calculate net cash flow
+        const netData = incomeData.map((inc, i) => inc - spendingData[i]);
+
+        // Calculate cumulative if needed
         let runningIncome = 0;
         let runningSpending = 0;
         const cumulativeIncome = incomeData.map(amount => {
@@ -101,39 +103,46 @@ const SpendingGrid = () => {
 
         return {
             labels: dates.map(date => new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
-            income: cumulativeIncome,
-            spending: cumulativeSpending
+            daily: {
+                income: incomeData,
+                spending: spendingData,
+                net: netData
+            },
+            cumulative: {
+                income: cumulativeIncome,
+                spending: cumulativeSpending,
+                net: netData.map((_, i) => cumulativeIncome[i] - cumulativeSpending[i])
+            }
         };
     };
 
     const chartOptions = {
         responsive: true,
         maintainAspectRatio: false,
+        animation: {
+            duration: 800,
+            easing: 'easeInOutQuart'
+        },
         plugins: {
             legend: {
-                position: 'top',
-                labels: {
-                    font: {
-                        size: 14,
-                        family: "'Inter', sans-serif"
-                    },
-                    padding: 20
-                }
+                display: false // We'll use custom legend
             },
             tooltip: {
                 mode: 'index',
                 intersect: false,
-                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                backgroundColor: 'rgba(255, 255, 255, 0.95)',
                 titleColor: '#333',
                 bodyColor: '#666',
-                borderColor: '#ddd',
+                borderColor: 'rgba(0, 0, 0, 0.1)',
                 borderWidth: 1,
                 padding: 12,
                 boxPadding: 6,
                 usePointStyle: true,
                 callbacks: {
                     label: function(context) {
-                        return `${context.dataset.label}: ${formatCurrency(context.raw)}`;
+                        const label = context.dataset.label || '';
+                        const value = formatCurrency(context.raw);
+                        return `${label}: ${value}`;
                     }
                 }
             }
@@ -144,25 +153,34 @@ const SpendingGrid = () => {
                     display: false
                 },
                 ticks: {
-                    maxRotation: 45,
-                    minRotation: 45,
+                    maxRotation: 0,
                     font: {
-                        size: 12
+                        size: 12,
+                        family: "'Inter', sans-serif"
+                    },
+                    color: '#666',
+                    callback: function(value, index) {
+                        // Show every 5th tick
+                        return index % 5 === 0 ? this.getLabelForValue(value) : '';
                     }
                 }
             },
             y: {
                 beginAtZero: true,
                 grid: {
-                    color: 'rgba(0, 0, 0, 0.05)'
+                    color: 'rgba(0, 0, 0, 0.05)',
+                    drawBorder: false
                 },
                 ticks: {
                     callback: function(value) {
                         return formatCurrency(value);
                     },
                     font: {
-                        size: 12
-                    }
+                        size: 12,
+                        family: "'Inter', sans-serif"
+                    },
+                    color: '#666',
+                    padding: 10
                 }
             }
         },
@@ -170,32 +188,67 @@ const SpendingGrid = () => {
             mode: 'nearest',
             axis: 'x',
             intersect: false
+        },
+        elements: {
+            line: {
+                tension: 0.4
+            },
+            point: {
+                radius: 0,
+                hitRadius: 10,
+                hoverRadius: 4
+            }
         }
     };
 
-    const getChartData = () => ({
-        labels: chartData?.labels || [],
-        datasets: [
-            {
-                label: 'Income',
-                data: chartData?.income || [],
-                borderColor: 'rgb(40, 167, 69)',
-                backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                borderWidth: 2,
-                tension: 0.4,
-                fill: true
-            },
-            {
-                label: 'Spending',
-                data: chartData?.spending || [],
-                borderColor: 'rgb(220, 53, 69)',
-                backgroundColor: 'rgba(220, 53, 69, 0.1)',
-                borderWidth: 2,
-                tension: 0.4,
-                fill: true
-            }
-        ]
-    });
+    const getChartData = () => {
+        const data = viewMode === 'daily' ? chartData?.daily : chartData?.cumulative;
+        return {
+            labels: chartData?.labels || [],
+            datasets: [
+                {
+                    label: 'Income',
+                    data: data?.income || [],
+                    borderColor: 'var(--amount-positive)',
+                    backgroundColor: 'rgba(40, 167, 69, 0.15)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: 'var(--amount-positive)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'var(--amount-positive)'
+                },
+                {
+                    label: 'Spending',
+                    data: data?.spending || [],
+                    borderColor: 'var(--amount-negative)',
+                    backgroundColor: 'rgba(220, 53, 69, 0.15)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: 'var(--amount-negative)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'var(--amount-negative)'
+                },
+                {
+                    label: 'Net Cash Flow',
+                    data: data?.net || [],
+                    borderColor: 'var(--button-primary)',
+                    backgroundColor: 'rgba(13, 110, 253, 0.15)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: false,
+                    pointBackgroundColor: 'var(--button-primary)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'var(--button-primary)',
+                    hidden: true
+                }
+            ]
+        };
+    };
 
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-US', {
@@ -242,7 +295,37 @@ const SpendingGrid = () => {
                 )}
             </RecentTransactions>
             <CashFlowChart>
-                <SectionTitle>Monthly Cash Flow</SectionTitle>
+                <ChartHeader>
+                    <SectionTitle>Your Past 30 Days at a Glance</SectionTitle>
+                    <ViewToggle>
+                        <ToggleButton 
+                            active={viewMode === 'daily'} 
+                            onClick={() => setViewMode('daily')}
+                        >
+                            Daily
+                        </ToggleButton>
+                        <ToggleButton 
+                            active={viewMode === 'cumulative'} 
+                            onClick={() => setViewMode('cumulative')}
+                        >
+                            Cumulative
+                        </ToggleButton>
+                    </ViewToggle>
+                </ChartHeader>
+                <LegendRow>
+                    <LegendItem>
+                        <LegendDot color="var(--amount-positive)" />
+                        Income
+                    </LegendItem>
+                    <LegendItem>
+                        <LegendDot color="var(--amount-negative)" />
+                        Spending
+                    </LegendItem>
+                    <LegendItem>
+                        <LegendDot color="var(--button-primary)" />
+                        Net Flow
+                    </LegendItem>
+                </LegendRow>
                 {loading ? (
                     <LoadingMessage>Loading chart data...</LoadingMessage>
                 ) : chartData ? (
@@ -285,15 +368,26 @@ const RecentTransactions = styled.div`
 
 const SectionTitle = styled.h2`
     font-size: 1.5rem;
+    justify-self: center;
+    align-self: center;
     font-weight: 600;
     margin: 0;
-    color: var(--text-primary);
+    color: var(--text-secondary);
+    text-align: center;
+    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: none;
+    padding-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
+    width: 70%;
+    border-bottom: 4px solid rgba(100, 100, 100, 0.1);
 `
 
 const TransactionList = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 1rem;
     overflow-y: auto;
     padding-right: 0.5rem;
 `
@@ -304,10 +398,11 @@ const TransactionItem = styled.div`
     align-items: center;
     padding: 0.75rem;
     background: rgba(255, 255, 255, 0.7);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 5px 6px rgba(0, 0, 0, 0.2);
     border: 3px solid transparent;
     border-radius: 12px;
     transition: all 0.2s ease;
+    margin-bottom: 1rem;
 
     &:hover {
         border: 3px solid rgb(33, 144, 248);
@@ -375,6 +470,58 @@ const ChartContainer = styled.div`
     height: 400px;
     width: 100%;
     padding: 1rem 0;
+`
+
+const ChartHeader = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+`
+
+const ViewToggle = styled.div`
+    display: flex;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.5);
+    padding: 0.25rem;
+    border-radius: 8px;
+`
+
+const ToggleButton = styled.button`
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    background: ${props => props.active ? 'var(--button-primary)' : 'transparent'};
+    color: ${props => props.active ? 'white' : 'var(--text-secondary)'};
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: ${props => props.active ? 'var(--button-primary)' : 'rgba(33, 144, 248, 0.1)'};
+    }
+`
+
+const LegendRow = styled.div`
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+    margin-bottom: 1rem;
+`
+
+const LegendItem = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+`
+
+const LegendDot = styled.div`
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: ${props => props.color};
 `
 
 export default SpendingGrid;

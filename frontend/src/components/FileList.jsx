@@ -24,6 +24,7 @@ const FileList = ({ files, onDelete, onRename, onUploadFile }) => {
         setNewName("");                         // Clear Input Value.
     }
 
+    // If No Files, Return Empty State.
     if (files.length === 0) {
         return (
             <EmptyStateCard>

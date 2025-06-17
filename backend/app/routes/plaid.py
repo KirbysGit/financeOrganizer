@@ -266,11 +266,17 @@ async def fetch_transactions(access_token: str):
                             updated_at=datetime.now()
                         )
                         
-                        # Add Transaction To Database.
-                        db.add(new_transaction)
-                        
-                        # Increment Stored Count.
-                        stored_count += 1
+                        try:
+                            # Add Transaction To Database.
+                            db.add(new_transaction)
+                            # Increment Stored Count.
+                            stored_count += 1
+                        except Exception as e:
+                            if "UNIQUE constraint failed" in str(e):
+                                # Transaction hash already exists, Move On.
+                                continue
+                            else:
+                                raise e
                 
                 # Commit Transaction Changes To Database.
                 db.commit()

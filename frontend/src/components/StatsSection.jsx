@@ -1,15 +1,23 @@
+// Imports.
 import React from 'react';
-import { useEffect, useState } from 'react';
 import { styled } from 'styled-components';
+import { useEffect, useState } from 'react';
 
+// Local Imports.
 import { getStats } from '../services/api';
 
+// -------------------------------------------------------- StatsSection Component.
 const StatsSection = () => {
-    const [accounts, setAccounts] = useState([]);
-    const [stats, setStats] = useState({});
+    // Account States.
+    const [accounts, setAccounts] = useState([]);   // State 4 Account Data.
+
+    // Stats States.
+    const [stats, setStats] = useState({});         // State 4 Stats Data.
+
+    // Loading State.
     const [loading, setLoading] = useState(true);
 
-    // -------------------------------------------------------- Handle Stats Import
+    // -------------------------------------------------------- Handle Stats Import.
     const importStats = async () => {
         try {
             setLoading(true);
@@ -22,17 +30,19 @@ const StatsSection = () => {
         }
     };
 
+    // -------------------------------------------------------- Get Accounts.
     const getAccounts = async () => {
         const res = await getAccounts();
         setAccounts(res.data);
     }
 
+    // Use Effect To Import Stats & Accounts.
     useEffect(() => {
         importStats();
         getAccounts();
     }, []);
 
-    // -------------------------------------------------------- Calculate Monthly Spending
+    // -------------------------------------------------------- Calculate Monthly Spending.
     const getMonthlySpending = () => {
         // This is a placeholder - in the future we could add a monthly stats endpoint
         // For now, we'll use a simple calculation based on top categories
@@ -45,7 +55,7 @@ const StatsSection = () => {
         return 0;
     };
 
-    // -------------------------------------------------------- Format Currency
+    // -------------------------------------------------------- Format Currency.
     const formatCurrency = (amount) => {
         if (amount === undefined || amount === null) return '$0.00';
         return new Intl.NumberFormat('en-US', {
@@ -55,7 +65,7 @@ const StatsSection = () => {
         }).format(amount);
     };
 
-    // -------------------------------------------------------- Get Personalized Message
+    // -------------------------------------------------------- Get Personalized Message.
     const getNetWorthMessage = (netWorth) => {
         if (netWorth < 0) {
             return "No worries! We can help get you back on track. 💪";
@@ -68,6 +78,7 @@ const StatsSection = () => {
         }
     };
 
+    // -------------------------------------------------------- Get Assets Message.
     const getAssetsMessage = (assets) => {
         if (assets < 1000) {
             return "Starting your financial journey 🌱";
@@ -80,6 +91,7 @@ const StatsSection = () => {
         }
     };
 
+    // -------------------------------------------------------- Get Liabilities Message.
     const getLiabilitiesMessage = (liabilities) => {
         if (liabilities === 0) {
             return "Debt-free! You're crushing it! 🎉";
@@ -92,6 +104,7 @@ const StatsSection = () => {
         }
     };
 
+    // -------------------------------------------------------- Get Cash Flow Message.
     const getCashFlowMessage = (cashFlow) => {
         if (cashFlow > 1000) {
             return "Excellent cash flow! Keep it up! 💫";
@@ -106,7 +119,7 @@ const StatsSection = () => {
 
     return (
         <StatsWrapper>      
-            {/* Interactive Welcome Header */}
+            {/* Interactive Welcome Header. */}
             <WelcomeHeader>
                 <WelcomeContent>
                     <WelcomeGreeting>
@@ -123,7 +136,7 @@ const StatsSection = () => {
                 </WelcomeContent>
             </WelcomeHeader>
 
-            {/* Stats Cards Grid */}
+            {/* Stats Cards Grid. */}
             <BasicStats>
                 <StatsGrid>
                     <StatCard>
@@ -293,7 +306,7 @@ const StatsGrid = styled.div`
         grid-template-columns: 1fr;
     }
 `
-
+// -------------------------------------------------------- Stat Card.
 const StatCard = styled.div`
     background: rgba(255, 255, 255, 0.4);
     border-radius: 16px;
@@ -311,16 +324,14 @@ const StatCard = styled.div`
         box-shadow: 0 8px 12px rgba(65, 173, 255, 0.1);
     }
 `
-
 const StatLabel = styled.div`
     font-size: 1.2rem;
     color: var(--text-secondary);
     margin-bottom: 0.5rem;
     font-weight: 500;
 `
-
 const StatValue = styled.div`
-    font-size: 2.5rem;
+    font-size: clamp(1.5rem, 4vw, 2.3rem);
     font-weight: 700;
     margin: 0.5rem 0;
     padding-bottom: 0.75rem;
@@ -336,7 +347,7 @@ const StatValue = styled.div`
         font-size: 2rem;
     }
 `
-
+// -------------------------------------------------------- Customized Stat Message (e.g. "Let's start tracking your financial journey!").
 const StatMessage = styled.div`
     font-size: 1.2rem;
     color: var(--text-primary);
@@ -345,7 +356,7 @@ const StatMessage = styled.div`
     text-align: center;
     line-height: 1.4;
 `
-
+// -------------------------------------------------------- Waving Hand Emoji.
 const WavingHand = styled.span`
     display: inline-block;
     animation: wave 2.5s infinite;

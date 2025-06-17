@@ -11,117 +11,141 @@ Base = declarative_base()
 
 # -------------------------------------------------------- Account Model
 class Account(Base):
+    # Set Table Name.
     __tablename__ = "accounts"
     
-    id = Column(Integer, primary_key=True, index=True)
-    account_id = Column(String, unique=True, index=True)  # Plaid account ID
-    item_id = Column(String, index=True)  # Plaid item ID (institution connection)
-    name = Column(String)  # "Plaid Checking"
-    official_name = Column(String)  # Official bank name
-    type = Column(String)  # "depository", "credit", "loan", etc.
-    subtype = Column(String)  # "checking", "savings", "credit card", etc.
-    mask = Column(String)  # Last 4 digits
+    id = Column(Integer, primary_key=True, index=True)      # Account ID in DB. (Auto-Incrementing Primary Key)
+    account_id = Column(String, unique=True, index=True)    # Plaid Account ID. (Unique Identifier From Plaid API)
+    item_id = Column(String, index=True)                    # Plaid item ID. (Links Account To Institution Connection)
+    name = Column(String)                                   # Name Of Account. (User-Friendly Name)
+    official_name = Column(String)                          # Official Bank Name. (Formal Bank Account Name)
+    type = Column(String)                                   # Credit, Loan, Depository, etc. (Account Type From Plaid)
+    subtype = Column(String)                                # "Checking", "Savings", "Credit Card", etc. (Specific Account Subtype)
+    mask = Column(String)                                   # Last 4 Digits. (Account Number Mask For Display)
     
-    # Balance Information
-    current_balance = Column(Float)
-    available_balance = Column(Float)
-    limit = Column(Float)  # Credit limit for credit cards
-    currency = Column(String, default="USD")
+    # Balance Information.
+    current_balance = Column(Float)                         # Current Account Balance. (Real-Time From Plaid)
+    available_balance = Column(Float)                       # Available Balance. (Amount That Can Be Spent/Withdrawn)
+    limit = Column(Float)                                   # Credit Limit. (If Applicable)
+    currency = Column(String, default="USD")                # Currency Code. (Defaults To USD)
     
-    # Metadata
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime)
-    updated_at = Column(DateTime)
+    # Metadata.
+    is_active = Column(Boolean, default=True)               # Whether Account Is Currently Active/Connected.
+    created_at = Column(DateTime)                           # When Account Was First Created In Our System.
+    updated_at = Column(DateTime)                           # When Account Was Last Updated/Synced.
     
-    # Relationships
-    transactions = relationship("Transaction", back_populates="account")
+    # Relationships.
+    transactions = relationship("Transaction", back_populates="account")  # One-To-Many Relationship With Transactions.
 
 # -------------------------------------------------------- Enhanced Transaction Model
 class Transaction(Base):
-    __tablename__ = "transactions"
+    __tablename__ = "transactions"  # Physical Table Name In Database.
     
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True)      # Transaction ID In DB. (Auto-Incrementing Primary Key)
     
-    # Plaid Integration
-    transaction_id = Column(String, unique=True, index=True)  # Plaid transaction ID
-    account_id = Column(String, ForeignKey("accounts.account_id"))  # Link to account
+    # Plaid Integration.
+    transaction_id = Column(String, unique=True, index=True)  # Plaid Transaction ID. (Unique Identifier From Plaid API)
+    account_id = Column(String, ForeignKey("accounts.account_id"))  # Foreign Key Linking To Account. (Plaid Account ID)
     
-    # Basic Transaction Info
-    date = Column(Date, index=True)
-    amount = Column(Float)  # Negative for expenses, positive for income
+    # Basic Transaction Info.
+    date = Column(Date, index=True)                         # Transaction Date. (Indexed For Fast Date-Based Queries)
+    amount = Column(Float)                                  # Transaction Amount. (Negative For Expenses, Positive For Income)
     
-    # Merchant/Vendor Info
-    vendor = Column(String, index=True)  # Merchant name or manual entry
-    merchant_name = Column(String)  # Official merchant name from Plaid
-    description = Column(String)  # Transaction description
+    # Merchant/Vendor Info.
+    vendor = Column(String, index=True)                     # Merchant Name Or Manual Entry. (Indexed For Fast Vendor Searches)
+    merchant_name = Column(String)                          # Official Merchant Name From Plaid. (More Detailed Than Vendor)
+    description = Column(String)                            # Transaction Description. (Detailed Transaction Info)
     
-    # Categorization
-    category_primary = Column(String, index=True)  # Primary category
-    category_detailed = Column(String)  # Detailed subcategory
-    transaction_type = Column(String)  # "special", "place", "digital", etc.
+    # Categorization.
+    category_primary = Column(String, index=True)           # Primary Category. (e.g., "food", "transportation") - Indexed For Fast Category Queries
+    category_detailed = Column(String)                      # Detailed Subcategory. (e.g., "restaurants", "fast food")
+    transaction_type = Column(String)                       # "special", "place", "digital", etc. (Plaid Transaction Type)
     
-    # Source Tracking
-    source = Column(String, default="manual")  # "plaid", "csv", "manual"
-    file = Column(String)  # Original file name or "plaid"
+    # Source Tracking.
+    source = Column(String, default="manual")               # "plaid", "csv", "manual". (How Transaction Was Imported)
+    file = Column(String)                                   # Original File Name Or "plaid". (Tracks Import Source)
     
-    # Additional Plaid Data
-    iso_currency_code = Column(String, default="USD")
-    location_address = Column(String)
-    location_city = Column(String)
-    location_state = Column(String)
-    location_country = Column(String)
+    # Additional Plaid Data.
+    iso_currency_code = Column(String, default="USD")       # Currency Code. (Defaults To USD)
+    location_address = Column(String)                       # Full Address From Plaid. (If Available)
+    location_city = Column(String)                          # City From Plaid Location Data.
+    location_state = Column(String)                         # State From Plaid Location Data.
+    location_country = Column(String)                       # Country From Plaid Location Data.
     
-    # Payment Metadata
-    payment_reference = Column(String)
-    payment_method = Column(String)
+    # Payment Metadata. 
+    payment_reference = Column(String)                      # Payment Reference Number. (If Available)
+    payment_method = Column(String)                         # Payment Method Used. (e.g., "card", "ach")
     
-    # Metadata
-    created_at = Column(DateTime)
-    updated_at = Column(DateTime)
-    notes = Column(Text)  # User notes
+    # Metadata.
+    created_at = Column(DateTime)                           # When Transaction Was Created In Our System.
+    updated_at = Column(DateTime)                           # When Transaction Was Last Updated.
+    notes = Column(Text)                                    # User Notes. (Longer Text Field For Additional Info)
     
-    # Relationships
-    account = relationship("Account", back_populates="transactions")
+    # Duplicate Prevention.
+    transaction_hash = Column(String, unique=True, index=True)  # Hash Of Key Transaction Fields. (Prevents Duplicate Imports)
+    
+    # Relationships.
+    account = relationship("Account", back_populates="transactions")  # Many-To-One Relationship With Account.
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)  # Call Parent Class Constructor.
+        # Generate Transaction Hash For Duplicate Detection.
+        self.transaction_hash = self._generate_transaction_hash()
+
+    def _generate_transaction_hash(self):
+        """Generate a unique hash for the transaction based on its key attributes."""
+        import hashlib  # Import Hashlib For SHA-256 Hashing.
+        key_fields = [
+            str(self.transaction_id),    # Plaid Transaction ID.
+            str(self.account_id),        # Account ID.
+            str(self.date),              # Transaction Date.
+            str(self.amount),            # Transaction Amount.
+            str(self.vendor),            # Vendor Name.
+            str(self.merchant_name),     # Merchant Name.
+            str(self.description)        # Transaction Description.
+        ]
+        hash_string = "|".join(key_fields)  # Join Fields With Pipe Separator.
+        return hashlib.sha256(hash_string.encode()).hexdigest()  # Generate SHA-256 Hash.
 
 # -------------------------------------------------------- Institution Model
 class Institution(Base):
-    __tablename__ = "institutions"
+    __tablename__ = "institutions"  # Physical Table Name In Database.
     
-    id = Column(Integer, primary_key=True, index=True)
-    institution_id = Column(String, unique=True, index=True)  # Plaid institution ID
-    name = Column(String)  # "Chase", "Bank of America", etc.
-    item_id = Column(String, unique=True, index=True)  # Plaid item ID
+    id = Column(Integer, primary_key=True, index=True)      # Institution ID In DB. (Auto-Incrementing Primary Key)
+    institution_id = Column(String, unique=True, index=True)  # Plaid Institution ID. (Unique Identifier From Plaid API)
+    name = Column(String)                                   # "Chase", "Bank of America", etc. (Institution Name)
+    item_id = Column(String, unique=True, index=True)       # Plaid Item ID. (Unique Identifier For This Connection)
     
-    # Connection Status
-    is_connected = Column(Boolean, default=True)
-    last_sync = Column(DateTime)
-    access_token = Column(String)  # Encrypted access token
+    # Connection Status.
+    is_connected = Column(Boolean, default=True)            # Whether Institution Is Currently Connected/Active.
+    last_sync = Column(DateTime)                            # When Institution Was Last Synced With Plaid.
+    access_token = Column(String)                           # Encrypted Access Token. (For Plaid API Calls)
     
-    # Metadata
-    created_at = Column(DateTime)
-    updated_at = Column(DateTime)
+    # Metadata.
+    created_at = Column(DateTime)                           # When Institution Was First Connected.
+    updated_at = Column(DateTime)                           # When Institution Was Last Updated.
 
 # -------------------------------------------------------- File Upload Tracking
 class FileUpload(Base):
-    __tablename__ = "file_uploads"
+    __tablename__ = "file_uploads"  # Physical Table Name In Database.
     
-    id = Column(Integer, primary_key=True, index=True)
-    filename = Column(String)
-    original_filename = Column(String)
-    file_type = Column(String)  # "csv", "plaid"
-    upload_date = Column(DateTime)
-    transaction_count = Column(Integer)
-    notes = Column(Text)
-    content_hash = Column(String)  # For duplicate detection
+    id = Column(Integer, primary_key=True, index=True)      # Upload ID In DB. (Auto-Incrementing Primary Key)
+    filename = Column(String)                               # Generated File Name. (Stored On Disk)
+    original_filename = Column(String)                      # Original File Name. (User's Original File Name)
+    file_type = Column(String)                              # "csv", "plaid" (Type Of File Uploaded)
+    upload_date = Column(DateTime)                          # When File Was Uploaded.
+    transaction_count = Column(Integer)                     # Number Of Transactions Imported From File.
+    notes = Column(Text)                                    # User Notes About The Upload.
+    content_hash = Column(String)                           # Hash Of File Content. (For Duplicate Detection)
     
-    # Processing Status
-    status = Column(String, default="processed")  # "processing", "processed", "error"
-    error_message = Column(Text)
+    # Processing Status.
+    status = Column(String, default="processed")            # "processing", "processed", "error". (Current Processing Status)
+    error_message = Column(Text)                            # Error Message If Processing Failed.
 
-# Database Setup
+# Database Setup.
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./finance_tracker.db")
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Create Tables
+# Create Tables.
 Base.metadata.create_all(bind=engine)

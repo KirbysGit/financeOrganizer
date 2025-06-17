@@ -2,32 +2,26 @@
 import React, { useState } from 'react';
 import { styled } from 'styled-components';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-    faBank, 
-    faFileUpload, 
-    faPlus, 
-    faTimes,
-    faSpinner,
-    faCheckCircle
-} from '@fortawesome/free-solid-svg-icons';
+import { faBank, faFileUpload, faPlus, faTimes, faSpinner, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
 
 // Local Imports.
-import PlaidLink from './PlaidLink';
-import { uploadCSV, createTransaction } from '../services/api';
-import centiLogo from '../images/icon.png';
 import '../styles/colors.css';
+import PlaidLink from './PlaidLink';
+import centiLogo from '../images/icon.png';
+import { uploadCSV, createTransaction } from '../services/api';
 
+// -------------------------------------------------------- WelcomeScreen Component.
 const WelcomeScreen = ({ onSuccess }) => {
-    // Modal States
-    const [activeModal, setActiveModal] = useState(null); // 'plaid', 'csv', 'transaction'
+    // Modal States.
+    const [activeModal, setActiveModal] = useState(null); // 'plaid', 'csv', 'transaction'.
     
-    // CSV Upload States
-    const [file, setFile] = useState(null);
-    const [notes, setNotes] = useState('');
-    const [uploading, setUploading] = useState(false);
-    const [uploadError, setUploadError] = useState('');
+    // CSV Upload States.
+    const [file, setFile] = useState(null);                 // State 4 File.
+    const [notes, setNotes] = useState('');                 // State 4 Notes.
+    const [uploading, setUploading] = useState(false);      // State 4 Uploading State.
+    const [uploadError, setUploadError] = useState('');     // State 4 Upload Error.
     
-    // Transaction States
+    // Transaction States.
     const [transactionData, setTransactionData] = useState({
         date: '',
         vendor: '',
@@ -35,43 +29,55 @@ const WelcomeScreen = ({ onSuccess }) => {
         amount: '',
         type: ''
     });
-    const [submitting, setSubmitting] = useState(false);
+    const [submitting, setSubmitting] = useState(false);   // State 4 Submitting State.
     
-    // Plaid States
-    const [plaidSuccess, setPlaidSuccess] = useState('');
-    const [plaidError, setPlaidError] = useState('');
+    // Plaid States.
+    const [plaidSuccess, setPlaidSuccess] = useState(''); // State 4 Plaid Success.
+    const [plaidError, setPlaidError] = useState('');     // State 4 Plaid Error.
 
-    // -------------------------------------------------------- Handle CSV Upload
+    // -------------------------------------------------------- Handle CSV Upload.
     const handleCSVUpload = async () => {
         if (!file) return;
         
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('notes', notes);
+        // Create New FormData Obj & Append File & Notes.
+        const formData = new FormData(); 
+        formData.append('file', file); 
+        formData.append('notes', notes); 
 
         try {
+            // Set Uploading State To True.
             setUploading(true);
+            // Set Upload Error State To Empty String.
             setUploadError('');
+            // Upload The CSV File.
             await uploadCSV(formData);
+            // Call OnSuccess Callback.
             onSuccess();
+            // Close The Modal.
             closeModal();
         } catch (err) {
+            // Set Upload Error State To Error Message.
             const errorMessage = err.response?.data?.detail || 'Upload failed. Please try again.';
             setUploadError(errorMessage);
+            // Set Uploading State To False.
         } finally {
+            // Set Uploading State To False.
             setUploading(false);
         }
     };
 
-    // -------------------------------------------------------- Handle Manual Transaction
+    // -------------------------------------------------------- Handle Manual Transaction Submission.
     const handleTransactionSubmit = async () => {
+        // Destructure The Transaction Data.
         const { date, vendor, amount, type } = transactionData;
         
+        // Check If All Required Fields Are Filled.
         if (!date || !vendor || !amount || !type) {
             alert("Please fill in all required fields.");
             return;
         }
 
+        // Create New Transaction Object.
         const newTransaction = {
             ...transactionData,
             amount: parseFloat(amount),
@@ -79,9 +85,13 @@ const WelcomeScreen = ({ onSuccess }) => {
         };
 
         try {
+            // Set Submitting State To True.
             setSubmitting(true);
+            // Create New Transaction.
             await createTransaction(newTransaction);
+            // Call OnSuccess Callback.
             onSuccess();
+            // Close The Modal.
             closeModal();
         } catch (error) {
             console.error("Error creating transaction:", error);
@@ -91,37 +101,48 @@ const WelcomeScreen = ({ onSuccess }) => {
         }
     };
 
-    // -------------------------------------------------------- Handle Plaid Success
+    // -------------------------------------------------------- Handle Plaid Success & Clear Error State.
     const handlePlaidSuccess = (data) => {
         if (data.isProcessing) {
-            // Bank connected but transactions still processing
+            // Bank Connected But Transactions Still Processing.
             setPlaidSuccess(`✅ ${data.institution.name} connected successfully! 
                            Transaction data is still being processed and will be available shortly.`);
         } else {
-            // Normal success with transaction count
+            // Normal Success With Transaction Count.
             const attemptText = data.attempts > 1 ? ` (took ${data.attempts} attempts)` : '';
             setPlaidSuccess(`✅ Successfully connected ${data.institution.name} and imported ${data.transactionCount} transactions!${attemptText}`);
         }
         
+        // Set Plaid Error State To Empty String.
         setPlaidError('');
+        // Set Timeout To Call OnSuccess Callback & Close Modal.
         setTimeout(() => {
+            // Call OnSuccess Callback.
             onSuccess();
+            // Close The Modal.
             closeModal();
         }, 3000); // Give user time to read the message
     };
 
-    // -------------------------------------------------------- Handle Plaid Error
+    // -------------------------------------------------------- Handle Plaid Error & Clear Success State.
     const handlePlaidError = (error) => {
+        // Set Plaid Error State To Error Message.
         setPlaidError(error);
+        // Set Plaid Success State To Empty String.
         setPlaidSuccess('');
     };
 
-    // -------------------------------------------------------- Close Modal
+    // -------------------------------------------------------- Close Modal & Clear States.
     const closeModal = () => {
+        // Set Active Modal State To Null.
         setActiveModal(null);
+        // Set File State To Null.
         setFile(null);
+        // Set Notes State To Empty String.
         setNotes('');
+        // Set Upload Error State To Empty String.
         setUploadError('');
+        // Set Transaction Data To Empty Object.
         setTransactionData({
             date: '',
             vendor: '',
@@ -141,6 +162,7 @@ const WelcomeScreen = ({ onSuccess }) => {
         }));
     };
 
+    // -------------------------------------------------------- Transaction Type Options.
     const TRANSACTION_TYPE_OPTIONS = {
         sale: "Purchase",
         payment: "Credit Card Payment",
@@ -418,8 +440,7 @@ const WelcomeScreen = ({ onSuccess }) => {
     );
 };
 
-// -------------------------------------------------------- Styled Components
-
+// -------------------------------------------------------- Welcome Screen Container.
 const WelcomeContainer = styled.div`
     display: flex;
     flex-direction: column;
@@ -430,7 +451,6 @@ const WelcomeContainer = styled.div`
     margin: 2rem 0;
     color: black;
 `;
-
 const WelcomeHeader = styled.div`
     text-align: center;
     margin-bottom: 3.5rem;
@@ -438,7 +458,7 @@ const WelcomeHeader = styled.div`
     flex-direction: column;
     align-items: center;
 `;
-
+// -------------------------------------------------------- Centi Logo Img.
 const CentiLogo = styled.img`
     width: 100px;
     height: 100px;
@@ -451,7 +471,7 @@ const CentiLogo = styled.img`
         transform: scale(1.05);
     }
 `;
-
+// -------------------------------------------------------- Welcome Section.
 const WelcomeTitle = styled.h1`
     font-size: 3.2rem;
     font-weight: 700;
@@ -461,7 +481,6 @@ const WelcomeTitle = styled.h1`
     background-clip: text;
     -webkit-background-clip: text;
 `;
-
 const WelcomeSubtitle = styled.p`
     font-size: 1.4rem;
     opacity: 0.8;
@@ -470,7 +489,6 @@ const WelcomeSubtitle = styled.p`
     color: var(--text-secondary);
     max-width: 500px;
 `;
-
 const WelcomeCallToAction = styled.p`
     font-size: 1.1rem;
     opacity: 0.9;
@@ -494,13 +512,13 @@ const WelcomeCallToAction = styled.p`
     }
 `;
 
+// -------------------------------------------------------- Options Grid : Plaid, CSV, Manual.
 const OptionsGrid = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     gap: 2rem;
     width: 85%;
 `;
-
 const OptionCard = styled.div`
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
@@ -525,7 +543,6 @@ const OptionCard = styled.div`
         transform: translateY(-4px);
     }
 `;
-
 const OptionIcon = styled.div`
     width: 85px;
     height: 85px;
@@ -545,7 +562,6 @@ const OptionIcon = styled.div`
         box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
     }
 `;
-
 const OptionTitle = styled.h3`
     font-size: 1.6rem;
     font-weight: 600;
@@ -557,7 +573,6 @@ const OptionTitle = styled.h3`
         color: var(--button-primary);
     }
 `;
-
 const OptionDescription = styled.p`
     font-size: 1.05rem;
     color: #666;
@@ -569,7 +584,6 @@ const OptionDescription = styled.p`
         color: var(--text-secondary);
     }
 `;
-
 const OptionBadge = styled.div`
     position: absolute;
     top: -8px;
@@ -582,7 +596,7 @@ const OptionBadge = styled.div`
     font-weight: 600;
     box-shadow: 0 4px 12px rgba(72, 142, 163, 0.3);
 `;
-
+// -------------------------------------------------------- Modal Container.
 const Modal = styled.div`
     position: fixed;
     inset: 0;
@@ -594,7 +608,6 @@ const Modal = styled.div`
     z-index: 1000;
     padding: 2rem;
 `;
-
 const ModalContent = styled.div`
     background: white;
     border-radius: 24px;
@@ -616,7 +629,6 @@ const ModalContent = styled.div`
         }
     }
 `;
-
 const ModalHeader = styled.div`
     display: flex;
     justify-content: space-between;
@@ -624,14 +636,13 @@ const ModalHeader = styled.div`
     padding: 2rem 2rem 1rem 2rem;
     border-bottom: 1px solid #eee;
 `;
-
 const ModalTitle = styled.h2`
     margin: 0;
     font-size: 1.5rem;
     font-weight: 600;
     color: #333;
 `;
-
+// -------------------------------------------------------- Close Button.
 const CloseButton = styled.button`
     background: none;
     border: none;
@@ -647,14 +658,14 @@ const CloseButton = styled.button`
         color: #333;
     }
 `;
-
+// -------------------------------------------------------- Upload Section.
 const UploadSection = styled.div`
     padding: 2rem;
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
 `;
-
+// -------------------------------------------------------- File Drop Zone.
 const FileDropZone = styled.div`
     border: 2px dashed ${props => props.$hasFile ? '#28a745' : '#ddd'};
     border-radius: 12px;
@@ -684,7 +695,7 @@ const FileDropZone = styled.div`
         }
     }
 `;
-
+// -------------------------------------------------------- Notes Input.
 const NotesInput = styled.textarea`
     width: 100%;
     box-sizing: border-box;
@@ -702,26 +713,23 @@ const NotesInput = styled.textarea`
         border-color: #007bff;
     }
 `;
-
+// -------------------------------------------------------- Transaction Form.
 const TransactionForm = styled.div`
     padding: 2rem;
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
 `;
-
 const FormGroup = styled.div`
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
 `;
-
 const FormLabel = styled.label`
     font-weight: 600;
     color: #333;
     font-size: 0.9rem;
 `;
-
 const FormInput = styled.input`
     padding: 1rem;
     border: 2px solid #eee;
@@ -736,7 +744,6 @@ const FormInput = styled.input`
         border-color: #007bff;
     }
 `;
-
 const FormSelect = styled.select`
     padding: 1rem;
     border: 2px solid #eee;
@@ -753,7 +760,7 @@ const FormSelect = styled.select`
         border-color: #007bff;
     }
 `;
-
+// -------------------------------------------------------- Action Button.
 const ActionButton = styled.button`
     padding: 1rem 2rem;
     border: none;
@@ -793,7 +800,7 @@ const ActionButton = styled.button`
         transform: none !important;
     }
 `;
-
+// -------------------------------------------------------- Success Message.
 const SuccessMessage = styled.div`
     background: linear-gradient(135deg, #d1e7dd, #badbcc);
     border: 1px solid #badbcc;
@@ -812,7 +819,7 @@ const SuccessMessage = styled.div`
         color: #198754;
     }
 `;
-
+// -------------------------------------------------------- Error Message.
 const ErrorMessage = styled.div`
     background: linear-gradient(135deg, #f8d7da, #f5c6cb);
     border: 1px solid #f5c6cb;
@@ -822,7 +829,7 @@ const ErrorMessage = styled.div`
     font-size: 0.9rem;
     text-align: center;
 `;
-
+// -------------------------------------------------------- Plaid Modal Content.
 const PlaidModalContent = styled.div`
     background: white;
     border-radius: 24px;
@@ -850,7 +857,6 @@ const PlaidModalContent = styled.div`
         }
     }
 `;
-
 const PlaidModalHeader = styled.div`
     display: flex;
     justify-content: space-between;
@@ -859,7 +865,6 @@ const PlaidModalHeader = styled.div`
     border-bottom: 1px solid #f0f0f0;
     background: linear-gradient(135deg, #f8fbff, #ffffff);
 `;
-
 const PlaidHeaderContent = styled.div`
     display: flex;
     flex-direction: column;
@@ -867,7 +872,6 @@ const PlaidHeaderContent = styled.div`
     flex: 1;
     text-align: center;
 `;
-
 const PlaidIcon = styled.div`
     width: 80px;
     height: 80px;
@@ -881,7 +885,6 @@ const PlaidIcon = styled.div`
     font-size: 2rem;
     box-shadow: 0 8px 24px rgba(0, 212, 170, 0.3);
 `;
-
 const PlaidModalTitle = styled.h2`
     margin: 0 0 0.5rem 0;
     font-size: 1.8rem;
@@ -889,7 +892,6 @@ const PlaidModalTitle = styled.h2`
     color: #2c3e50;
     line-height: 1.2;
 `;
-
 const PlaidModalSubtitle = styled.p`
     margin: 0;
     font-size: 1.1rem;
@@ -898,7 +900,6 @@ const PlaidModalSubtitle = styled.p`
     line-height: 1.4;
     max-width: 400px;
 `;
-
 const PlaidModalBody = styled.div`
     padding: 2.5rem;
     display: flex;
@@ -912,7 +913,6 @@ const PlaidModalBody = styled.div`
         display: none;  /* Chrome, Safari, Opera */
     }
 `;
-
 const SecuritySection = styled.div`
     background: linear-gradient(135deg, #f8fff9, #ffffff);
     border: 1px solid #e8f5e8;
@@ -923,7 +923,7 @@ const SecuritySection = styled.div`
     gap: 1.5rem;
     overflow: hidden;
 `;
-
+// -------------------------------------------------------- Security Section.
 const SecurityTitle = styled.h3`
     font-size: 1.3rem;
     font-weight: 600;
@@ -933,19 +933,16 @@ const SecurityTitle = styled.h3`
     align-items: center;
     gap: 0.5rem;
 `;
-
 const SecurityFeatures = styled.div`
     display: flex;
     flex-direction: column;
     gap: 1rem;
 `;
-
 const SecurityFeature = styled.div`
     display: flex;
     align-items: center;
     gap: 1rem;
 `;
-
 const SecurityIcon = styled.div`
     width: 24px;
     height: 24px;
@@ -959,14 +956,13 @@ const SecurityIcon = styled.div`
     font-weight: bold;
     flex-shrink: 0;
 `;
-
 const SecurityText = styled.p`
     margin: 0;
     font-size: 1rem;
     color: #495057;
     font-weight: 500;
 `;
-
+// -------------------------------------------------------- Benefits Section.
 const BenefitsSection = styled.div`
     background: linear-gradient(135deg, #fff8f0, #ffffff);
     border: 1px solid #ffeaa7;
@@ -977,20 +973,17 @@ const BenefitsSection = styled.div`
     gap: 1.5rem;
     overflow: hidden;
 `;
-
 const BenefitsTitle = styled.h3`
     font-size: 1.3rem;
     font-weight: 600;
     margin: 0;
     color: #2c3e50;
 `;
-
 const BenefitsList = styled.div`
     display: flex;
     flex-direction: column;
     gap: 0.8rem;
 `;
-
 const BenefitItem = styled.div`
     display: flex;
     align-items: center;
@@ -999,7 +992,6 @@ const BenefitItem = styled.div`
     color: #495057;
     font-weight: 500;
 `;
-
 const PlaidButtonSection = styled.div`
     display: flex;
     flex-direction: column;
@@ -1011,7 +1003,6 @@ const PlaidButtonSection = styled.div`
     border: 1px solid #e3f2fd;
     overflow: hidden;
 `;
-
 const DisclaimerText = styled.p`
     text-align: center;
     font-size: 0.9rem;
@@ -1022,4 +1013,5 @@ const DisclaimerText = styled.p`
     max-width: 400px;
 `;
 
+// -------------------------------------------------------- Export WelcomeScreen Component.
 export default WelcomeScreen; 

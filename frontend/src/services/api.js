@@ -6,8 +6,6 @@ const API = axios.create({ baseURL: 'http://localhost:8000', });
 // ----------------------------------------------------------------- Upload CSV File.
 export const uploadCSV = (formData) => API.post('/upload', formData, { headers: { 'Content-Type' : 'multipart/form-data'} });
 
-
-
 // ----------------------------------------------------------------- Get All Files.
 export const getFiles = () => API.get('/files');
 

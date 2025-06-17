@@ -2,14 +2,14 @@
 from sqlalchemy import func, extract
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime, timedelta
 
 # Local Imports.
 from app.utils.db_utils import get_db
-from app.database import Transaction, FileUpload, Account
 from app.models import TransactionOut, TransactionCreate
 from app.utils.type_label_map import NEGATIVE_TYPES, POSITIVE_TYPES
+from app.database import Transaction, FileUpload, Account, Institution
 
 router = APIRouter()    # Sets Up Modular Sub-Router for FastAPI.
 
@@ -85,18 +85,31 @@ def get_accounts(db: Session = Depends(get_db)):
 
 # ----------------------------------------------------------------------- Clears Entire Database.
 @router.delete("/clear")
-def clear_transactions(db: Session = Depends(get_db)):
-    # Query For Transaction Items, And Delete All.
-    db.query(Transaction).delete()
+def clear_database(db: Session = Depends(get_db)):
+    try:
+        # Clear All Tables (In Order Of Dependencies).
+        db.query(Transaction).delete()
+        db.query(FileUpload).delete()
+        db.query(Account).delete()
+        db.query(Institution).delete()
+        
+        # Commit Changes.
+        db.commit()
+        
+        # Return Success Msg.
+        return {
+            "message": "Database cleared successfully",
+            "tables_cleared": ["transactions", "file_uploads", "accounts", "institutions"]
+        }
+    except Exception as e:
+        # Any Issues, Rollback To Last Commit.
+        db.rollback()
 
-    # Query For FileUpload Items, And Delete All.
-    db.query(FileUpload).delete()
-
-    # Commit To Database.     
-    db.commit()
-
-    # Return Success Message.                       
-    return {"message": "All transactions deleted."}
+        # Return HTTP Error.
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error clearing database: {str(e)}"
+        )
 
 # ----------------------------------------------------------------------- Manually Add Transaction.
 @router.post("/transactions/", response_model=TransactionOut, status_code=201)
@@ -162,60 +175,70 @@ def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):
 @router.get("/stats")
 def get_transaction_stats(db: Session = Depends(get_db)):
 
-    # Get current date and calculate time ranges
+    # Get Current Date & Calculate Time Range.
     now = datetime.now()
     start_of_month = datetime(now.year, now.month, 1)
     start_of_week = now - timedelta(days=now.weekday())
     thirty_days_ago = now - timedelta(days=30)
 
-    # Basic Counts For Transactions & Accounts
+    # Transaction & Account Counts.
     total_transactions = db.query(Transaction).count()
     total_accounts = db.query(Account).filter(Account.is_active == True).count()
     
-    # Breakdown Amount From Each Source
+    # Breakdown Amount Of Transactions From Each Source.
     plaid_count = db.query(Transaction).filter(Transaction.source == "plaid").count()
     csv_count = db.query(Transaction).filter(Transaction.source == "csv").count()
     manual_count = db.query(Transaction).filter(Transaction.source == "manual").count()
     
-    # Time-based spending analysis
+    # Time-Based Spending Analysis.
+
+    # Grab Total Spending.
     total_spending = db.query(func.sum(Transaction.amount)).filter(Transaction.amount < 0).scalar() or 0
+
+    # Then Grab Monthly Spending.
     monthly_spending = db.query(func.sum(Transaction.amount)).filter(
         Transaction.amount < 0,
         Transaction.date >= start_of_month
     ).scalar() or 0
+
+    # Then Weekly Spending.
     weekly_spending = db.query(func.sum(Transaction.amount)).filter(
         Transaction.amount < 0,
         Transaction.date >= start_of_week
     ).scalar() or 0
+
+    # Spending For Last 30 Days.
     thirty_day_spending = db.query(func.sum(Transaction.amount)).filter(
         Transaction.amount < 0,
         Transaction.date >= thirty_days_ago
     ).scalar() or 0
 
-    # Income analysis
+    # Get Total Income.
     total_income = db.query(func.sum(Transaction.amount)).filter(Transaction.amount > 0).scalar() or 0
+
+    # Get Monthly Income.
     monthly_income = db.query(func.sum(Transaction.amount)).filter(
         Transaction.amount > 0,
         Transaction.date >= thirty_days_ago
     ).scalar() or 0
 
-    # Monthly spending (last 30 days)
+    # Get Monthly Spending.
     monthly_spending = db.query(func.sum(Transaction.amount)).filter(
         Transaction.amount < 0,
         Transaction.date >= thirty_days_ago
     ).scalar() or 0
 
-    # Calculate monthly cash flow
-    monthly_cash_flow = monthly_income + monthly_spending  # monthly_spending is already negative
+    # Calculate Cash Flow Based on Monthy Income & Monthly Spending.
+    monthly_cash_flow = monthly_income + monthly_spending 
 
-    # Category Breakdown (Top 5 Spending Categories)
+    # Category Breakdown (Top 5 Spending Categories).
     top_categories = db.query(
         Transaction.category_primary,
         func.count(Transaction.id).label('count'),
         func.sum(Transaction.amount).label('total_amount')
     ).group_by(Transaction.category_primary).order_by(func.count(Transaction.id).desc()).limit(5).all()
     
-    # Monthly category breakdown
+    # Monthly Category Breakdown.
     monthly_categories = db.query(
         Transaction.category_primary,
         func.sum(Transaction.amount).label('total_amount')
@@ -223,23 +246,25 @@ def get_transaction_stats(db: Session = Depends(get_db)):
         Transaction.date >= start_of_month
     ).group_by(Transaction.category_primary).all()
 
-    # Account Balances
+    # Get Total Account Balance Across All Assets.
     total_assets = db.query(func.sum(Account.current_balance)).filter(
         Account.is_active == True,
         Account.type.in_(['depository', 'investment'])
     ).scalar() or 0
 
+    # Get Total Account Liabilities Across All Assets.
     total_liabilities = db.query(func.sum(Account.current_balance)).filter(
         Account.is_active == True,
         Account.type.in_(['credit', 'loan'])
     ).scalar() or 0
 
+    # Calculate Net Worth.
     net_worth = total_assets - total_liabilities
 
-    # Average transaction amount
+    # Get Average Transaaction Amount.
     avg_transaction = db.query(func.avg(Transaction.amount)).scalar() or 0
 
-    # Return enhanced stats
+    # Return Dictionary Of Enhanced Stats.
     return {
         "totals": {
             "transactions": total_transactions,

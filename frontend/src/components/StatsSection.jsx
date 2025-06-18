@@ -4,7 +4,7 @@ import { styled } from 'styled-components';
 import { useEffect, useState } from 'react';
 
 // Local Imports.
-import { getStats } from '../services/api';
+import { getStats, getAccounts } from '../services/api';
 
 // -------------------------------------------------------- StatsSection Component.
 const StatsSection = () => {
@@ -15,7 +15,10 @@ const StatsSection = () => {
     const [stats, setStats] = useState({});         // State 4 Stats Data.
 
     // Loading State.
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(true);   // State 4 Loading State.
+
+    // Explanation State.
+    const [explanationVisible, setExplanationVisible] = useState({});
 
     // -------------------------------------------------------- Handle Stats Import.
     const importStats = async () => {
@@ -31,15 +34,15 @@ const StatsSection = () => {
     };
 
     // -------------------------------------------------------- Get Accounts.
-    const getAccounts = async () => {
+    const fetchAccounts = async () => {
         const res = await getAccounts();
         setAccounts(res.data);
     }
 
-    // Use Effect To Import Stats & Accounts.
+    // -------------------------------------------------------- Use Effect To Import Stats & Accounts.
     useEffect(() => {
         importStats();
-        getAccounts();
+        fetchAccounts();
     }, []);
 
     // -------------------------------------------------------- Calculate Monthly Spending.
@@ -65,58 +68,16 @@ const StatsSection = () => {
         }).format(amount);
     };
 
-    // -------------------------------------------------------- Get Personalized Message.
-    const getNetWorthMessage = (netWorth) => {
-        if (netWorth < 0) {
-            return "No worries! We can help get you back on track. 💪";
-        } else if (netWorth < 10000) {
-            return "Great start! Let's build on this foundation 🚀";
-        } else if (netWorth < 50000) {
-            return "You're doing well! Let's maximize your potential ⭐";
-        } else {
-            return "Excellent progress! Let's optimize your strategy 🌟";
-        }
+    // -------------------------------------------------------- Toggle Explanation.
+    const toggleExplanation = (statId) => {
+        console.log(statId);
+        setExplanationVisible(prev => ({
+            ...prev,
+            [statId]: !prev[statId]
+        }));
     };
 
-    // -------------------------------------------------------- Get Assets Message.
-    const getAssetsMessage = (assets) => {
-        if (assets < 1000) {
-            return "Starting your financial journey 🌱";
-        } else if (assets < 10000) {
-            return "Building your financial foundation 🏗️";
-        } else if (assets < 50000) {
-            return "Looking great! Let's make it even better! 📈";
-        } else {
-            return "Impressive! Let's keep this momentum going! 🎯";
-        }
-    };
-
-    // -------------------------------------------------------- Get Liabilities Message.
-    const getLiabilitiesMessage = (liabilities) => {
-        if (liabilities === 0) {
-            return "Debt-free! You're crushing it! 🎉";
-        } else if (liabilities < 5000) {
-            return "Minimal debt - you're on the right track! 💫";
-        } else if (liabilities < 20000) {
-            return "Let's work on reducing this together! 🤝";
-        } else {
-            return "We've got your back - let's tackle this! 💪";
-        }
-    };
-
-    // -------------------------------------------------------- Get Cash Flow Message.
-    const getCashFlowMessage = (cashFlow) => {
-        if (cashFlow > 1000) {
-            return "Excellent cash flow! Keep it up! 💫";
-        } else if (cashFlow > 0) {
-            return "Positive cash flow - you're on track! 📈";
-        } else if (cashFlow > -1000) {
-            return "Slight negative flow - we can fix this! 💪";
-        } else {
-            return "Let's work on improving your cash flow! 🎯";
-        }
-    };
-
+    // -------------------------------------------------------- Return Stats Section.
     return (
         <StatsWrapper>      
             {/* Interactive Welcome Header. */}
@@ -140,63 +101,83 @@ const StatsSection = () => {
             <BasicStats>
                 <StatsGrid>
                     <StatCard>
-                        <StatLabel>Net Worth</StatLabel>
-                        <StatValue>
-                            {stats?.totals?.net_worth 
-                                ? formatCurrency(stats.totals.net_worth)
-                                : formatCurrency(0)}
-                        </StatValue>
-                        <StatMessage>
-                            {stats?.totals?.net_worth 
-                                ? getNetWorthMessage(stats.totals.net_worth)
-                                : "Let's start tracking your financial journey! 🌟"}
-                        </StatMessage>
+                        <StatQuestionIcon 
+                                onClick={() => toggleExplanation('netWorth')}
+                        >?</StatQuestionIcon>
+                        <StatCardHeader className={explanationVisible['netWorth'] ? 'hidden' : ''}>
+                            <StatLabel>Net Worth</StatLabel>
+                        </StatCardHeader>
+                        <StatContent className={explanationVisible['netWorth'] ? 'hidden' : ''}>
+                            <StatValue>
+                                {stats?.totals?.net_worth 
+                                    ? formatCurrency(stats.totals.net_worth)
+                                    : formatCurrency(0)}
+                            </StatValue>
+                        </StatContent>
+                        <StatExplanation className={explanationVisible['netWorth'] ? 'visible' : ''}>
+                            Your net worth is everything you own — like cash, accounts, and investments — minus what you owe. It's a quick way to see your overall financial picture.
+                        </StatExplanation>
                     </StatCard>
 
                     <StatCard>
-                        <StatLabel>Total Assets</StatLabel>
-                        <StatValue style={{ color: 'rgb(40, 167, 69)' }}>
-                            {stats?.totals?.total_assets 
-                                ? formatCurrency(stats.totals.total_assets)
-                                : formatCurrency(0)}
-                        </StatValue>
-                        <StatMessage>
-                            {stats?.totals?.total_assets 
-                                ? getAssetsMessage(stats.totals.total_assets)
-                                : "Starting fresh! 🌱"}
-                        </StatMessage>
+                        <StatQuestionIcon 
+                                onClick={() => toggleExplanation('totalAssets')}
+                        >?</StatQuestionIcon>
+                        <StatCardHeader className={explanationVisible['totalAssets'] ? 'hidden' : ''}>
+                            <StatLabel>Total Assets</StatLabel>
+                        </StatCardHeader>
+                        <StatContent className={explanationVisible['totalAssets'] ? 'hidden' : ''}>
+                            <StatValue style={{ color: 'rgb(40, 167, 69)' }}>
+                                {stats?.totals?.total_assets 
+                                    ? formatCurrency(stats.totals.total_assets)
+                                    : formatCurrency(0)}
+                            </StatValue>
+                        </StatContent>
+                        <StatExplanation className={explanationVisible['totalAssets'] ? 'visible' : ''}>
+                        Your total assets are everything you own that adds value — like your bank accounts, investments, and anything else that boosts your financial worth.
+                        </StatExplanation>
                     </StatCard>
 
                     <StatCard>
-                        <StatLabel>Total Liabilities</StatLabel>
-                        <StatValue style={{ color: 'rgb(220, 53, 69)' }}>
-                            {stats?.totals?.total_liabilities 
-                                ? formatCurrency(stats.totals.total_liabilities)
-                                : formatCurrency(0)}
-                        </StatValue>
-                        <StatMessage>
-                            {stats?.totals?.total_liabilities 
-                                ? getLiabilitiesMessage(stats.totals.total_liabilities)
-                                : "No current liabilities! 🎉"}
-                        </StatMessage>
+                        <StatQuestionIcon 
+                                onClick={() => toggleExplanation('totalLiabilities')}
+                        >?</StatQuestionIcon>
+                        <StatCardHeader className={explanationVisible['totalLiabilities'] ? 'hidden' : ''}>
+                            <StatLabel>Total Liabilities</StatLabel>
+                        </StatCardHeader>
+                        <StatContent className={explanationVisible['totalLiabilities'] ? 'hidden' : ''}>
+                            <StatValue style={{ color: 'rgb(220, 53, 69)' }}>
+                                {stats?.totals?.total_liabilities 
+                                    ? formatCurrency(stats.totals.total_liabilities)
+                                    : formatCurrency(0)}
+                            </StatValue>
+                        </StatContent>
+                        <StatExplanation className={explanationVisible['totalLiabilities'] ? 'visible' : ''}>
+                            Your total liabilities are what you owe — like credit cards, loans, or any other money you still need to pay back.
+                        </StatExplanation>
                     </StatCard>
 
                     <StatCard>
-                        <StatLabel>Monthly Cash Flow</StatLabel>
-                        <StatValue style={{ 
-                            color: stats?.cash_flow?.last_30_days > 0 
-                                ? 'rgb(40, 167, 69)' 
-                                : 'rgb(220, 53, 69)'
-                        }}>
-                            {stats?.cash_flow?.last_30_days 
-                                ? formatCurrency(stats.cash_flow.last_30_days)
-                                : formatCurrency(0)}
-                        </StatValue>
-                        <StatMessage>
-                            {stats?.cash_flow?.last_30_days 
-                                ? getCashFlowMessage(stats.cash_flow.last_30_days)
-                                : "Let's track your cash flow! 📊"}
-                        </StatMessage>
+                        <StatQuestionIcon 
+                                onClick={() => toggleExplanation('monthlyCashFlow')}
+                        >?</StatQuestionIcon>
+                        <StatCardHeader className={explanationVisible['monthlyCashFlow'] ? 'hidden' : ''}>
+                            <StatLabel>Monthly Cash Flow</StatLabel>
+                        </StatCardHeader>
+                        <StatContent className={explanationVisible['monthlyCashFlow'] ? 'hidden' : ''}>
+                            <StatValue style={{ 
+                                color: stats?.cash_flow?.this_month > 0 
+                                    ? 'rgb(40, 167, 69)' 
+                                    : 'rgb(220, 53, 69)'
+                            }}>
+                                {stats?.cash_flow?.this_month 
+                                    ? formatCurrency(stats.cash_flow.this_month)
+                                    : formatCurrency(0)}
+                            </StatValue>
+                        </StatContent>
+                        <StatExplanation className={explanationVisible['monthlyCashFlow'] ? 'visible' : ''}>
+                        Monthly cash flow shows how much money you have left after covering your expenses. If it’s positive, you're spending less than you make this month.
+                        </StatExplanation>
                     </StatCard>
                 </StatsGrid>
             </BasicStats>
@@ -314,9 +295,9 @@ const StatCard = styled.div`
     transition: all 0.3s ease;
     border: 3px solid transparent;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.34);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    position: relative;
+    min-height: 200px;
+
     
     &:hover {
         transform: translateY(-5px);
@@ -324,20 +305,96 @@ const StatCard = styled.div`
         box-shadow: 0 8px 12px rgba(65, 173, 255, 0.1);
     }
 `
+
+// -------------------------------------------------------- Stat Card Header.
+const StatCardHeader = styled.div`
+    width: 100%;
+    padding: 0.5rem 0rem;
+    transition: all 0.3s ease;
+    transform: translateY(0);
+    opacity: 1;
+    
+    &.hidden {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+`
 const StatLabel = styled.div`
     font-size: 1.2rem;
     color: var(--text-secondary);
-    margin-bottom: 0.5rem;
     font-weight: 500;
-`
-const StatValue = styled.div`
-    font-size: clamp(1.5rem, 4vw, 2.3rem);
-    font-weight: 700;
-    margin: 0.5rem 0;
-    padding-bottom: 0.75rem;
-    width: 80%;
     text-align: center;
-    border-bottom: 4px solid rgba(100, 100, 100, 0.1);
+    margin-bottom: 0.5rem;
+`
+
+const StatQuestionIcon = styled.div`
+    display: flex;
+    position: absolute;
+    top: 0.6rem;
+    right: 0.6rem;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    justify-content: center;
+    align-items: center;
+    width: 26px;
+    height: 26px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 9;
+    
+    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    color: white;
+    transition: all 0.3s ease;
+
+    &:hover {
+        transform: scale(1.1) rotate(9deg);
+        color: rgba(255, 255, 255, 0.85);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+    }
+`
+
+const StatContent = styled.div`
+    width: 100%;
+    transition: all 0.3s ease;
+    opacity: 1;
+    transform: translateY(0);
+    display: flex;
+    justify-content: center;
+    text-align: center;
+    
+    &.hidden {
+        opacity: 0;
+        transform: translateY(-70%);
+    }
+`
+
+const StatExplanation = styled.div`
+    width: 100%;
+    transition: all 0.3s ease;
+    opacity: 0;
+    transform: translateY(30%);
+    position: absolute;
+    top: 50%;
+    left: 0;
+    padding: 2rem;
+    text-align: justify;
+    color: var(--text-secondary);
+    font-size: 1rem;
+    line-height: 1.4;
+    
+    &.visible {
+        opacity: 1;
+        transform: translateY(-50%);
+    }
+`
+
+const StatValue = styled.div`
+    font-size: clamp(1.5rem, 4vw, 2.9rem);
+    font-weight: 700;
+    padding-bottom: 0.75rem;
+    border-bottom: 4px solid rgba(100, 100, 100, 0.3);
     background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
     background-clip: text;
     -webkit-background-clip: text;
@@ -346,15 +403,6 @@ const StatValue = styled.div`
     @media (max-width: 768px) {
         font-size: 2rem;
     }
-`
-// -------------------------------------------------------- Customized Stat Message (e.g. "Let's start tracking your financial journey!").
-const StatMessage = styled.div`
-    font-size: 1.2rem;
-    color: var(--text-primary);
-    margin: 0.75rem 0;
-    font-weight: 500;
-    text-align: center;
-    line-height: 1.4;
 `
 // -------------------------------------------------------- Waving Hand Emoji.
 const WavingHand = styled.span`

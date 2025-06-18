@@ -11,9 +11,11 @@ import SpendingGrid from '../components/SpendingGrid';
 import FilesActionsBar from '../components/ActionsBar';
 import WelcomeScreen from '../components/WelcomeScreen';
 import TransactionTable from '../components/TransactionTable';
+import StrengthIndicator from '../components/StrengthIndicator';
 
 // API.
 import { emptyDatabase } from '../services/api';
+import { getStats } from '../services/api';
 import { deleteFile, renameFile, getFiles } from '../services/api';
 import { fetchTransactions, deleteTransaction } from '../services/api';
 
@@ -21,6 +23,7 @@ import { fetchTransactions, deleteTransaction } from '../services/api';
 const Dashboard = () => {
     const [transactions, setTransactions] = useState([]);       // State 4 Storing All Transactions.
     const [files, setFiles] = useState([]);                     // State 4 Storing All Files.
+    const [stats, setStats] = useState({});                     // State 4 Stats Data.
 
     const hasEverHadData = localStorage.getItem('hasEverHadData') === 'true'; // Var 4 Storing If User Ever Loaded Site.
 
@@ -28,6 +31,7 @@ const Dashboard = () => {
     useEffect(() => {
         loadTransactions();
         loadFiles();
+        loadStats();
     }, []);
 
     // -------------------------------------------------------- Load Transactions To Site.
@@ -61,6 +65,16 @@ const Dashboard = () => {
         }
     };
 
+    // -------------------------------------------------------- Load Stats.
+    const loadStats = async () => {
+        try {
+            const res = await getStats();
+            setStats(res.data);
+        } catch (err) {
+            console.error('Stats Fetch Failed:', err);
+        }
+    };
+
     // -------------------------------------------------------- Refreshes Contents Of Site (Tx's & Files).
     const refreshSite = async() => {
         try {                                           // Try.
@@ -77,6 +91,7 @@ const Dashboard = () => {
             await emptyDatabase();                          // API Request For Clearing Database.
             loadTransactions();                             // Reload Transactions.
             loadFiles();                                     // Reload Files.
+            localStorage.setItem('hasEverHadData', 'false');
         } catch (err) {                                 // If Error.
             console.error('Delete Failed:', err);           // Display Error To Console.
         }
@@ -122,6 +137,7 @@ const Dashboard = () => {
                 <>
                     <StatsSection />
                     <SpendingGrid />
+                    <StrengthIndicator stats={stats} />
                     <AccountList />
                     <FilesActionsBar 
                         onClear={clearDB} 

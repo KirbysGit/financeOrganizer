@@ -97,7 +97,7 @@ const AccountList = () => {
     }
 
     return (
-        <AccountListWrapper>  
+        <AccountListWrapper>
             <SummarySection>                
                 <TypeFilters>
                     {/* All Accounts Filter. */}
@@ -171,8 +171,8 @@ const AccountList = () => {
                                     </DetailRow>
                                 </AccountDetails>
                             )}
-                        </AccountObject>
-                    ))}
+                </AccountObject>
+            ))}
             </AccountGrid>
         </AccountListWrapper>
     );

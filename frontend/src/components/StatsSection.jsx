@@ -2,53 +2,47 @@
 import React from 'react';
 import { styled } from 'styled-components';
 import { useEffect, useState } from 'react';
-
-// Local Imports.
-import { getStats, getAccounts } from '../services/api';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 
 // -------------------------------------------------------- StatsSection Component.
-const StatsSection = () => {
+const StatsSection = ({ myStats }) => {
     // Account States.
-    const [accounts, setAccounts] = useState([]);   // State 4 Account Data.
-
-    // Stats States.
     const [stats, setStats] = useState({});         // State 4 Stats Data.
 
     // Loading State.
-    const [loading, setLoading] = useState(true);   // State 4 Loading State.
+    const [loading, setLoading] = useState(true);           // State 4 Loading State.
 
     // Explanation State.
-    const [explanationVisible, setExplanationVisible] = useState({});
+    const [explanationVisible, setExplanationVisible] = useState({});   // State 4 Explanation Visibility.
 
     // -------------------------------------------------------- Handle Stats Import.
     const importStats = async () => {
         try {
             setLoading(true);
-            const res = await getStats();
-            setStats(res.data);
+            if (!myStats) {
+                console.warn('StatsSection: No data prop received');
+                setStats({});
+            } else if (Object.keys(myStats).length === 0) {
+                console.warn('StatsSection: Empty data object received');
+                setStats({});
+            } else {
+                setStats(myStats);
+            }
         } catch (err) {
-            console.log("ERROR IMPORTING STATS");
+            console.error("ERROR IMPORTING STATS:", err);
+            setStats({});
         } finally {
             setLoading(false);
         }
     };
 
-    // -------------------------------------------------------- Get Accounts.
-    const fetchAccounts = async () => {
-        const res = await getAccounts();
-        setAccounts(res.data);
-    }
-
     // -------------------------------------------------------- Use Effect To Import Stats & Accounts.
     useEffect(() => {
         importStats();
-        fetchAccounts();
-    }, []);
+    }, [myStats]);
 
-    // -------------------------------------------------------- Calculate Monthly Spending.
+    // -------------------------------------------------------- Calculate Monthly Spending. (Later Implementation...)
     const getMonthlySpending = () => {
-        // This is a placeholder - in the future we could add a monthly stats endpoint
-        // For now, we'll use a simple calculation based on top categories
         if (stats.top_categories && stats.top_categories.length > 0) {
             const totalSpending = stats.top_categories.reduce((sum, cat) => {
                 return sum + (cat.total_amount < 0 ? Math.abs(cat.total_amount) : 0);
@@ -77,7 +71,57 @@ const StatsSection = () => {
         }));
     };
 
-    // -------------------------------------------------------- Return Stats Section.
+    // -------------------------------------------------------- Calculate Growth Percentage.
+    const getGrowthData = (statId) => {
+        // Get Growth Data.
+        if (!stats?.totals?.growth) return { percentage: 0, amount: 0 };
+        
+        // Set Growth Data.
+        const growthData = stats.totals.growth;
+        
+        // Get Current Values.
+        const currentValues = {
+            netWorth: stats?.totals?.net_worth || 0,
+            totalAssets: stats?.totals?.total_assets || 0,
+            totalLiabilities: stats?.totals?.total_liabilities || 0,
+            monthlyCashFlow: stats?.cash_flow?.this_month || 0
+        };
+        
+        // Calculate Dollar Amount Change.
+        const getAmountChange = (percentage, currentValue) => {
+            if (percentage === 0) return 0;
+            return (currentValue * percentage) / 100;
+        };
+        
+        // Return Growth Data Based On Stat ID.
+        switch (statId) {
+            case 'netWorth':
+                return {
+                    percentage: growthData.net_worth || 0,
+                    amount: getAmountChange(growthData.net_worth || 0, currentValues.netWorth)
+                };
+            case 'totalAssets':
+                return {
+                    percentage: growthData.total_assets || 0,
+                    amount: getAmountChange(growthData.total_assets || 0, currentValues.totalAssets)
+                };
+            case 'totalLiabilities':
+                // Always show growth indicator, even if 0%
+                return {
+                    percentage: growthData.total_liabilities || 0,
+                    amount: getAmountChange(growthData.total_liabilities || 0, currentValues.totalLiabilities)
+                };
+            case 'monthlyCashFlow':
+                return {
+                    percentage: growthData.monthly_cash_flow || 0,
+                    amount: getAmountChange(growthData.monthly_cash_flow || 0, currentValues.monthlyCashFlow)
+                };
+            default:
+                return { percentage: 0, amount: 0 };
+        }
+    };
+
+    // -------------------------------------------------------- Return Stats Section UI.
     return (
         <StatsWrapper>      
             {/* Interactive Welcome Header. */}
@@ -113,6 +157,18 @@ const StatsSection = () => {
                                     ? formatCurrency(stats.totals.net_worth)
                                     : formatCurrency(0)}
                             </StatValue>
+                            <GrowthIndicatorWrapper $isPositive={getGrowthData('netWorth').percentage > 0}>
+                                <GrowthIcon $isPositive={getGrowthData('netWorth').percentage > 0}>
+                                    {getGrowthData('netWorth').percentage > 0 ? (
+                                        <TrendingUp size={16} color="currentColor" />
+                                    ) : (
+                                        <TrendingDown size={16} color="currentColor" />
+                                    )}
+                                </GrowthIcon>
+                                <GrowthText>
+                                    {getGrowthData('netWorth').amount > 0 ? '+' : ''}{formatCurrency(Math.abs(getGrowthData('netWorth').amount))} ({getGrowthData('netWorth').percentage > 0 ? '+' : ''}{getGrowthData('netWorth').percentage.toFixed(1)}%)
+                                </GrowthText>
+                            </GrowthIndicatorWrapper>
                         </StatContent>
                         <StatExplanation className={explanationVisible['netWorth'] ? 'visible' : ''}>
                             Your net worth is everything you own — like cash, accounts, and investments — minus what you owe. It's a quick way to see your overall financial picture.
@@ -132,6 +188,18 @@ const StatsSection = () => {
                                     ? formatCurrency(stats.totals.total_assets)
                                     : formatCurrency(0)}
                             </StatValue>
+                            <GrowthIndicatorWrapper $isPositive={getGrowthData('totalAssets').percentage > 0}>
+                                <GrowthIcon $isPositive={getGrowthData('totalAssets').percentage > 0}>
+                                    {getGrowthData('totalAssets').percentage > 0 ? (
+                                        <TrendingUp size={16} color="currentColor" />
+                                    ) : (
+                                        <TrendingDown size={16} color="currentColor" />
+                                    )}
+                                </GrowthIcon>
+                                <GrowthText>
+                                    {getGrowthData('totalAssets').amount > 0 ? '+' : ''}{formatCurrency(Math.abs(getGrowthData('totalAssets').amount))} ({getGrowthData('totalAssets').percentage > 0 ? '+' : ''}{getGrowthData('totalAssets').percentage.toFixed(1)}%)
+                                </GrowthText>
+                            </GrowthIndicatorWrapper>
                         </StatContent>
                         <StatExplanation className={explanationVisible['totalAssets'] ? 'visible' : ''}>
                         Your total assets are everything you own that adds value — like your bank accounts, investments, and anything else that boosts your financial worth.
@@ -151,6 +219,18 @@ const StatsSection = () => {
                                     ? formatCurrency(stats.totals.total_liabilities)
                                     : formatCurrency(0)}
                             </StatValue>
+                            <GrowthIndicatorWrapper $isPositive={getGrowthData('totalLiabilities').percentage < 0}>
+                                <GrowthIcon $isPositive={getGrowthData('totalLiabilities').percentage < 0}>
+                                    {getGrowthData('totalLiabilities').percentage < 0 ? (
+                                        <TrendingUp size={16} color="currentColor" />
+                                    ) : (
+                                        <TrendingDown size={16} color="currentColor" />
+                                    )}
+                                </GrowthIcon>
+                                <GrowthText>
+                                    {getGrowthData('totalLiabilities').amount > 0 ? '+' : ''}{formatCurrency(Math.abs(getGrowthData('totalLiabilities').amount))} ({getGrowthData('totalLiabilities').percentage > 0 ? '+' : ''}{getGrowthData('totalLiabilities').percentage.toFixed(1)}%)
+                                </GrowthText>
+                            </GrowthIndicatorWrapper>
                         </StatContent>
                         <StatExplanation className={explanationVisible['totalLiabilities'] ? 'visible' : ''}>
                             Your total liabilities are what you owe — like credit cards, loans, or any other money you still need to pay back.
@@ -174,9 +254,21 @@ const StatsSection = () => {
                                     ? formatCurrency(stats.cash_flow.this_month)
                                     : formatCurrency(0)}
                             </StatValue>
+                            <GrowthIndicatorWrapper $isPositive={getGrowthData('monthlyCashFlow').percentage > 0}>
+                                <GrowthIcon $isPositive={getGrowthData('monthlyCashFlow').percentage > 0}>
+                                    {getGrowthData('monthlyCashFlow').percentage > 0 ? (
+                                        <TrendingUp size={16} color="currentColor" />
+                                    ) : (
+                                        <TrendingDown size={16} color="currentColor" />
+                                    )}
+                                </GrowthIcon>
+                                <GrowthText>
+                                    {getGrowthData('monthlyCashFlow').amount > 0 ? '+' : ''}{formatCurrency(Math.abs(getGrowthData('monthlyCashFlow').amount))} ({getGrowthData('monthlyCashFlow').percentage > 0 ? '+' : ''}{getGrowthData('monthlyCashFlow').percentage.toFixed(1)}%)
+                                </GrowthText>
+                            </GrowthIndicatorWrapper>
                         </StatContent>
                         <StatExplanation className={explanationVisible['monthlyCashFlow'] ? 'visible' : ''}>
-                        Monthly cash flow shows how much money you have left after covering your expenses. If it’s positive, you're spending less than you make this month.
+                        Monthly cash flow shows how much money you have left after covering your expenses. If it's positive, you're spending less than you make this month.
                         </StatExplanation>
                     </StatCard>
                 </StatsGrid>
@@ -233,7 +325,7 @@ const UserName = styled.span`
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 `
-// -------------------------------------------------------- Intro Statement (Welcome to Centi.).
+// -------------------------------------------------------- Intro Statement (Welcome to Centi. 🎉).
 const IntroStatement = styled.div`
     display: flex;
     flex-direction: row;
@@ -319,6 +411,7 @@ const StatCardHeader = styled.div`
         opacity: 0;
     }
 `
+// -------------------------------------------------------- Stat Label. (Title Of Card)
 const StatLabel = styled.div`
     font-size: 1.2rem;
     color: var(--text-secondary);
@@ -327,6 +420,7 @@ const StatLabel = styled.div`
     margin-bottom: 0.5rem;
 `
 
+// -------------------------------------------------------- Stat Question Icon. (Clickable Question Icon)
 const StatQuestionIcon = styled.div`
     display: flex;
     position: absolute;
@@ -354,13 +448,14 @@ const StatQuestionIcon = styled.div`
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
     }
 `
-
+// -------------------------------------------------------- Stat Content. (Value & Growth Indicator)
 const StatContent = styled.div`
     width: 100%;
     transition: all 0.3s ease;
     opacity: 1;
     transform: translateY(0);
     display: flex;
+    flex-direction: column;
     justify-content: center;
     text-align: center;
     
@@ -369,7 +464,7 @@ const StatContent = styled.div`
         transform: translateY(-70%);
     }
 `
-
+// -------------------------------------------------------- Stat Explanation. (Explanation Of Card After Clicking Question Icon)
 const StatExplanation = styled.div`
     width: 100%;
     transition: all 0.3s ease;
@@ -390,10 +485,12 @@ const StatExplanation = styled.div`
     }
 `
 
+// -------------------------------------------------------- Stat Value. (Value Of Card)
 const StatValue = styled.div`
     font-size: clamp(1.5rem, 4vw, 2.9rem);
     font-weight: 700;
-    padding-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.5rem;
     border-bottom: 4px solid rgba(100, 100, 100, 0.3);
     background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
     background-clip: text;
@@ -404,7 +501,7 @@ const StatValue = styled.div`
         font-size: 2rem;
     }
 `
-// -------------------------------------------------------- Waving Hand Emoji.
+// -------------------------------------------------------- Waving Hand Emoji. (👋)
 const WavingHand = styled.span`
     display: inline-block;
     animation: wave 2.5s infinite;
@@ -422,5 +519,74 @@ const WavingHand = styled.span`
         100% { transform: rotate(0deg); }
     }
 `
+
+// -------------------------------------------------------- Growth Indicator Component.
+const GrowthIndicatorWrapper = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: max-content;
+    align-self: center;
+    gap: 0.25rem;
+    background: ${props => props.$isPositive 
+        ? 'rgba(40, 167, 69, 0.1)' 
+        : 'rgba(220, 53, 69, 0.1)'};
+    color: ${props => props.$isPositive 
+        ? 'rgb(40, 167, 69)' 
+        : 'rgb(220, 53, 69)'};
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-top: 0.5rem;
+    border: 1px solid ${props => props.$isPositive 
+        ? 'rgba(40, 167, 69, 0.2)' 
+        : 'rgba(220, 53, 69, 0.2)'};
+    transition: all 0.3s ease;
+    
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px ${props => props.$isPositive 
+            ? 'rgba(40, 167, 69, 0.2)' 
+            : 'rgba(220, 53, 69, 0.2)'};
+    }
+`;
+
+// -------------------------------------------------------- Growth Icon. (Up/Down Arrow)
+const GrowthIcon = styled.span`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: ${props => props.$isPositive 
+        ? 'rgba(40, 167, 69, 0.15)' 
+        : 'rgba(220, 53, 69, 0.15)'};
+    color: ${props => props.$isPositive 
+        ? 'rgb(40, 167, 69)' 
+        : 'rgb(220, 53, 69)'};
+    transition: all 0.2s ease;
+    
+    svg {
+        transition: transform 0.2s ease;
+    }
+    
+    ${GrowthIndicatorWrapper}:hover & {
+        background: ${props => props.$isPositive 
+            ? 'rgba(40, 167, 69, 0.25)' 
+            : 'rgba(220, 53, 69, 0.25)'};
+        
+        svg {
+            transform: scale(1.1);
+        }
+    }
+`;
+
+// -------------------------------------------------------- Growth Text. (Growth Percentage)
+const GrowthText = styled.span`
+    font-weight: 600;
+    letter-spacing: 0.5px;
+`;
 
 export default StatsSection;

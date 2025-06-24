@@ -5,21 +5,16 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBank, faFileUpload, faPlus, faTimes, faSpinner, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
 
 // Local Imports.
-import '../styles/colors.css';
-import PlaidLink from './PlaidLink';
-import centiLogo from '../images/icon.png';
-import { uploadCSV, createTransaction } from '../services/api';
+import '../../styles/colors.css';
+import PlaidModal from '../PlaidConnect/PlaidModal';
+import FileUploadModal from '../UploadData/FileUploadModal';
+import centiLogo from '../../images/icon.png';
+import { uploadCSV, createTransaction } from '../../services/api';
 
 // -------------------------------------------------------- WelcomeScreen Component.
 const WelcomeScreen = ({ onSuccess }) => {
     // Modal States.
     const [activeModal, setActiveModal] = useState(null); // 'plaid', 'csv', 'transaction'.
-    
-    // CSV Upload States.
-    const [file, setFile] = useState(null);                 // State 4 File.
-    const [notes, setNotes] = useState('');                 // State 4 Notes.
-    const [uploading, setUploading] = useState(false);      // State 4 Uploading State.
-    const [uploadError, setUploadError] = useState('');     // State 4 Upload Error.
     
     // Transaction States.
     const [transactionData, setTransactionData] = useState({
@@ -31,41 +26,6 @@ const WelcomeScreen = ({ onSuccess }) => {
     });
     const [submitting, setSubmitting] = useState(false);   // State 4 Submitting State.
     
-    // Plaid States.
-    const [plaidSuccess, setPlaidSuccess] = useState(''); // State 4 Plaid Success.
-    const [plaidError, setPlaidError] = useState('');     // State 4 Plaid Error.
-
-    // -------------------------------------------------------- Handle CSV Upload.
-    const handleCSVUpload = async () => {
-        if (!file) return;
-        
-        // Create New FormData Obj & Append File & Notes.
-        const formData = new FormData(); 
-        formData.append('file', file); 
-        formData.append('notes', notes); 
-
-        try {
-            // Set Uploading State To True.
-            setUploading(true);
-            // Set Upload Error State To Empty String.
-            setUploadError('');
-            // Upload The CSV File.
-            await uploadCSV(formData);
-            // Call OnSuccess Callback.
-            onSuccess();
-            // Close The Modal.
-            closeModal();
-        } catch (err) {
-            // Set Upload Error State To Error Message.
-            const errorMessage = err.response?.data?.detail || 'Upload failed. Please try again.';
-            setUploadError(errorMessage);
-            // Set Uploading State To False.
-        } finally {
-            // Set Uploading State To False.
-            setUploading(false);
-        }
-    };
-
     // -------------------------------------------------------- Handle Manual Transaction Submission.
     const handleTransactionSubmit = async () => {
         // Destructure The Transaction Data.
@@ -101,47 +61,25 @@ const WelcomeScreen = ({ onSuccess }) => {
         }
     };
 
-    // -------------------------------------------------------- Handle Plaid Success & Clear Error State.
-    const handlePlaidSuccess = (data) => {
-        if (data.isProcessing) {
-            // Bank Connected But Transactions Still Processing.
-            setPlaidSuccess(`✅ ${data.institution.name} connected successfully! 
-                           Transaction data is still being processed and will be available shortly.`);
-        } else {
-            // Normal Success With Transaction Count.
-            const attemptText = data.attempts > 1 ? ` (took ${data.attempts} attempts)` : '';
-            setPlaidSuccess(`✅ Successfully connected ${data.institution.name} and imported ${data.transactionCount} transactions!${attemptText}`);
-        }
-        
-        // Set Plaid Error State To Empty String.
-        setPlaidError('');
-        // Set Timeout To Call OnSuccess Callback & Close Modal.
-        setTimeout(() => {
+    // -------------------------------------------------------- Handle CSV Upload.
+    const handleCSVUpload = async (formData) => {
+        try {
+            // Upload The CSV File.
+            await uploadCSV(formData);
             // Call OnSuccess Callback.
             onSuccess();
             // Close The Modal.
             closeModal();
-        }, 3000); // Give user time to read the message
-    };
-
-    // -------------------------------------------------------- Handle Plaid Error & Clear Success State.
-    const handlePlaidError = (error) => {
-        // Set Plaid Error State To Error Message.
-        setPlaidError(error);
-        // Set Plaid Success State To Empty String.
-        setPlaidSuccess('');
+        } catch (err) {
+            // Re-throw the error so FileUploadModal can handle it
+            throw err;
+        }
     };
 
     // -------------------------------------------------------- Close Modal & Clear States.
     const closeModal = () => {
         // Set Active Modal State To Null.
         setActiveModal(null);
-        // Set File State To Null.
-        setFile(null);
-        // Set Notes State To Empty String.
-        setNotes('');
-        // Set Upload Error State To Empty String.
-        setUploadError('');
         // Set Transaction Data To Empty Object.
         setTransactionData({
             date: '',
@@ -150,8 +88,6 @@ const WelcomeScreen = ({ onSuccess }) => {
             amount: '',
             type: ''
         });
-        setPlaidSuccess('');
-        setPlaidError('');
     };
 
     // -------------------------------------------------------- Update Transaction Data
@@ -218,137 +154,20 @@ const WelcomeScreen = ({ onSuccess }) => {
 
             {/* Plaid Modal */}
             {activeModal === 'plaid' && (
-                <Modal onClick={closeModal}>
-                    <PlaidModalContent onClick={e => e.stopPropagation()}>
-                        <PlaidModalHeader>
-                            <PlaidHeaderContent>
-                                <PlaidIcon>
-                                    <FontAwesomeIcon icon={faBank} />
-                                </PlaidIcon>
-                                <PlaidModalTitle>Connect Your Bank Account</PlaidModalTitle>
-                                <PlaidModalSubtitle>
-                                    Securely link your account to automatically import transactions
-                                </PlaidModalSubtitle>
-                            </PlaidHeaderContent>
-                            <CloseButton onClick={closeModal}>
-                                <FontAwesomeIcon icon={faTimes} />
-                            </CloseButton>
-                        </PlaidModalHeader>
-                        
-                        <PlaidModalBody>
-                            {plaidSuccess && (
-                                <SuccessMessage>
-                                    <FontAwesomeIcon icon={faCheckCircle} />
-                                    {plaidSuccess}
-                                </SuccessMessage>
-                            )}
-                            
-                            {plaidError && (
-                                <ErrorMessage>
-                                    {plaidError}
-                                </ErrorMessage>
-                            )}
-
-                            {!plaidSuccess && !plaidError && (
-                                <>
-                                    <SecuritySection>
-                                        <SecurityTitle>🔒 Your Security is Our Priority</SecurityTitle>
-                                        <SecurityFeatures>
-                                            <SecurityFeature>
-                                                <SecurityIcon>✓</SecurityIcon>
-                                                <SecurityText>Bank-level 256-bit encryption</SecurityText>
-                                            </SecurityFeature>
-                                            <SecurityFeature>
-                                                <SecurityIcon>✓</SecurityIcon>
-                                                <SecurityText>Read-only access to your accounts</SecurityText>
-                                            </SecurityFeature>
-                                            <SecurityFeature>
-                                                <SecurityIcon>✓</SecurityIcon>
-                                                <SecurityText>Powered by Plaid - trusted by millions</SecurityText>
-                                            </SecurityFeature>
-                                        </SecurityFeatures>
-                                    </SecuritySection>
-
-                                    <BenefitsSection>
-                                        <BenefitsTitle>What You'll Get:</BenefitsTitle>
-                                        <BenefitsList>
-                                            <BenefitItem>📊 Automatic transaction categorization</BenefitItem>
-                                            <BenefitItem>⚡ Real-time balance updates</BenefitItem>
-                                            <BenefitItem>📈 Detailed spending insights</BenefitItem>
-                                            <BenefitItem>⏰ Save hours of manual entry</BenefitItem>
-                                        </BenefitsList>
-                                    </BenefitsSection>
-
-                                    <PlaidButtonSection>
-                                        <PlaidLink 
-                                            onSuccess={handlePlaidSuccess}
-                                            onError={handlePlaidError}
-                                        />
-                                        <DisclaimerText>
-                                            By connecting your account, you agree to our secure data handling practices. 
-                                            You can disconnect at any time.
-                                        </DisclaimerText>
-                                    </PlaidButtonSection>
-                                </>
-                            )}
-                        </PlaidModalBody>
-                    </PlaidModalContent>
-                </Modal>
+                <PlaidModal
+                    isOpen={activeModal === 'plaid'}
+                    onClose={closeModal}
+                    onSuccess={onSuccess}
+                />
             )}
 
             {/* CSV Upload Modal */}
             {activeModal === 'csv' && (
-                <Modal onClick={closeModal}>
-                    <ModalContent onClick={e => e.stopPropagation()}>
-                        <ModalHeader>
-                            <ModalTitle>Upload CSV File</ModalTitle>
-                            <CloseButton onClick={closeModal}>
-                                <FontAwesomeIcon icon={faTimes} />
-                            </CloseButton>
-                        </ModalHeader>
-
-                        <UploadSection>
-                            <FileDropZone $hasFile={!!file}>
-                                <input
-                                    type="file"
-                                    accept=".csv"
-                                    onChange={(e) => setFile(e.target.files[0])}
-                                    style={{ display: 'none' }}
-                                    id="csv-upload"
-                                />
-                                <label htmlFor="csv-upload">
-                                    <FontAwesomeIcon icon={faFileUpload} />
-                                    {file ? file.name : 'Choose CSV File'}
-                                </label>
-                            </FileDropZone>
-
-                            <NotesInput
-                                placeholder="Optional notes about this upload..."
-                                value={notes}
-                                onChange={(e) => setNotes(e.target.value)}
-                            />
-
-                            {uploadError && (
-                                <ErrorMessage>{uploadError}</ErrorMessage>
-                            )}
-
-                            <ActionButton 
-                                onClick={handleCSVUpload} 
-                                disabled={!file || uploading}
-                                $primary
-                            >
-                                {uploading ? (
-                                    <>
-                                        <FontAwesomeIcon icon={faSpinner} spin />
-                                        Uploading...
-                                    </>
-                                ) : (
-                                    'Upload & Parse'
-                                )}
-                            </ActionButton>
-                        </UploadSection>
-                    </ModalContent>
-                </Modal>
+                <FileUploadModal
+                    isOpen={activeModal === 'csv'}
+                    onClose={closeModal}
+                    onUpload={handleCSVUpload}
+                />
             )}
 
             {/* Manual Transaction Modal */}
@@ -828,189 +647,6 @@ const ErrorMessage = styled.div`
     border-radius: 12px;
     font-size: 0.9rem;
     text-align: center;
-`;
-// -------------------------------------------------------- Plaid Modal Content.
-const PlaidModalContent = styled.div`
-    background: white;
-    border-radius: 24px;
-    max-width: 600px;
-    width: 100%;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    animation: modalSlideIn 0.3s ease-out;
-    scrollbar-width: none;  /* Firefox */
-    -ms-overflow-style: none;  /* IE and Edge */
-
-    &::-webkit-scrollbar {
-        display: none;  /* Chrome, Safari, Opera */
-    }
-
-    @keyframes modalSlideIn {
-        from {
-            opacity: 0;
-            transform: translateY(30px) scale(0.95);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-        }
-    }
-`;
-const PlaidModalHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    padding: 2.5rem 2.5rem 1.5rem 2.5rem;
-    border-bottom: 1px solid #f0f0f0;
-    background: linear-gradient(135deg, #f8fbff, #ffffff);
-`;
-const PlaidHeaderContent = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    flex: 1;
-    text-align: center;
-`;
-const PlaidIcon = styled.div`
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #00d4aa, #00b894);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 1.5rem;
-    color: white;
-    font-size: 2rem;
-    box-shadow: 0 8px 24px rgba(0, 212, 170, 0.3);
-`;
-const PlaidModalTitle = styled.h2`
-    margin: 0 0 0.5rem 0;
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: #2c3e50;
-    line-height: 1.2;
-`;
-const PlaidModalSubtitle = styled.p`
-    margin: 0;
-    font-size: 1.1rem;
-    color: #7f8c8d;
-    font-weight: 400;
-    line-height: 1.4;
-    max-width: 400px;
-`;
-const PlaidModalBody = styled.div`
-    padding: 2.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 2.5rem;
-    overflow-y: auto;
-    scrollbar-width: none;  /* Firefox */
-    -ms-overflow-style: none;  /* IE and Edge */
-
-    &::-webkit-scrollbar {
-        display: none;  /* Chrome, Safari, Opera */
-    }
-`;
-const SecuritySection = styled.div`
-    background: linear-gradient(135deg, #f8fff9, #ffffff);
-    border: 1px solid #e8f5e8;
-    border-radius: 16px;
-    padding: 2rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    overflow: hidden;
-`;
-// -------------------------------------------------------- Security Section.
-const SecurityTitle = styled.h3`
-    font-size: 1.3rem;
-    font-weight: 600;
-    margin: 0;
-    color: #2c3e50;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-`;
-const SecurityFeatures = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-`;
-const SecurityFeature = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-`;
-const SecurityIcon = styled.div`
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: #28a745;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 0.8rem;
-    font-weight: bold;
-    flex-shrink: 0;
-`;
-const SecurityText = styled.p`
-    margin: 0;
-    font-size: 1rem;
-    color: #495057;
-    font-weight: 500;
-`;
-// -------------------------------------------------------- Benefits Section.
-const BenefitsSection = styled.div`
-    background: linear-gradient(135deg, #fff8f0, #ffffff);
-    border: 1px solid #ffeaa7;
-    border-radius: 16px;
-    padding: 2rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    overflow: hidden;
-`;
-const BenefitsTitle = styled.h3`
-    font-size: 1.3rem;
-    font-weight: 600;
-    margin: 0;
-    color: #2c3e50;
-`;
-const BenefitsList = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 0.8rem;
-`;
-const BenefitItem = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    font-size: 1rem;
-    color: #495057;
-    font-weight: 500;
-`;
-const PlaidButtonSection = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1rem;
-    padding: 1.5rem;
-    background: linear-gradient(135deg, #f0f8ff, #ffffff);
-    border-radius: 16px;
-    border: 1px solid #e3f2fd;
-    overflow: hidden;
-`;
-const DisclaimerText = styled.p`
-    text-align: center;
-    font-size: 0.9rem;
-    color: #6c757d;
-    font-weight: 400;
-    margin: 0;
-    line-height: 1.4;
-    max-width: 400px;
 `;
 
 // -------------------------------------------------------- Export WelcomeScreen Component.

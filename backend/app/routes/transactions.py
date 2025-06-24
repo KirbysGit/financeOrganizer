@@ -1,9 +1,9 @@
 # Imports.
-from sqlalchemy import func, extract, text
+from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
-from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime, timedelta
+from fastapi import APIRouter, Depends, HTTPException
 
 # Local Imports.
 from app.utils.db_utils import get_db
@@ -22,9 +22,10 @@ def get_transactions(db: Session = Depends(get_db)):
 # ----------------------------------------------------------------------- Get Transactions with Account Info.
 @router.get("/transactions/detailed")
 def get_detailed_transactions(db: Session = Depends(get_db)):
-    
+    # Query For All Transactions, And Join With Account Info.
     transactions = db.query(Transaction).join(Account, Transaction.account_id == Account.account_id, isouter=True).all()
     
+    # Create Result List.
     result = []
     for tx in transactions:
         tx_dict = {
@@ -50,21 +51,26 @@ def get_detailed_transactions(db: Session = Depends(get_db)):
                 "mask": tx.account.mask if tx.account else None
             } if tx.account else None
         }
+
+        # Add Transaction To Result List.
         result.append(tx_dict)
     
+    # Return Result List.
     return result
 
 # ----------------------------------------------------------------------- Get All Accounts.
 @router.get("/accounts")
 def get_accounts(db: Session = Depends(get_db)):
-    """Get all connected accounts with their current balances."""
+    # Query For All Accounts, And Filter For Only Active Accounts.
     accounts = db.query(Account).filter(Account.is_active == True).all()
     
+    # Create Result List.
     result = []
     for account in accounts:
-        # Count transactions for this account
+        # Count Transactions For This Account.
         tx_count = db.query(Transaction).filter(Transaction.account_id == account.account_id).count()
         
+        # Create Account Dictionary.
         account_dict = {
             "id": account.id,
             "account_id": account.account_id,
@@ -79,15 +85,18 @@ def get_accounts(db: Session = Depends(get_db)):
             "transaction_count": tx_count,
             "updated_at": account.updated_at
         }
+
+        # Add Account To Result List.
         result.append(account_dict)
     
+    # Return Result List.
     return result
 
 # ----------------------------------------------------------------------- Clears Entire Database.
 @router.delete("/clear")
 def clear_database(db: Session = Depends(get_db)):
     try:
-        # Disable foreign key checks temporarily
+        # Disable Foreign Key Checks Temporarily.
         if "sqlite" in str(db.bind.url):
             db.execute(text("PRAGMA foreign_keys = OFF"))
         else:
@@ -99,7 +108,7 @@ def clear_database(db: Session = Depends(get_db)):
         db.query(Account).delete()
         db.query(Institution).delete()
         
-        # Re-enable foreign key checks
+        # Re-enable Foreign Key Checks.
         if "sqlite" in str(db.bind.url):
             db.execute(text("PRAGMA foreign_keys = ON"))
         else:
@@ -108,13 +117,13 @@ def clear_database(db: Session = Depends(get_db)):
         # Commit Changes.
         db.commit()
         
-        # Verify tables are empty
+        # Verify Tables Are Empty.
         transaction_count = db.query(Transaction).count()
         file_count = db.query(FileUpload).count()
         account_count = db.query(Account).count()
         institution_count = db.query(Institution).count()
         
-        # Return Success Msg with verification.
+        # Return Success Msg With Verification.
         return {
             "message": "Database cleared successfully",
             "tables_cleared": ["transactions", "file_uploads", "accounts", "institutions"],
@@ -129,7 +138,7 @@ def clear_database(db: Session = Depends(get_db)):
         # Any Issues, Rollback To Last Commit.
         db.rollback()
         
-        # Re-enable foreign key checks in case of error
+        # Re-enable Foreign Key Checks In Case Of Error.
         try:
             if "sqlite" in str(db.bind.url):
                 db.execute(text("PRAGMA foreign_keys = ON"))
@@ -162,13 +171,13 @@ def create_transaction(transaction: TransactionCreate, db: Session = Depends(get
     elif tx_type in POSITIVE_TYPES and amount < 0:
         tx_data["amount"] = -amount
 
-    # Map old field names to new schema
+    # Map Old Field Names To New Schema.
     new_tx_data = {
         "date": tx_data.get("date"),
         "amount": tx_data.get("amount"),
         "vendor": tx_data.get("vendor"),
         "description": tx_data.get("description"),
-        "category_primary": tx_data.get("type", "other"),  # Map old 'type' to 'category_primary'
+        "category_primary": tx_data.get("type", "other"),
         "source": "manual",
         "file": "manual",
         "created_at": tx_data.get("created_at"),
@@ -213,76 +222,149 @@ def get_stats(db: Session = Depends(get_db)):
     start_of_week = (now - timedelta(days=now.weekday())).date()
     start_of_year = datetime(now.year, 1, 1).date()
     
-    print(f"Debug - Current date: {now}")
-    print(f"Debug - Start of month: {start_of_month}")
-    print(f"Debug - Start of week: {start_of_week}")
-    print(f"Debug - Start of year: {start_of_year}")
+    # Calculate Previous Periods For Growth Comparison.
+
+    # Previous Month.
+    if now.month == 1:
+        prev_month_start = datetime(now.year - 1, 12, 1).date()
+    else:
+        prev_month_start = datetime(now.year, now.month - 1, 1).date()
     
+    # Previous Week.
+    prev_week_start = start_of_week - timedelta(days=7)
+    
+    # Previous Year.
+    prev_year_start = datetime(now.year - 1, 1, 1).date()
+
     # Get All Transactions.
     transactions = db.query(Transaction).all()
-    print(f"Debug - Total transactions: {len(transactions)}")
     
-    # Print sample of transaction dates
-    for t in transactions[:5]:
-        print(f"Debug - Transaction: date={t.date}, amount={t.amount}, type={type(t.date)}")
-    
-    # Total income (all time)
+    # Total Income (All Time).
     total_income = db.query(func.sum(Transaction.amount)).filter(
         Transaction.amount > 0
     ).scalar() or 0
     
-    # Monthly income (current month)
+    # Monthly Income (Current Month).
     monthly_income = db.query(func.sum(Transaction.amount)).filter(
         Transaction.amount > 0,
         Transaction.date >= start_of_month
     ).scalar() or 0
     
-    print(f"Debug - Monthly income query: {monthly_income}")
-    print(f"Debug - Monthly income filter conditions:")
-    print(f"  - amount > 0")
-    print(f"  - date >= {start_of_month}")
+    # Previous Month Income.
+    prev_monthly_income = db.query(func.sum(Transaction.amount)).filter(
+        Transaction.amount > 0,
+        Transaction.date >= prev_month_start,
+        Transaction.date < start_of_month
+    ).scalar() or 0
     
-    # Weekly income (current week)
+    # Weekly Income (Current Week).
     weekly_income = db.query(func.sum(Transaction.amount)).filter(
         Transaction.amount > 0,
         Transaction.date >= start_of_week
     ).scalar() or 0
     
-    # Year-to-date income
+    # Previous Week Income.
+    prev_weekly_income = db.query(func.sum(Transaction.amount)).filter(
+        Transaction.amount > 0,
+        Transaction.date >= prev_week_start,
+        Transaction.date < start_of_week
+    ).scalar() or 0
+    
+    # Year-to-Date Income.
     ytd_income = db.query(func.sum(Transaction.amount)).filter(
         Transaction.amount > 0,
         Transaction.date >= start_of_year
     ).scalar() or 0
     
-    # Total spending (all time)
+    # Previous Year Income.
+    prev_ytd_income = db.query(func.sum(Transaction.amount)).filter(
+        Transaction.amount > 0,
+        Transaction.date >= prev_year_start,
+        Transaction.date < start_of_year
+    ).scalar() or 0
+    
+    # Total Spending (All Time).
     total_spending = db.query(func.sum(Transaction.amount)).filter(
         Transaction.amount < 0
     ).scalar() or 0
     
-    # Monthly spending (current month)
+    # Monthly Spending (Current Month).
     monthly_spending = db.query(func.sum(Transaction.amount)).filter(
         Transaction.amount < 0,
         Transaction.date >= start_of_month
     ).scalar() or 0
     
-    # Weekly spending (current week)
+    # Previous Month Spending.
+    prev_monthly_spending = db.query(func.sum(Transaction.amount)).filter(
+        Transaction.amount < 0,
+        Transaction.date >= prev_month_start,
+        Transaction.date < start_of_month
+    ).scalar() or 0
+    
+    # Weekly Spending (Current Week).
     weekly_spending = db.query(func.sum(Transaction.amount)).filter(
         Transaction.amount < 0,
         Transaction.date >= start_of_week
     ).scalar() or 0
     
-    # Year-to-date spending
+    # Previous Week Spending.
+    prev_weekly_spending = db.query(func.sum(Transaction.amount)).filter(
+        Transaction.amount < 0,
+        Transaction.date >= prev_week_start,
+        Transaction.date < start_of_week
+    ).scalar() or 0
+    
+    # Year-to-Date Spending.
     ytd_spending = db.query(func.sum(Transaction.amount)).filter(
         Transaction.amount < 0,
         Transaction.date >= start_of_year
     ).scalar() or 0
     
-    # Calculate cash flow
+    # Previous Year Spending.
+    prev_ytd_spending = db.query(func.sum(Transaction.amount)).filter(
+        Transaction.amount < 0,
+        Transaction.date >= prev_year_start,
+        Transaction.date < start_of_year
+    ).scalar() or 0
+    
+    # Calculate Cash Flow.
     monthly_cash_flow = monthly_income + monthly_spending
     weekly_cash_flow = weekly_income + weekly_spending
     ytd_cash_flow = ytd_income + ytd_spending
     
-    # Get income by category
+    # Previous Period Cash Flows.
+    prev_monthly_cash_flow = prev_monthly_income + prev_monthly_spending
+    prev_weekly_cash_flow = prev_weekly_income + prev_weekly_spending
+    prev_ytd_cash_flow = prev_ytd_income + prev_ytd_spending
+    
+    # Calculate Growth Percentages.
+    def calculate_growth_percentage(current, previous):
+        if previous == 0:
+            return None if current == 0 else 100.0
+        return ((current - previous) / abs(previous)) * 100
+    
+    # Growth Calculations For Income And Spending.
+    income_growth = {
+        "monthly": calculate_growth_percentage(monthly_income, prev_monthly_income),
+        "weekly": calculate_growth_percentage(weekly_income, prev_weekly_income),
+        "yearly": calculate_growth_percentage(ytd_income, prev_ytd_income)
+    }
+    
+    # Growth Calculations For Spending.
+    spending_growth = {
+        "monthly": calculate_growth_percentage(monthly_spending, prev_monthly_spending),
+        "weekly": calculate_growth_percentage(weekly_spending, prev_weekly_spending),
+        "yearly": calculate_growth_percentage(ytd_spending, prev_ytd_spending)
+    }
+    
+    # Growth Calculations For Cash Flow.
+    cash_flow_growth = {
+        "monthly": calculate_growth_percentage(monthly_cash_flow, prev_monthly_cash_flow),
+        "weekly": calculate_growth_percentage(weekly_cash_flow, prev_weekly_cash_flow),
+        "yearly": calculate_growth_percentage(ytd_cash_flow, prev_ytd_cash_flow)
+    }
+    
+    # Get Income By Category.
     income_by_category = db.query(
         Transaction.category_primary,
         func.sum(Transaction.amount).label('total')
@@ -292,7 +374,7 @@ def get_stats(db: Session = Depends(get_db)):
         Transaction.category_primary
     ).all()
     
-    # Get spending by category (top 5)
+    # Get Spending By Category (Top 5).
     spending_by_category = db.query(
         Transaction.category_primary,
         func.sum(Transaction.amount).label('total')
@@ -304,7 +386,7 @@ def get_stats(db: Session = Depends(get_db)):
         func.sum(Transaction.amount).asc()
     ).limit(5).all()
     
-    # Get average transaction amounts
+    # Get Average Transaction Amounts.
     avg_income = db.query(func.avg(Transaction.amount)).filter(
         Transaction.amount > 0
     ).scalar() or 0
@@ -313,18 +395,50 @@ def get_stats(db: Session = Depends(get_db)):
         Transaction.amount < 0
     ).scalar() or 0
     
-    # Get transaction frequency
+    # Get Transaction Frequency.
     transaction_count = db.query(Transaction).count()
     income_count = db.query(Transaction).filter(Transaction.amount > 0).count()
     spending_count = db.query(Transaction).filter(Transaction.amount < 0).count()
     
-    # Get account statistics
+    # Get Account Statistics.
     accounts = db.query(Account).all()
     total_assets = sum(acc.current_balance for acc in accounts if acc.type == 'depository')
     total_liabilities = sum(acc.current_balance for acc in accounts if acc.type == 'credit')
     net_worth = total_assets + total_liabilities
     
-    # Get source statistics
+    # Helper Function To Get Account Totals By Type.
+    def get_account_total_by_type(account_type):
+        return sum(acc.current_balance for acc in accounts if acc.type == account_type)
+    
+    # For Now, We'll Use Simplified Liability Growth Based On Current Vs Previous Cash Flow.
+    # In A Production System, You'd Want To Store Historical Account Balances.
+    # For Liabilities, We'll Only Calculate Growth If There Are Actual Liabilities.
+    current_liabilities = get_account_total_by_type('credit')
+    
+    # Simplified Approach: Always Show Growth Indicator, Even If 0%.
+    # If There Are Liabilities, We'll Estimate Growth From Cash Flow Changes.
+    # (This Is A Simplified Approach - Ideally You'd Track Historical Account Balances.)
+    liabilities_growth = {
+        "monthly": -calculate_growth_percentage(monthly_spending, prev_monthly_spending) or 0.0,
+        "weekly": -calculate_growth_percentage(weekly_spending, prev_weekly_spending) or 0.0,
+        "yearly": -calculate_growth_percentage(ytd_spending, prev_ytd_spending) or 0.0
+    }
+    
+    # Net Worth Growth (Based On Cash Flow Changes).
+    net_worth_growth = {
+        "monthly": calculate_growth_percentage(monthly_cash_flow, prev_monthly_cash_flow),
+        "weekly": calculate_growth_percentage(weekly_cash_flow, prev_weekly_cash_flow),
+        "yearly": calculate_growth_percentage(ytd_cash_flow, prev_ytd_cash_flow)
+    }
+    
+    # Assets Growth (Simplified - Based On Income Changes).
+    assets_growth = {
+        "monthly": calculate_growth_percentage(monthly_income, prev_monthly_income),
+        "weekly": calculate_growth_percentage(weekly_income, prev_weekly_income),
+        "yearly": calculate_growth_percentage(ytd_income, prev_ytd_income)
+    }
+    
+    # Get Source Statistics.
     source_stats = {}
     for source in ['plaid', 'csv', 'manual']:
         source_transactions = db.query(Transaction).filter(Transaction.source == source).all()
@@ -333,6 +447,7 @@ def get_stats(db: Session = Depends(get_db)):
             'total': sum(t.amount for t in source_transactions)
         }
     
+    # Return Stats.
     return {
         "totals": {
             "transactions": transaction_count,
@@ -341,26 +456,35 @@ def get_stats(db: Session = Depends(get_db)):
             "total_liabilities": total_liabilities,
             "net_worth": net_worth,
             "average_income": avg_income,
-            "average_spending": avg_spending
+            "average_spending": avg_spending,
+            "growth": {
+                "net_worth": net_worth_growth["monthly"] or 0.0,
+                "total_assets": assets_growth["monthly"] or 0.0,
+                "total_liabilities": liabilities_growth["monthly"] or 0.0,
+                "monthly_cash_flow": cash_flow_growth["monthly"] or 0.0
+            }
         },
         "income": {
             "total": total_income,
             "this_month": monthly_income,
             "this_week": weekly_income,
             "year_to_date": ytd_income,
-            "by_category": [{"category": cat, "amount": amt} for cat, amt in income_by_category]
+            "by_category": [{"category": cat, "amount": amt} for cat, amt in income_by_category],
+            "growth": income_growth
         },
         "spending": {
             "total": total_spending,
             "this_month": monthly_spending,
             "this_week": weekly_spending,
             "year_to_date": ytd_spending,
-            "by_category": [{"category": cat, "amount": amt} for cat, amt in spending_by_category]
+            "by_category": [{"category": cat, "amount": amt} for cat, amt in spending_by_category],
+            "growth": spending_growth
         },
         "cash_flow": {
             "this_month": monthly_cash_flow,
             "this_week": weekly_cash_flow,
-            "year_to_date": ytd_cash_flow
+            "year_to_date": ytd_cash_flow,
+            "growth": cash_flow_growth
         },
         "accounts": {
             "by_type": {
@@ -371,6 +495,11 @@ def get_stats(db: Session = Depends(get_db)):
             },
             "total": len(accounts)
         },
-        "sources": source_stats
+        "sources": source_stats,
+        "growth": {
+            "net_worth": net_worth_growth,
+            "assets": assets_growth,
+            "liabilities": liabilities_growth
+        }
     }
 

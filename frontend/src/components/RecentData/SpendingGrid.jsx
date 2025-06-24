@@ -1,21 +1,13 @@
-import React, { useState, useEffect } from 'react';
+// Imports.
+import React from 'react';
 import { styled } from 'styled-components';
-import { fetchDetailedTransactions } from '../services/api';
-import { Bar, Line } from 'react-chartjs-2';
-import {
-    Chart as ChartJS,
-    CategoryScale,
-    LinearScale,
-    BarElement,
-    PointElement,
-    LineElement,
-    Title,
-    Tooltip,
-    Legend,
-    Filler
-} from 'chart.js';
+import { useState, useEffect } from 'react';
 
-// Register ChartJS components
+// Imports For ChartJS.
+import { Bar } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend, Filler } from 'chart.js';
+
+// Register ChartJS Components.
 ChartJS.register(
     CategoryScale,
     LinearScale,
@@ -28,69 +20,78 @@ ChartJS.register(
     Filler
 );
 
-const SpendingGrid = () => {
-    const [transactions, setTransactions] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [chartData, setChartData] = useState(null);
-    const [dateRange, setDateRange] = useState('30D');
-    const [showDetails, setShowDetails] = useState(false);
+// ------------------------------------------------------------------------------------------------ Spending Grid Component.
+const SpendingGrid = ({ myTransactions, id }) => {
+    // Data States.
     const [netSummary, setNetSummary] = useState(0);
-    const [positiveDays, setPositiveDays] = useState(0);
-    const [totalDays, setTotalDays] = useState(0);
+    const [chartData, setChartData] = useState(null);
+    const [transactions, setTransactions] = useState([]);
 
-    // 
+    // Loading States.
+    const [loading, setLoading] = useState(true);
+
+    // Chart States.
     const [showIncome, setShowIncome] = useState(true);
     const [showSpending, setShowSpending] = useState(true);
     const [showNet, setShowNet] = useState(true);
+    const [dateRange, setDateRange] = useState('30D');
 
+    // Date Range Options.
     const dateRangeOptions = [
         { value: '7D', label: '7 Days' },
         { value: '14D', label: '14 Days' },
         { value: '30D', label: '30 Days' }
     ];
 
+    // -------------------------------------------------------- Fetch Transactions & Process Data For Chart.
     useEffect(() => {
-        const getTransactions = async () => {
-            try {
-                const res = await fetchDetailedTransactions();
-                setTransactions(res.data);
-                const processedData = processChartData(res.data);
-                setChartData(processedData);
-                generateSummary(processedData);
-            } catch (err) {
-                console.log("Error fetching transactions:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        getTransactions();
-    }, [dateRange]);
+        if (myTransactions && myTransactions.length > 0) {
+            setTransactions(myTransactions);
+            const processedData = processChartData(myTransactions);
+            setChartData(processedData);
+            generateSummary(processedData);
+            setLoading(false);
+        } else {
+            console.log('No transactions received from props');
+            setLoading(false);
+        }
+    }, [myTransactions, dateRange]);
 
+    // -------------------------------------------------------- Generate Summary With Data.
     const generateSummary = (data) => {
         if (!data) return;
         const { daily } = data;
         const net = daily.net;
         const netSum = net.reduce((sum, val) => sum + val, 0);
         setNetSummary(netSum);
-        const posDays = net.filter(amount => amount > 0).length;
-        setPositiveDays(posDays);
-        setTotalDays(net.length);
     };
 
+    // -------------------------------------------------------- Process Chart Data.
     const processChartData = (transactions) => {
+        // Get Days To Show.
         const daysToShow = dateRange === '7D' ? 7 : dateRange === '14D' ? 14 : 30;
+
+        // Get & Set Start Date.
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - (daysToShow - 1));
+
+        // Get Recent Transactions.
         const recentTransactions = transactions.filter(tx => 
             new Date(tx.date) >= startDate
         );
+
+        // Get Dates.
         const dates = Array.from({ length: daysToShow }, (_, i) => {
             const date = new Date();
             date.setDate(date.getDate() - (daysToShow - 1 - i));
             return date.toISOString().split('T')[0];
         });
+
+        // Initialize Arrays.
         const incomeData = new Array(daysToShow).fill(0);
         const spendingData = new Array(daysToShow).fill(0);
+
+        // Process Transactions.
         recentTransactions.forEach(tx => {
             const dateIndex = dates.indexOf(tx.date.split('T')[0]);
             if (dateIndex !== -1) {
@@ -101,7 +102,11 @@ const SpendingGrid = () => {
                 }
             }
         });
+
+        // Get Net Data.
         const netData = incomeData.map((inc, i) => inc - spendingData[i]);
+
+        // Return Data.
         return {
             labels: dates.map(date => new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
             daily: {
@@ -112,6 +117,7 @@ const SpendingGrid = () => {
         };
     };
 
+    // -------------------------------------------------------- Format Currency (e.g. $1,000.00).
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
@@ -120,6 +126,7 @@ const SpendingGrid = () => {
         }).format(amount);
     };
 
+    // -------------------------------------------------------- Format Date (e.g. Jan 1, 2025).
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleDateString('en-US', {
             month: 'short',
@@ -127,6 +134,7 @@ const SpendingGrid = () => {
         });
     };
 
+    // -------------------------------------------------------- Get Time Period Text (e.g. last week, last 2 weeks, last month).
     const getTimePeriodText = () => {
         switch (dateRange) {
             case '7D': return 'last week';
@@ -136,10 +144,11 @@ const SpendingGrid = () => {
         }
     };
 
+    // -------------------------------------------------------- Get Cash Flow Message, Friendly Message Based On Net Summary.
     const getCashFlowMessage = () => {
         if (netSummary > 0) {
             return {
-                main: `Awesome! You came out ahead by ${formatCurrency(netSummary)} in the ${getTimePeriodText()}.`,
+                main: `Great! You came out ahead by ${formatCurrency(netSummary)} in the ${getTimePeriodText()}.`,
                 secondary: null
             };
         } else if (netSummary < 0) {
@@ -155,10 +164,14 @@ const SpendingGrid = () => {
         }
     };
 
+    // -------------------------------------------------------- Get Bar Chart Data.
     const getBarChartData = () => {
+        // Initialize Arrays.
         const datasets = [];
 
+        // Add Income Data.
         if (showIncome) {
+            // Push Income Data W/ Styling. (Green Gradient Bar).
             datasets.push({
                 label: 'Income',
                 data: chartData?.daily?.income || [],
@@ -189,7 +202,9 @@ const SpendingGrid = () => {
             })
         }
 
+        // Add Spending Data.
         if (showSpending) {
+            // Push Spending Data W/ Styling. (Red Gradient Bar).
             datasets.push({
                 label: 'Spending',
                 data: chartData?.daily?.spending || [],
@@ -220,7 +235,9 @@ const SpendingGrid = () => {
             })
         }
 
+        // Add Net Data.
         if (showNet) {
+            // Push Net Data W/ Styling. (Blue Curvy Line).
             datasets.push({
                 type: 'line',
                 label: 'Net',
@@ -242,22 +259,27 @@ const SpendingGrid = () => {
                 yAxisID: 'y'
             })
         }
+
+        // Return Data.
         return {
             labels: chartData?.labels || [],
             datasets: datasets
         };
     };
 
+    // -------------------------------------------------------- Chart Options. (Styling, Tooltips, etc.).
     const chartOptions = {
         responsive: true,
         maintainAspectRatio: false,
+        // Animation.
         animation: {
             duration: 1200,
             easing: 'easeInOutQuart'
         },
         plugins: {
+            // Legend.
             legend: {
-                display: showDetails,
+                display: false,
                 position: 'top',
                 labels: {
                     usePointStyle: true,
@@ -281,6 +303,7 @@ const SpendingGrid = () => {
                     }
                 }
             },
+            // Tooltips (Hover Over Chart To See Details).
             tooltip: {
                 mode: 'index',
                 intersect: false,
@@ -317,7 +340,9 @@ const SpendingGrid = () => {
                 }
             }
         },
+        // Scales.
         scales: {
+            // X-Axis.
             x: {
                 grid: {
                     display: false
@@ -340,6 +365,7 @@ const SpendingGrid = () => {
                     display: false
                 }
             },
+            // Y-Axis.
             y: {
                 beginAtZero: true,
                 grid: {
@@ -365,11 +391,13 @@ const SpendingGrid = () => {
                 }
             }
         },
+        // Interaction (Hover Over Chart To See Details, Go To Nearest Point).
         interaction: {
             mode: 'nearest',
             axis: 'x',
             intersect: false
         },
+        // Elements (Styling For Chart Bars & Points).
         elements: {
             bar: {
                 borderRadius: 8,
@@ -380,6 +408,7 @@ const SpendingGrid = () => {
                 radius: 4
             }
         },
+        // Layout (Padding, Margins, etc.).
         layout: {
             padding: {
                 left: 20,
@@ -390,14 +419,17 @@ const SpendingGrid = () => {
         }
     };
 
+    // -------------------------------------------------------- Spending Grid UI.
     return (
-        <SpendingGridWrapper>
+        <SpendingGridWrapper id={id}>
+            {/* Cash Flow Chart. */}
             <CashFlowChart>
+                {/* Section Title. */}
                 <SectionTitle style={{fontSize: '2rem'}}>
                     Here's how your money moved lately...
                 </SectionTitle>
 
-                
+                {/* Cash Flow Summary. */}
                 <CashFlowSummary>
                     <CashFlowIcon>
                         {netSummary > 0 ? '📈' : netSummary < 0 ? '📉' : '➡️'}
@@ -413,7 +445,8 @@ const SpendingGrid = () => {
                         )}
                     </CashFlowMessageContainer>
                 </CashFlowSummary>
-                
+
+                {/* Chart Container. */}
                 <ChartContainer>
                     {loading ? (
                         <LoadingContainer>
@@ -425,14 +458,15 @@ const SpendingGrid = () => {
                     )}
                 </ChartContainer>
 
+                {/* Chart Toggles. */}
                 <ChartToggles>
                     <DateRangeSelector>
                         <DateRangeButtons>
-                            <SlidingBackground activeIndex={dateRangeOptions.findIndex(opt => opt.value === dateRange)} />
+                            <SlidingBackground $activeIndex={dateRangeOptions.findIndex(opt => opt.value === dateRange)} />
                             {dateRangeOptions.map((option, index) => (
                                 <DateRangeButton
                                     key={option.value}
-                                    active={dateRange === option.value}
+                                    $isActive={dateRange === option.value}
                                     onClick={() => setDateRange(option.value)}
                                 >
                                     {option.label}
@@ -443,7 +477,7 @@ const SpendingGrid = () => {
                     
                     <ToggleGroup>
                         <ToggleButton 
-                            active={showIncome} 
+                            $isActive={showIncome} 
                             onClick={() => setShowIncome(v => !v)}
                             color="rgba(40, 167, 69, 0.8)"
                             aria-label={`${showIncome ? 'Hide' : 'Show'} income data`}
@@ -452,7 +486,7 @@ const SpendingGrid = () => {
                             Income
                         </ToggleButton>
                         <ToggleButton 
-                            active={showSpending} 
+                            $isActive={showSpending} 
                             onClick={() => setShowSpending(v => !v)}
                             color="rgba(220, 53, 69, 0.8)"
                             aria-label={`${showSpending ? 'Hide' : 'Show'} spending data`}
@@ -461,7 +495,7 @@ const SpendingGrid = () => {
                             Spending
                         </ToggleButton>
                         <ToggleButton 
-                            active={showNet} 
+                            $isActive={showNet} 
                             onClick={() => setShowNet(v => !v)}
                             color="rgba(0, 123, 255, 0.8)"
                             aria-label={`${showNet ? 'Hide' : 'Show'} net data`}
@@ -472,7 +506,10 @@ const SpendingGrid = () => {
                     </ToggleGroup>
                 </ChartToggles>
             </CashFlowChart>
+
+            {/* Recent Transactions. */}
             <RecentTransactions>
+                {/* Section Title. */}
                 <SectionTitle style={{fontSize: '1.75rem'}}>Recent Transactions</SectionTitle>
                 {loading ? (
                     <LoadingMessage>Loading transactions...</LoadingMessage>
@@ -507,13 +544,15 @@ const SpendingGrid = () => {
 }
 
 // -------------------------------------------------------- Spending Grid Wrapper.
-const SpendingGridWrapper = styled.div`
+const SpendingGridWrapper = styled.div.attrs(props => ({
+    id: props.id
+}))`
     display: grid;
     grid-template-columns: 2fr 1fr;
     width: 90%;
     gap: 2.5rem;
-    padding-bottom: 2rem;
-    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
     overflow: hidden;
 `
 // -------------------------------------------------------- Section Title (Net Change, Recent Transactions, etc.).
@@ -574,6 +613,7 @@ const ChartToggles = styled.div`
     gap: 0.5rem;
     font-size: 1rem;
 `
+// -------------------------------------------------------- Toggle Group (Income, Spending, Net)
 const ToggleGroup = styled.div`
     background: rgba(255, 255, 255, 0.4);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.34);
@@ -597,15 +637,15 @@ const ToggleGroup = styled.div`
 `
 const ToggleButton = styled.button`
     flex: 1;
-    background: ${props => props.active ? props.color : 'rgba(255, 255, 255, 0.4)'};
-    border: 2px solid ${props => props.active ? props.color : 'transparent'};
+    background: ${props => props.$isActive ? props.color : 'rgba(255, 255, 255, 0.4)'};
+    border: 2px solid ${props => props.$isActive ? props.color : 'transparent'};
     border-radius: 16px;
     padding: 0.75rem 1rem;
     text-align: center;
     font-size: 1rem;
     font-weight: 600;
     font-family: inherit;
-    color: ${props => props.active ? 'white' : 'var(--text-primary)'};
+    color: ${props => props.$isActive ? 'white' : 'var(--text-primary)'};
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
@@ -649,6 +689,63 @@ const ToggleIcon = styled.span`
     ${ToggleButton}:hover & {
         transform: scale(1.1);
     }
+`
+// -------------------------------------------------------- Date Range Selector. (7D, 14D, 30D)
+const DateRangeSelector = styled.div`
+    background: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.34);
+    border-radius: 16px;
+    padding: 0.5rem;
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    gap: 1rem;
+    position: relative;
+    overflow: hidden;
+`
+const DateRangeButtons = styled.div`
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    width: 100%;
+    justify-content: space-between;
+    position: relative;
+`
+const DateRangeButton = styled.button`
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-radius: 16px;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: inherit;
+    color: ${props => props.$isActive ? 'white' : 'var(--text-primary)'};
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 0;
+    text-align: center;
+    position: relative;
+    z-index: 2;
+    &:hover {
+        transform: translateY(-2px);
+    }
+`
+// -------------------------------------------------------- Sliding Background. (Background Of Date Range Buttons)
+const SlidingBackground = styled.div`
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: calc(33.333% - 0.33rem);
+    height: 100%;
+    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
+    border-radius: 16px;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateX(calc(${props => props.$activeIndex} * (100% + 0.5rem)));
+    z-index: 1;
 `
 // -------------------------------------------------------- Stats Within Chart.
 const CashFlowSummary = styled.div`
@@ -727,61 +824,6 @@ const CashFlowSecondaryMessage = styled.div`
     line-height: 1.3;
     font-style: italic;
 `
-const DateRangeSelector = styled.div`
-    background: rgba(255, 255, 255, 0.4);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.34);
-    border-radius: 16px;
-    padding: 0.5rem;
-    display: flex;
-    flex: 1;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-    gap: 1rem;
-    position: relative;
-    overflow: hidden;
-`
-const DateRangeButtons = styled.div`
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.5rem;
-    width: 100%;
-    justify-content: space-between;
-    position: relative;
-`
-const SlidingBackground = styled.div`
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: calc(33.333% - 0.33rem);
-    height: 100%;
-    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
-    border-radius: 16px;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    transform: translateX(calc(${props => props.activeIndex} * (100% + 0.5rem)));
-    z-index: 1;
-`
-const DateRangeButton = styled.button`
-    flex: 1;
-    background: transparent;
-    border: none;
-    border-radius: 16px;
-    padding: 0.75rem 1rem;
-    font-size: 1rem;
-    font-weight: 600;
-    font-family: inherit;
-    color: ${props => props.active ? 'white' : 'var(--text-primary)'};
-    cursor: pointer;
-    transition: all 0.3s ease;
-    min-width: 0;
-    text-align: center;
-    position: relative;
-    z-index: 2;
-    &:hover {
-        transform: translateY(-2px);
-    }
-`
 // -------------------------------------------------------- Recent Transactions List.
 const RecentTransactions = styled.div`
     background: rgba(255, 255, 255, 0.4);
@@ -803,6 +845,7 @@ const TransactionList = styled.div`
     overflow-y: auto;
     padding-right: 0.5rem;
 `
+// -------------------------------------------------------- Transaction Item. (Each Transaction)
 const TransactionItem = styled.div`
     display: flex;
     justify-content: space-between;
@@ -820,28 +863,34 @@ const TransactionItem = styled.div`
         background: rgba(255, 255, 255, 0.7);
     }
 `
+// -------------------------------------------------------- Transaction Info. (Name, Account, Amount, Date)
 const TransactionInfo = styled.div`
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
 `
+// -------------------------------------------------------- Transaction Name. (Name Of Transaction)
 const TransactionName = styled.div`
     font-weight: 500;
     color: var(--text-primary);
 `
+// -------------------------------------------------------- Transaction Account. (Account Of Transaction)
 const TransactionAccount = styled.div`
     font-size: 0.9rem;
     color: var(--text-secondary);
 `
+// -------------------------------------------------------- Transaction Details. (Amount, Date)
 const TransactionDetails = styled.div`
     display: flex;
     flex-direction: column;
     align-items: flex-end;
     gap: 0.25rem;
 `
+// -------------------------------------------------------- Transaction Amount. (Amount Of Transaction)
 const TransactionAmount = styled.div`
     font-weight: 600;
 `
+// -------------------------------------------------------- Transaction Date. (Date Of Transaction)
 const TransactionDate = styled.div`
     font-size: 0.9rem;
     color: var(--text-secondary);

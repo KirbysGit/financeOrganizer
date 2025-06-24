@@ -18,7 +18,7 @@ router = APIRouter()    # Sets Up Modular Sub-Router for FastAPI.
 async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)):
     # Check If File Is CSV.
     if not file.filename.endswith('.csv'):
-        raise HTTPException(status_code=400, detail="Only CSV files are allowed")
+        raise HTTPException(status_code=400, detail="Only CSV Files Are Allowed.")
     
     # Read File Content.
     content = await file.read()
@@ -54,12 +54,13 @@ async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
     db.commit()
     db.refresh(uploaded_file)
     
-    # Get or create default account for CSV transactions
+    # Get Or Create Default Account For CSV Transactions.
     default_account = db.query(Account).filter_by(
         name="CSV Import Account",
         type="depository"
     ).first()
     
+    # If No Default Account, Create One.
     if not default_account:
         default_account = Account(
             account_id=f"csv_default_{datetime.now().strftime('%Y%m%d%H%M%S')}",
@@ -83,29 +84,24 @@ async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
     errors = []
     total_amount = 0
     
-    print(f"Debug - Processing CSV file: {file.filename}")
-    print(f"Debug - CSV columns: {df.columns.tolist()}")
-    
     for index, row in df.iterrows():
         try:
-            # Map CSV columns to our enhanced transaction model
+            # Map CSV Columns To Our Enhanced Transaction Model.
             amount = float(row.get('Amount', row.get('amount', 0)))
             date_str = row.get('Date', row.get('date'))
-            print(f"Debug - Raw date from CSV: {date_str}")
             
-            # Parse date with explicit format
+            # Parse Date With Explicit Format.
             try:
                 date = pd.to_datetime(date_str).date()
-                print(f"Debug - Parsed date: {date}, type: {type(date)}")
             except Exception as e:
-                print(f"Debug - Date parsing error: {str(e)}")
                 raise
             
+            # Get Vendor, Description, And Category.
             vendor = str(row.get('Vendor', row.get('vendor', row.get('Description', 'Unknown'))))
             description = str(row.get('Description', row.get('description', '')))
             category = str(row.get('Category', row.get('category', row.get('Type', 'other'))))
             
-            # Check if transaction already exists using multiple fields
+            # Check If Transaction Already Exists Using Multiple Fields.
             existing_transaction = db.query(Transaction).filter(
                 Transaction.date == date,
                 Transaction.amount == amount,
@@ -115,17 +111,17 @@ async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
                 Transaction.source == 'csv'
             ).first()
             
+            # If Transaction Already Exists, Skip It.
             if existing_transaction:
-                print(f"Debug - Skipping duplicate transaction: {date} {amount} {vendor}")
                 transactions_skipped += 1
                 continue
             
-            # Generate unique transaction hash
+            # Generate Unique Transaction Hash.
             timestamp = datetime.now().timestamp()
             hash_string = f"{date}|{amount}|{vendor}|{description}|{category}|{timestamp}|{index}"
             transaction_hash = hashlib.sha256(hash_string.encode()).hexdigest()
             
-            # Create transaction with explicit transaction_id
+            # Create Transaction With Explicit Transaction ID.
             transaction = Transaction(
                 transaction_id=f"csv_{timestamp}_{index}",
                 date=date,
@@ -144,42 +140,41 @@ async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
             
             try:
                 db.add(transaction)
-                db.flush()  # Flush to check for immediate errors
-                print(f"Debug - Added transaction: {date} {amount} {vendor}")
+                db.flush()  # Flush To Check For Immediate Errors.
                 transactions_added += 1
                 total_amount += amount
             except IntegrityError:
                 db.rollback()
-                print(f"Debug - Integrity error for transaction: {date} {amount} {vendor}")
                 transactions_skipped += 1
                 continue
             
         except Exception as e:
-            print(f"Debug - Error processing row {index + 1}: {str(e)}")
             errors.append(f"Row {index + 1}: {str(e)}")
     
-    # Update default account balance
+    # Update Default Account Balance.
     default_account.current_balance = total_amount
     default_account.available_balance = total_amount
     default_account.updated_at = datetime.now()
     
-    # Update FileUpload with results
+    # Update FileUpload With Results.
     uploaded_file.transaction_count = transactions_added
     uploaded_file.status = "processed" if not errors else "error"
     if errors:
-        uploaded_file.error_message = "; ".join(errors[:5])  # Store first 5 errors
+        uploaded_file.error_message = "; ".join(errors[:5])  # Store First 5 Errors.
     
+    # Commit Changes To Database.
     try:
         db.commit()
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error saving transactions: {str(e)}")
     
+    # Return Results.
     return {
         "message": f"Successfully processed {transactions_added} transactions (skipped {transactions_skipped} duplicates)",
         "file_id": uploaded_file.id,
         "transactions_added": transactions_added,
         "transactions_skipped": transactions_skipped,
-        "errors": errors[:10] if errors else [],  # Return first 10 errors
+        "errors": errors[:10] if errors else [],  # Return First 10 Errors.
         "account_balance": total_amount
     }

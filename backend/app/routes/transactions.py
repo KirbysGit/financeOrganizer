@@ -16,8 +16,87 @@ router = APIRouter()    # Sets Up Modular Sub-Router for FastAPI.
 # ----------------------------------------------------------------------- Get All Transactions.
 @router.get("/transactions", response_model=list[TransactionOut])
 def get_transactions(db: Session = Depends(get_db)):
-    # Query For All TransactionItems, And Return All.
-    return db.query(Transaction).all()  
+    # Query For All Transactions With Account And Institution Details.
+    transactions = db.query(Transaction).join(
+        Account, Transaction.account_id == Account.account_id, isouter=True
+    ).join(
+        Institution, Account.item_id == Institution.item_id, isouter=True
+    ).all()
+    
+    # Create Result List With Enhanced Details.
+    result = []
+    for tx in transactions:
+        # Get Account Details.
+        account_details = None
+        if tx.account:
+            account_details = {
+                "id": tx.account.id,
+                "account_id": tx.account.account_id,
+                "name": tx.account.name,
+                "official_name": tx.account.official_name,
+                "type": tx.account.type,
+                "subtype": tx.account.subtype,
+                "mask": tx.account.mask,
+                "current_balance": tx.account.current_balance,
+                "available_balance": tx.account.available_balance,
+                "limit": tx.account.limit,
+                "currency": tx.account.currency,
+                "is_active": tx.account.is_active
+            }
+        
+        # Get Institution Details.
+        institution_details = None
+        if tx.account and tx.account.item_id:
+            # Query for institution using item_id
+            institution = db.query(Institution).filter(
+                Institution.item_id == tx.account.item_id
+            ).first()
+            
+            if institution:
+                institution_details = {
+                    "id": institution.id,
+                    "institution_id": institution.institution_id,
+                    "name": institution.name,
+                    "item_id": institution.item_id,
+                    "is_connected": institution.is_connected,
+                    "last_sync": institution.last_sync
+                }
+        
+        # Create Transaction Dict With Enhanced Fields.
+        tx_dict = {
+            "id": tx.id,
+            "transaction_id": tx.transaction_id,
+            "account_id": tx.account_id,
+            "date": tx.date,
+            "amount": tx.amount,
+            "vendor": tx.vendor,
+            "merchant_name": tx.merchant_name,
+            "description": tx.description,
+            "category_primary": tx.category_primary,
+            "category_detailed": tx.category_detailed,
+            "transaction_type": tx.transaction_type,
+            "source": tx.source,
+            "file": tx.file,
+            "iso_currency_code": tx.iso_currency_code,
+            "location_address": tx.location_address,
+            "location_city": tx.location_city,
+            "location_state": tx.location_state,
+            "location_country": tx.location_country,
+            "payment_reference": tx.payment_reference,
+            "payment_method": tx.payment_method,
+            "created_at": tx.created_at,
+            "updated_at": tx.updated_at,
+            "notes": tx.notes,
+            "is_duplicate": tx.is_duplicate if hasattr(tx, 'is_duplicate') else False,
+            "duplicate_count": tx.duplicate_count if hasattr(tx, 'duplicate_count') else 0,
+            "last_updated": tx.last_updated if hasattr(tx, 'last_updated') else None,
+            "account_details": account_details,
+            "institution_details": institution_details
+        }
+        
+        result.append(tx_dict)
+    
+    return result
 
 # ----------------------------------------------------------------------- Get Transactions with Account Info.
 @router.get("/transactions/detailed")
@@ -171,6 +250,40 @@ def create_transaction(transaction: TransactionCreate, db: Session = Depends(get
     elif tx_type in POSITIVE_TYPES and amount < 0:
         tx_data["amount"] = -amount
 
+    # Handle Account Selection
+    selected_account = None
+    account_data = tx_data.get("account_data")
+    
+    if account_data:
+        if account_data.get('type') == 'cash':
+            # Cash transactions don't need an account
+            selected_account = None
+        elif account_data.get('is_new'):
+            # Create new manual account
+            selected_account = Account(
+                account_id=account_data['account_id'],
+                name=account_data['name'],
+                official_name=account_data['name'],
+                type=account_data['type'],
+                subtype=account_data['subtype'],
+                current_balance=0,
+                available_balance=0,
+                is_active=True,
+                created_at=datetime.now(),
+                updated_at=datetime.now()
+            )
+            db.add(selected_account)
+            db.commit()
+            db.refresh(selected_account)
+        else:
+            # Use existing account
+            selected_account = db.query(Account).filter_by(
+                account_id=account_data['account_id']
+            ).first()
+            
+            if not selected_account:
+                raise HTTPException(status_code=400, detail="Selected account not found")
+
     # Map Old Field Names To New Schema.
     new_tx_data = {
         "date": tx_data.get("date"),
@@ -183,6 +296,13 @@ def create_transaction(transaction: TransactionCreate, db: Session = Depends(get
         "created_at": tx_data.get("created_at"),
         "updated_at": tx_data.get("updated_at")
     }
+
+    # Add account info if not cash transaction
+    if selected_account:
+        new_tx_data['account_id'] = selected_account.account_id
+    else:
+        # Cash transaction - no account_id
+        new_tx_data['account_id'] = None
 
     # Create New Transaction.
     new_tx = Transaction(**new_tx_data)
@@ -340,7 +460,7 @@ def get_stats(db: Session = Depends(get_db)):
     # Calculate Growth Percentages.
     def calculate_growth_percentage(current, previous):
         if previous == 0:
-            return None if current == 0 else 100.0
+            return 0.0 if current == 0 else 100.0
         return ((current - previous) / abs(previous)) * 100
     
     # Growth Calculations For Income And Spending.
@@ -502,4 +622,44 @@ def get_stats(db: Session = Depends(get_db)):
             "liabilities": liabilities_growth
         }
     }
+
+# ----------------------------------------------------------------------- Update Existing Transactions With Account/Institution Details.
+@router.post("/transactions/update-details")
+def update_transaction_details(db: Session = Depends(get_db)):
+    try:
+        # Get all transactions that don't have account_details populated
+        transactions = db.query(Transaction).all()
+        
+        updated_count = 0
+        
+        for tx in transactions:
+            # Get account details
+            account = db.query(Account).filter(
+                Account.account_id == tx.account_id
+            ).first()
+            
+            if account:
+                # Get institution details
+                institution = None
+                if account.item_id:
+                    institution = db.query(Institution).filter(
+                        Institution.item_id == account.item_id
+                    ).first()
+                
+                # Update transaction with account and institution details
+                # Note: Since these are computed fields in the response, we don't need to store them in the database
+                # They will be populated when the transaction is fetched
+                updated_count += 1
+        
+        return {
+            "message": f"Found {updated_count} transactions with linked accounts",
+            "total_transactions": len(transactions),
+            "linked_transactions": updated_count
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error updating transaction details: {str(e)}"
+        )
 

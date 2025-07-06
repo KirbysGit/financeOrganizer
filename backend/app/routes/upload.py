@@ -4,18 +4,26 @@ import pandas as pd
 from io import StringIO
 from datetime import datetime
 from sqlalchemy.orm import Session
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Form
 from sqlalchemy.exc import IntegrityError
+import time
 
 # Local Imports.
 from app.utils.db_utils import get_db
 from app.database import Transaction, FileUpload, Account
+from app.models import UploadResponse
 
 router = APIRouter()    # Sets Up Modular Sub-Router for FastAPI.
 
 # ----------------------------------------------------------------------- Upload CSV File.
-@router.post("/upload")
-async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)):
+@router.post("/upload", response_model=UploadResponse)
+async def upload_csv(
+    file: UploadFile = File(...), 
+    account_data: str = Form(None),  # JSON string with account info
+    db: Session = Depends(get_db)
+):
+    start_time = time.time()  # Track processing time
+    
     # Check If File Is CSV.
     if not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="Only CSV Files Are Allowed.")
@@ -46,7 +54,8 @@ async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
         upload_date=datetime.now(),
         transaction_count=0,
         content_hash=content_hash,
-        status="processing"
+        status="processing",
+        total_rows_processed=len(df)
     )
     
     # Add, Commit & Refresh In Database.
@@ -54,29 +63,44 @@ async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
     db.commit()
     db.refresh(uploaded_file)
     
-    # Get Or Create Default Account For CSV Transactions.
-    default_account = db.query(Account).filter_by(
-        name="CSV Import Account",
-        type="depository"
-    ).first()
+    # Handle Account Selection
+    import json
+    selected_account = None
     
-    # If No Default Account, Create One.
-    if not default_account:
-        default_account = Account(
-            account_id=f"csv_default_{datetime.now().strftime('%Y%m%d%H%M%S')}",
-            name="CSV Import Account",
-            official_name="CSV Import Account",
-            type="depository",
-            subtype="checking",
-            current_balance=0,
-            available_balance=0,
-            is_active=True,
-            created_at=datetime.now(),
-            updated_at=datetime.now()
-        )
-        db.add(default_account)
-        db.commit()
-        db.refresh(default_account)
+    if account_data:
+        try:
+            account_info = json.loads(account_data)
+            
+            if account_info.get('type') == 'cash':
+                # Cash transactions don't need an account
+                selected_account = None
+            elif account_info.get('is_new'):
+                # Create new manual account
+                selected_account = Account(
+                    account_id=account_info['account_id'],
+                    name=account_info['name'],
+                    official_name=account_info['name'],
+                    type=account_info['type'],
+                    subtype=account_info['subtype'],
+                    current_balance=0,
+                    available_balance=0,
+                    is_active=True,
+                    created_at=datetime.now(),
+                    updated_at=datetime.now()
+                )
+                db.add(selected_account)
+                db.commit()
+                db.refresh(selected_account)
+            else:
+                # Use existing account
+                selected_account = db.query(Account).filter_by(
+                    account_id=account_info['account_id']
+                ).first()
+                
+                if not selected_account:
+                    raise HTTPException(status_code=400, detail="Selected account not found")
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="Invalid account data format")
     
     # Process Transactions.
     transactions_added = 0
@@ -121,22 +145,30 @@ async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
             hash_string = f"{date}|{amount}|{vendor}|{description}|{category}|{timestamp}|{index}"
             transaction_hash = hashlib.sha256(hash_string.encode()).hexdigest()
             
-            # Create Transaction With Explicit Transaction ID.
-            transaction = Transaction(
-                transaction_id=f"csv_{timestamp}_{index}",
-                date=date,
-                amount=amount,
-                vendor=vendor,
-                description=description,
-                category_primary=category,
-                source='csv',
-                file=file.filename,
-                created_at=datetime.now(),
-                updated_at=datetime.now(),
-                account_id=default_account.account_id,
-                transaction_hash=transaction_hash,
-                iso_currency_code='USD'
-            )
+            # Create Transaction With Account Info.
+            transaction_data = {
+                'transaction_id': f"csv_{timestamp}_{index}",
+                'date': date,
+                'amount': amount,
+                'vendor': vendor,
+                'description': description,
+                'category_primary': category,
+                'source': 'csv',
+                'file': file.filename,
+                'created_at': datetime.now(),
+                'updated_at': datetime.now(),
+                'transaction_hash': transaction_hash,
+                'iso_currency_code': 'USD'
+            }
+            
+            # Add account info if not cash transaction
+            if selected_account:
+                transaction_data['account_id'] = selected_account.account_id
+            else:
+                # Cash transaction - no account_id
+                transaction_data['account_id'] = None
+            
+            transaction = Transaction(**transaction_data)
             
             try:
                 db.add(transaction)
@@ -151,13 +183,18 @@ async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
         except Exception as e:
             errors.append(f"Row {index + 1}: {str(e)}")
     
-    # Update Default Account Balance.
-    default_account.current_balance = total_amount
-    default_account.available_balance = total_amount
-    default_account.updated_at = datetime.now()
+    # Update Account Balance if account exists and not cash
+    if selected_account:
+        selected_account.current_balance = total_amount
+        selected_account.available_balance = total_amount
+        selected_account.updated_at = datetime.now()
     
-    # Update FileUpload With Results.
+    # Update FileUpload With Enhanced Results.
+    processing_completed_at = datetime.now()
     uploaded_file.transaction_count = transactions_added
+    uploaded_file.transactions_skipped = transactions_skipped
+    uploaded_file.total_amount_imported = total_amount
+    uploaded_file.processing_completed_at = processing_completed_at
     uploaded_file.status = "processed" if not errors else "error"
     if errors:
         uploaded_file.error_message = "; ".join(errors[:5])  # Store First 5 Errors.
@@ -169,12 +206,31 @@ async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error saving transactions: {str(e)}")
     
-    # Return Results.
-    return {
-        "message": f"Successfully processed {transactions_added} transactions (skipped {transactions_skipped} duplicates)",
-        "file_id": uploaded_file.id,
-        "transactions_added": transactions_added,
-        "transactions_skipped": transactions_skipped,
-        "errors": errors[:10] if errors else [],  # Return First 10 Errors.
-        "account_balance": total_amount
-    }
+    # Calculate processing duration.
+    processing_duration_ms = int((time.time() - start_time) * 1000)
+    
+    # Create detailed success message.
+    upload_timestamp = processing_completed_at
+    account_name = selected_account.name if selected_account else "Cash"
+    
+    if transactions_added > 0:
+        message = f"File uploaded successfully at {upload_timestamp.strftime('%Y-%m-%d %H:%M:%S')}! Added {transactions_added} new transactions to {account_name}"
+        if transactions_skipped > 0:
+            message += f" and skipped {transactions_skipped} duplicates"
+        message += f" from {len(df)} total rows."
+    else:
+        message = f"File uploaded at {upload_timestamp.strftime('%Y-%m-%d %H:%M:%S')} but no new transactions were added (all were duplicates)."
+    
+    # Return Enhanced Results.
+    return UploadResponse(
+        message=message,
+        file_id=uploaded_file.id,
+        transactions_added=transactions_added,
+        transactions_skipped=transactions_skipped,
+        total_rows_processed=len(df),
+        total_amount_imported=total_amount,
+        errors=errors[:10] if errors else [],
+        account_balance=total_amount if selected_account else 0,
+        upload_timestamp=upload_timestamp,
+        processing_duration_ms=processing_duration_ms
+    )

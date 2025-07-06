@@ -1,25 +1,68 @@
 // Imports.
 import React from 'react';
-import { useState, useEffect } from 'react';
 import { styled } from 'styled-components';
+import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEllipsisV, faTrash, faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons';
+import { faSort, faSortUp, faSortDown, faPlus, faTrash, faChevronUp, faChevronDown } from '@fortawesome/free-solid-svg-icons';
 
 // Local Imports.
-import '../styles/colors.css';
+import '../../styles/colors.css';
+import TableHeader from './TableHeader';
+import ManualTxModal from '../UploadData/ManualTxModal';
 
 // ------------------------------------------------------------------------------------------------ TransactionTable Component.
-const TransactionTable = ({ transactions, onDelete, id }) => {
+const TransactionTable = ({ transactions, onDelete, onRefresh, id, existingAccounts = [] }) => {
     // States.
     const [currentPage, setCurrentPage] = useState(1);                          // Use State 4 Setting Pages. Default Page #1.
     const [entriesPerPage, setEntriesPerPage] = useState(10);                   // Use State 4 Amount Of Entries Per Page. Default Page #10.
     const [selectedIds, setSelectedIds] = useState(new Set());                  // Use State 4 Storing All Transactions That Are Selected.
     const [txDetails, setTxDetails] = useState(null);                           // Use State 4 Storing Which Transaction Has Details Expanded.
+    const [showAddMenu, setShowAddMenu] = useState(false);                      // State 4 Whether Add Menu Is Open.
+    const [manualTxModal, setManualTxModal] = useState(false);                  // State 4 Whether Manual Transaction Modal Is Open.
+    const [refreshLoading, setRefreshLoading] = useState(false);                // State 4 Whether Refresh Is Loading.
+    
+    // Search and Sorting States.
+    const [searchTerm, setSearchTerm] = useState('');                           // State 4 Search Functionality.
+    const [sortField, setSortField] = useState('date');                         // State 4 Current Sort Field.
+    const [sortDirection, setSortDirection] = useState('desc');                 // State 4 Sort Direction (asc/desc).
+    const [isSearchFocused, setIsSearchFocused] = useState(false);              // State 4 Search Input Focus.
+    
+    // State for ResultsInfo Width Calculation.
+    const [resultsInfoWidth, setResultsInfoWidth] = useState(0);
 
-    const indexOfLast = currentPage * entriesPerPage;                           // Get Index Of Last Item On Page.
-    const indexOfFirst = indexOfLast - entriesPerPage;                          // Get Index Of First Item On Page.
-    const currentTransactions = transactions.slice(indexOfFirst, indexOfLast);  // Get Current Transactions On Page.
-    const totalPages = Math.ceil(transactions.length / entriesPerPage);         // Get Total Pages.
+    // -------------------------------------------------------- Handle Click Outside Dropdown.
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (showAddMenu && !event.target.closest('.add-menu-wrapper')) {
+                setShowAddMenu(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showAddMenu]);
+
+    // -------------------------------------------------------- Handle Manual Transaction Success.
+    const handleManualTxSuccess = () => {
+        setManualTxModal(false);
+        window.location.reload(); // Simple Refresh For Now.
+    };
+
+    // -------------------------------------------------------- Handle Refresh Transactions.
+    const handleRefresh = async () => {
+        if (!onRefresh || refreshLoading) return;
+        
+        setRefreshLoading(true);
+        try {
+            await onRefresh();
+        } catch (error) {
+            console.error('Failed to refresh transactions:', error);
+        } finally {
+            setRefreshLoading(false);
+        }
+    };
 
     // -------------------------------------------------------- Handle Request To Change Page.
     const changePage = (newPage) => {
@@ -67,6 +110,122 @@ const TransactionTable = ({ transactions, onDelete, id }) => {
         });
     }
 
+    // -------------------------------------------------------- Search & Filter Logic.
+    const filteredTransactions = transactions.filter(tx => {
+        if (!searchTerm) return true;
+        
+        const searchLower = searchTerm.toLowerCase();
+        return (
+            tx.vendor?.toLowerCase().includes(searchLower) ||
+            tx.description?.toLowerCase().includes(searchLower) ||
+            tx.category_primary?.toLowerCase().includes(searchLower) ||
+            tx.account_details?.name?.toLowerCase().includes(searchLower) ||
+            formatAmount(tx.amount).includes(searchTerm) ||
+            formatDate(tx.date).toLowerCase().includes(searchLower)
+        );
+    });
+
+    // -------------------------------------------------------- Sorting Logic.
+    const sortedTransactions = [...filteredTransactions].sort((a, b) => {
+        let aValue, bValue;
+        
+        switch (sortField) {
+            case 'date':
+                aValue = new Date(a.date);
+                bValue = new Date(b.date);
+                break;
+            case 'vendor':
+                aValue = a.vendor?.toLowerCase() || '';
+                bValue = b.vendor?.toLowerCase() || '';
+                break;
+            case 'description':
+                aValue = a.description?.toLowerCase() || '';
+                bValue = b.description?.toLowerCase() || '';
+                break;
+            case 'amount':
+                aValue = Math.abs(a.amount);
+                bValue = Math.abs(b.amount);
+                break;
+            case 'category':
+                aValue = a.category_primary?.toLowerCase() || '';
+                bValue = b.category_primary?.toLowerCase() || '';
+                break;
+            case 'account':
+                aValue = a.account_details?.name?.toLowerCase() || '';
+                bValue = b.account_details?.name?.toLowerCase() || '';
+                break;
+            default:
+                aValue = a[sortField] || '';
+                bValue = b[sortField] || '';
+        }
+        
+        if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    // -------------------------------------------------------- Handle Sort Change.
+    const handleSort = (field) => {
+        if (sortField === field) {
+            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortField(field);
+            setSortDirection('asc');
+        }
+        setCurrentPage(1); // Reset to first page when sorting
+    };
+
+    // -------------------------------------------------------- Get Sort Icon.
+    const getSortIcon = (field) => {
+        if (sortField !== field) return faSort;
+        return sortDirection === 'asc' ? faSortUp : faSortDown;
+    };
+
+    // -------------------------------------------------------- Update Pagination To Use Sorted & Filtered Transactions.
+    const indexOfLast = currentPage * entriesPerPage;
+    const indexOfFirst = indexOfLast - entriesPerPage;
+    const currentTransactions = sortedTransactions.slice(indexOfFirst, indexOfLast);
+    const totalPages = Math.ceil(sortedTransactions.length / entriesPerPage);
+
+    // -------------------------------------------------------- Calculate Maximum Width For ResultsInfo.
+    const calculateMaxResultsInfoWidth = () => {
+        // Calculate The Maximum Possible Values For The Three Numbers.
+        // Use Original Transactions.length, Not Filtered Length, To Keep Width Consistent.
+        const maxStart = Math.max(1, transactions.length);
+        const maxEnd = Math.max(1, transactions.length);
+        const maxTotal = Math.max(1, transactions.length);
+        
+        // Create The Text With Maximum Values To Measure.
+        const maxText = `Showing ${maxStart.toLocaleString()} to ${maxEnd.toLocaleString()} of ${maxTotal.toLocaleString()} transactions`;
+        
+        // Create A Temporary Element To Measure The Width.
+        const tempElement = document.createElement('div');
+        tempElement.style.visibility = 'hidden';
+        tempElement.style.position = 'absolute';
+        tempElement.style.whiteSpace = 'nowrap';
+        tempElement.style.fontSize = '0.9rem';
+        tempElement.style.fontWeight = '500';
+        tempElement.style.fontFamily = 'inherit';
+        tempElement.textContent = maxText;
+        
+        // Append The Temporary Element To The Body.
+        document.body.appendChild(tempElement);
+        const maxWidth = tempElement.offsetWidth;
+        document.body.removeChild(tempElement);
+        
+        // Add Padding And Border Width.
+        return maxWidth + 60; // 30px Padding On Each Side + Some Buffer.
+    };
+
+    // -------------------------------------------------------- Update ResultsInfo Width When Data Changes.
+    useEffect(() => {
+        const newWidth = calculateMaxResultsInfoWidth();
+        if (newWidth !== resultsInfoWidth) {
+            setResultsInfoWidth(newWidth);
+        }
+    }, [transactions.length, entriesPerPage]);
+
+    // -------------------------------------------------------- Empty State Card.
     if (transactions.length === 0) {
         return (
             <TransactionsWrapper id={id}>
@@ -74,46 +233,86 @@ const TransactionTable = ({ transactions, onDelete, id }) => {
                     <EmptyIcon>📊</EmptyIcon>
                     <EmptyTitle>No Transactions Yet...</EmptyTitle>
                     <EmptyDescription>Start by uploading a CSV file or adding transactions manually.</EmptyDescription>
+                    <EmptyStateAddButton 
+                        onClick={() => setManualTxModal(true)}
+                        aria-label="Add Manual Transaction"
+                        title="Add Manual Transaction"
+                    >
+                        <FontAwesomeIcon icon={faPlus} />
+                    </EmptyStateAddButton>
                 </EmptyStateCard>
             </TransactionsWrapper>
         )
     }
 
     return (
-        <TransactionsWrapper id={id}>
-            <TableHeader>
-                <HeaderTitle>Transaction History</HeaderTitle>
-                <HeaderControls>
-                    <EntriesSelector>
-                        <span>Show</span>
-                        <select
-                            value={entriesPerPage}
-                            onChange={(e) => {
-                                setEntriesPerPage(Number(e.target.value));
-                                setCurrentPage(1);
-                            }}
-                        >
-                            <option value={5}>5</option>
-                            <option value={10}>10</option>
-                            <option value={25}>25</option>
-                            <option value={50}>50</option>
-                        </select>
-                        <span>entries</span>
-                    </EntriesSelector>
-                    <ResultsInfo>
-                        Showing {indexOfFirst + 1} to {Math.min(indexOfLast, transactions.length)} of {transactions.length} transactions
-                    </ResultsInfo>
-                </HeaderControls>
-            </TableHeader>
+        <TransactionsWrapper id={id} $entriesPerPage={entriesPerPage}>
+            <TableHeader
+                title="Transaction History"
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                setCurrentPage={setCurrentPage}
+                isSearchFocused={isSearchFocused}
+                setIsSearchFocused={setIsSearchFocused}
+                entriesPerPage={entriesPerPage}
+                setEntriesPerPage={setEntriesPerPage}
+                sortField={sortField}
+                sortDirection={sortDirection}
+                handleSort={handleSort}
+                getSortIcon={getSortIcon}
+                indexOfFirst={indexOfFirst}
+                indexOfLast={indexOfLast}
+                sortedTransactionsLength={sortedTransactions.length}
+                resultsInfoWidth={resultsInfoWidth}
+                refreshLoading={refreshLoading}
+                handleRefresh={handleRefresh}
+                showAddMenu={showAddMenu}
+                setShowAddMenu={setShowAddMenu}
+                setManualTxModal={setManualTxModal}
+                onRefresh={onRefresh}
+            />
 
-            <TableContainer>
+            <TableContainer $entriesPerPage={entriesPerPage}>
                 <StyledTable>
                     <thead>
                         <tr>
                             <th>Select</th>
-                            <th>Date</th>
-                            <th>Vendor</th>
-                            <th>Amount</th>
+                            <SortableHeader 
+                                $isActive={sortField === 'date'}
+                                onClick={() => handleSort('date')}
+                            >
+                                Date
+                                <SortIcon>
+                                    <FontAwesomeIcon icon={getSortIcon('date')} />
+                                </SortIcon>
+                            </SortableHeader>
+                            <SortableHeader 
+                                $isActive={sortField === 'vendor'}
+                                onClick={() => handleSort('vendor')}
+                            >
+                                Vendor
+                                <SortIcon>
+                                    <FontAwesomeIcon icon={getSortIcon('vendor')} />
+                                </SortIcon>
+                            </SortableHeader>
+                            <SortableHeader 
+                                $isActive={sortField === 'description'}
+                                onClick={() => handleSort('description')}
+                            >
+                                Description
+                                <SortIcon>
+                                    <FontAwesomeIcon icon={getSortIcon('description')} />
+                                </SortIcon>
+                            </SortableHeader>
+                            <SortableHeader 
+                                $isActive={sortField === 'amount'}
+                                onClick={() => handleSort('amount')}
+                            >
+                                Amount
+                                <SortIcon>
+                                    <FontAwesomeIcon icon={getSortIcon('amount')} />
+                                </SortIcon>
+                            </SortableHeader>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -142,6 +341,9 @@ const TransactionTable = ({ transactions, onDelete, id }) => {
                                     <td className="vendor" title={tx.vendor}>
                                         {truncateText(tx.vendor, 30)}
                                     </td>
+                                    <td className="description" title={tx.description}>
+                                        {truncateText(tx.description, 50)}
+                                    </td>
                                     <AmountCell $isPos={tx.amount >= 0}>
                                         {formatAmount(tx.amount)}
                                     </AmountCell>
@@ -159,22 +361,45 @@ const TransactionTable = ({ transactions, onDelete, id }) => {
                                 </ExpandableRow>
                                 {txDetails === tx.id && (
                                     <DetailsRow $rowIndex={index}>
-                                        <ExpandedSelect></ExpandedSelect>
-                                        <ExpandedDetails colSpan="4">
+                                        <ExpandedSelect>
+                                        </ExpandedSelect>
+                                        <ExpandedDetails colSpan="5">
                                             <DetailsContainer>
                                                 <DetailsList>
                                                     <DetailItem>
-                                                        <DetailLabel>Description</DetailLabel>
-                                                        <DetailValue>{tx.description || 'No description available'}</DetailValue>
-                                                    </DetailItem>
-                                                    <DetailItem>
                                                         <DetailLabel>Type</DetailLabel>
-                                                        <DetailValue>{tx.type || 'N/A'}</DetailValue>
+                                                        <DetailValue>{tx.category_primary || 'N/A'}</DetailValue>
                                                     </DetailItem>
                                                     <DetailItem>
                                                         <DetailLabel>File</DetailLabel>
                                                         <DetailValue>{tx.file || 'Manual entry'}</DetailValue>
                                                     </DetailItem>
+                                                    {tx.account_details && (
+                                                        <>
+                                                            <DetailItem>
+                                                                <DetailLabel>Account</DetailLabel>
+                                                                <DetailValue>
+                                                                    {tx.account_details.name || 'Unknown Account'}
+                                                                    {tx.account_details.mask && ` (****${tx.account_details.mask})`}
+                                                                </DetailValue>
+                                                            </DetailItem>
+                                                            <DetailItem>
+                                                                <DetailLabel>Account Type</DetailLabel>
+                                                                <DetailValue>
+                                                                    {tx.account_details.subtype ? 
+                                                                        `${tx.account_details.subtype} (${tx.account_details.type})` : 
+                                                                        tx.account_details.type || 'N/A'
+                                                                    }
+                                                                </DetailValue>
+                                                            </DetailItem>
+                                                        </>
+                                                    )}
+                                                    {tx.institution_details && (
+                                                        <DetailItem>
+                                                            <DetailLabel>Institution</DetailLabel>
+                                                            <DetailValue>{tx.institution_details.name || 'Unknown Institution'}</DetailValue>
+                                                        </DetailItem>
+                                                    )}
                                                 </DetailsList>
                                                 <TagsSection>
                                                     <TagsHeader>Transaction Tags</TagsHeader>
@@ -209,6 +434,16 @@ const TransactionTable = ({ transactions, onDelete, id }) => {
                     </PageButton>
                 </Pagination>
             </PaginationContainer>
+
+            {/* Manual Transaction Modal */}
+            {manualTxModal && (
+                <ManualTxModal
+                    isOpen={manualTxModal}
+                    onClose={() => setManualTxModal(false)}
+                    onSuccess={handleManualTxSuccess}
+                    existingAccounts={existingAccounts}
+                />
+            )}
         </TransactionsWrapper>
     );
 };
@@ -225,87 +460,42 @@ const TransactionsWrapper = styled.div.attrs(props => ({
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.34);
     border-radius: 16px;
     border: 3px solid transparent;
-    padding-bottom: 1.5rem;
-`
-// -------------------------------------------------------- Table Header.
-const TableHeader = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.5rem 1.5rem 2rem 1.5rem;
+    padding: 0 0 1.5rem 0; /* Remove top padding since TableHeader has it */
     position: relative;
-    overflow: hidden;
+    overflow: visible;
+    min-height: ${props => {
+        // Calculate minimum height for the entire container
+        // Header: ~200px, Controls: ~150px, Table area: calculated, Pagination: ~80px
+        const headerHeight = 200;
+        const controlsHeight = 150;
+        const paginationHeight = 80;
+        const rowHeight = 60;
+        const tableHeaderHeight = 80;
+        const buffer = 40;
+        const tableAreaHeight = (props.$entriesPerPage * rowHeight) + tableHeaderHeight + buffer;
+        return `${headerHeight + controlsHeight + tableAreaHeight + paginationHeight}px`;
+    }};
 `
-
-const HeaderTitle = styled.h2`
-    font-size: 2.25rem;
-    font-weight: 600;
-    margin: 0;
-    color: var(--text-secondary);
-    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    text-shadow: none;
-    position: relative;
-    z-index: 1;
-`
-
-const HeaderControls = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 2rem;
-    position: relative;
-    z-index: 1;
-`
-
-const EntriesSelector = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    
-    span {
-        font-weight: 500;
-    }
-    
-    select {
-        font: inherit;
-        padding: 0.5rem 0.75rem;
-        border-radius: 8px;
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        background: rgba(255, 255, 255, 0.2);
-        color: var(--text-primary);
-        cursor: pointer;
-        transition: all 0.3s ease;
-        
-        &:hover {
-            border-color: var(--button-primary);
-            background: rgba(255, 255, 255, 0.3);
-        }
-        
-        &:focus {
-            outline: none;
-            border-color: var(--button-primary);
-            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
-        }
-    }
-`
-
-const ResultsInfo = styled.div`
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    font-weight: 500;
-`
-
+// -------------------------------------------------------- Table Container.
 const TableContainer = styled.div`
-    overflow: hidden;
+    overflow: visible;
     position: relative;
     padding: 0 1.5rem 0.5rem 1.5rem;
-
+    flex: 1;
+    min-height: ${props => {
+        // Calculate Minimum Height Based On Entries Per Page.
+        // Each Row Is Approximately 60px (Including Padding And Borders).
+        // Header Is Approximately 80px.
+        // Add Some Buffer For Expanded Rows.
+        const rowHeight = 60;
+        const headerHeight = 80;
+        const buffer = 40;
+        return `${(props.$entriesPerPage * rowHeight) + headerHeight + buffer}px`;
+    }};
+    display: flex;
+    flex-direction: column;
 `
-
+// -------------------------------------------------------- Empty State Card.
 const EmptyStateCard = styled.div`
     width: 100%;
     padding: 4rem 2rem;
@@ -336,14 +526,12 @@ const EmptyStateCard = styled.div`
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
     }
 `
-
 const EmptyIcon = styled.div`
     font-size: 4rem;
     margin-bottom: 1.5rem;
     position: relative;
     z-index: 1;
 `
-
 const EmptyTitle = styled.h3`
     color: var(--text-primary);
     font-size: 1.5rem;
@@ -352,13 +540,62 @@ const EmptyTitle = styled.h3`
     position: relative;
     z-index: 1;
 `
-
 const EmptyDescription = styled.p`
     color: var(--text-secondary);
     font-size: 1rem;
+    margin-bottom: 2rem;
     position: relative;
     z-index: 1;
 `
+const EmptyStateAddButton = styled.button`
+    cursor: pointer;
+    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
+    color: white;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5rem;
+    border: none;
+    margin: 0 auto;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.34);
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    }
+    
+    &:active {
+        transform: translateY(0);
+        transition: all 0.1s ease;
+    }
+
+    &:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3), 0 4px 6px rgba(0, 0, 0, 0.34);
+    }
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s;
+    }
+    
+    &:hover::before {
+        left: 100%;
+    }
+`;
 
 // -------------------------------------------------------- Table Wrapper.
 const StyledTable = styled.table`
@@ -376,8 +613,9 @@ const StyledTable = styled.table`
     th:nth-child(1), td:nth-child(1) { width: 120px; }      /* Select */
     th:nth-child(2), td:nth-child(2) { width: 120px; }     /* Date */
     th:nth-child(3), td:nth-child(3) { width: auto; }      /* Vendor */
-    th:nth-child(4), td:nth-child(4) { width: 180px; }     /* Amount */
-    th:nth-child(5), td:nth-child(5) { width: 200px; }     /* Actions */
+    th:nth-child(4), td:nth-child(4) { width: 250px; }     /* Description */
+    th:nth-child(5), td:nth-child(5) { width: 180px; }     /* Amount */
+    th:nth-child(6), td:nth-child(6) { width: 200px; }     /* Actions */
 
 
     &:last-child {
@@ -394,7 +632,7 @@ const StyledTable = styled.table`
         &:nth-child(1) {
             border-top-left-radius: 16px;
         }
-        &:nth-child(5) {
+        &:nth-child(6) {
             border-top-right-radius: 16px;
         }
         font-weight: 600;
@@ -455,8 +693,16 @@ const StyledTable = styled.table`
         text-align: left;
         padding-left: 1.5rem;
     }
-`
 
+    .description {
+        font-weight: 400;
+        color: var(--text-secondary);
+        text-align: left;
+        padding-left: 1.5rem;
+        font-size: 0.9rem;
+    }
+`
+// -------------------------------------------------------- Amount Cell.
 const AmountCell = styled.td`
     text-align: right;
     font-weight: 600;
@@ -464,7 +710,7 @@ const AmountCell = styled.td`
     color: ${(props) => (props.$isPos ? 'var(--amount-positive)' : 'var(--amount-negative)')};
     padding-right: 1.5rem;
 `
-
+// -------------------------------------------------------- Actions Cell. (Details, Delete)
 const ActionsCell = styled.td`
     display: flex;
     flex-direction: row;
@@ -473,7 +719,7 @@ const ActionsCell = styled.td`
     gap: 0.75rem;
     padding: 1rem 0.75rem !important;
 `
-
+// -------------------------------------------------------- Action Button. (Expand Row)
 const ActionButton = styled.button`
     background: rgba(255, 255, 255, 0.2);
     border: 2px solid rgba(255, 255, 255, 0.3);
@@ -499,7 +745,7 @@ const ActionButton = styled.button`
         transform: translateY(0);
     }
 `
-
+// -------------------------------------------------------- Delete Button. (Delete Transaction)
 const DeleteButton = styled.button`
     background: rgba(255, 255, 255, 0.2);
     border: 2px solid rgba(255, 255, 255, 0.3);
@@ -544,7 +790,7 @@ const ExpandableRow = styled.tr`
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 `
-
+// -------------------------------------------------------- Expanded Details. (Details Container)
 const ExpandedDetails = styled.td`
     padding: 0 !important;
     border: none !important;
@@ -566,7 +812,7 @@ const ExpandedDetails = styled.td`
         }
     }
 `
-
+// -------------------------------------------------------- Details Container. (DetailsItem, DetailLabel, DetailValue)
 const DetailsContainer = styled.div`
     background: rgba(255, 255, 255, 0.05);
     border-radius: 12px;
@@ -591,13 +837,11 @@ const DetailsContainer = styled.div`
         }
     }
 `
-
 const DetailItem = styled.div`
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
 `
-
 const DetailLabel = styled.span`
     font-weight: 600;
     font-size: 0.8rem;
@@ -605,7 +849,6 @@ const DetailLabel = styled.span`
     text-transform: uppercase;
     letter-spacing: 0.5px;
 `
-
 const DetailValue = styled.span`
     font-weight: 400;
     font-size: 0.95rem;
@@ -617,26 +860,23 @@ const DetailValue = styled.span`
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.2);
 `
-
 const DetailsRow = styled.tr`
     background: rgba(255, 255, 255, 0.02);
     transition: background-color 0.3s ease;
     position: relative;
     z-index: 1;
 `
-
 const DetailsList = styled.div`
     display: flex;
     flex-direction: column;
     gap: 1rem;
 `
-
+// -------------------------------------------------------- Tags Section. (TagsHeader, TagsPlaceholder)
 const TagsSection = styled.div`
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
 `
-
 const TagsHeader = styled.h3`
     font-weight: 600;
     font-size: 0.8rem;
@@ -645,7 +885,6 @@ const TagsHeader = styled.h3`
     letter-spacing: 0.5px;
     margin: 0;
 `
-
 const TagsPlaceholder = styled.div`
     font-size: 0.9rem;
     color: var(--text-secondary);
@@ -669,14 +908,9 @@ const PaginationContainer = styled.div`
     position: relative;
     overflow: hidden;
     width: max-content;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    align-self: center;
-
-
+    margin: 0 auto;
+    margin-top: auto;
 `
-
 const Pagination = styled.div`
     display: flex;
     justify-content: center;
@@ -685,7 +919,6 @@ const Pagination = styled.div`
     position: relative;
     z-index: 1;
 `
-
 const PageButton = styled.button`
     background: rgba(0, 0, 0, 0.1);
     border: 2px solid rgba(0, 0, 0, 0.2);
@@ -718,7 +951,6 @@ const PageButton = styled.button`
         transform: translateY(0);
     }
 `
-
 const PageInfo = styled.span`
     padding: 0.75rem 1.25rem;
     border: 2px solid rgba(255, 255, 255, 0.3);
@@ -742,7 +974,6 @@ const CustomCheckbox = styled.div`
         transform: scale(1.05);
     }
 `
-
 const CheckboxInput = styled.input`
     position: absolute;
     opacity: 0;
@@ -750,7 +981,6 @@ const CheckboxInput = styled.input`
     height: 0;
     cursor: pointer;
 `
-
 const CheckboxIndicator = styled.div`
     width: 1.5rem;
     height: 1.5rem;
@@ -803,7 +1033,6 @@ const CheckboxIndicator = styled.div`
         }
     `}
 `
-
 const CheckMark = styled.span`
     color: white;
     font-size: 0.9rem;
@@ -822,6 +1051,7 @@ const CheckMark = styled.span`
     }
 `
 
+// -------------------------------------------------------- Expanded Select. (Spacing For Select Column For Expanded Row)
 const ExpandedSelect = styled.td`
     border-right: 2px solid rgba(255, 255, 255, 0.2);
     background: rgba(255, 255, 255, 0.05);
@@ -830,5 +1060,33 @@ const ExpandedSelect = styled.td`
     position: relative;
     z-index: 1;
 `
+// -------------------------------------------------------- Sortable Table Header. (Date, Vendor, Amount)
+const SortableHeader = styled.th`
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: ${props => props.$isActive ? 'white' : 'white'};
+    font-weight: ${props => props.$isActive ? '700' : '600'};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 1.25rem 1rem;
+    border-bottom: ${props => props.$isActive ? '2px solid rgba(255, 255, 255, 0.5)' : '1px solid rgba(255, 255, 255, 0.2)'};
+    position: relative;
+    z-index: 1;
+
+    &:hover {
+        color: white;
+        font-weight: 700;
+    }
+`;
+const SortIcon = styled.span`
+    font-size: 0.9rem;
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+    margin-left: 0.5rem;
+
+    ${SortableHeader}:hover & {
+        opacity: 1;
+    }
+`;
 
 export default TransactionTable;

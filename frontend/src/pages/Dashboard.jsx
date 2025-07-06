@@ -2,16 +2,15 @@
 import React from 'react';
 import { styled } from 'styled-components';
 import { useState, useEffect, useRef } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBomb } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 // Components.
 import FileList from '../components/FileList';
-import AccountList  from '../components/Accounts/AccountList';
 import StatsSection from '../components/StatsSection';
+import AccountList  from '../components/Accounts/AccountList';
 import SpendingGrid from '../components/RecentData/SpendingGrid';
-import WelcomeScreen from '../components/LandingPage/WelcomeScreen';
-import TransactionTable from '../components/TransactionTable';
+import TransactionTable from '../components/Transactions/TransactionTable';
 import StrengthIndicator from '../components/CentiScore/StrengthIndicator';
 
 // API.
@@ -23,16 +22,13 @@ import { deleteFile, renameFile, getFiles } from '../services/api';
 import { fetchTransactions, deleteTransaction } from '../services/api';
 
 // Dashboard Component.
-const Dashboard = () => {
+const Dashboard = ({ hasEverHadData, setHasEverHadData }) => {
 
     const [loading, setLoading] = useState(true);               // State 4 Loading State.
     const [stats, setStats] = useState({});                     // State 4 Stats Data.
     const [files, setFiles] = useState([]);                     // State 4 Storing All Files.
     const [accounts, setAccounts] = useState([]);               // State 4 Storing All Accounts.
     const [transactions, setTransactions] = useState([]);       // State 4 Storing All Transactions.
-
-    // State 4 If User Has Ever Had Data. (e.g. Welcome Screen Or Dashboard).
-    const [hasEverHadData, setHasEverHadData] = useState(localStorage.getItem('hasEverHadData') === 'true'); 
 
     // Track Loading To Prevent Duplicate Calls.
     const hasLoadedRef = useRef(false);
@@ -132,6 +128,13 @@ const Dashboard = () => {
     const refreshSite = async() => {
         try {                                           // Try.
             await loadAllData();                            // Load All Data.
+            
+            // Only Update 'hasEverHadData' If It's Currently False And We Have Data.
+            // This Prevents Overriding The State When A User Has Just Signed Up.
+            if (!hasEverHadData && (transactions.length > 0 || files.length > 0)) {
+                localStorage.setItem('hasEverHadData', 'true');
+                setHasEverHadData(true);
+            }
         } catch (err) {                                 // If Error.
             console.error('Load Failed:', err);             // Display Error To Console.
         }
@@ -183,21 +186,20 @@ const Dashboard = () => {
     // -------------------------------------------------------- Uploads CSV To Site.
     const handleUploadCSV = async(formData) => {
         try {
-            await uploadCSV(formData);
+            const result = await uploadCSV(formData);
+            return result; // Return the result so AccountList can access it
         } catch (err) {
             console.error("Upload Failed:", err);
+            throw err; // Re-throw so AccountList can handle the error
         }
     }
 
     // UI Component.
     return (
-        <ExpenseContainer>
-            { !hasEverHadData && (
-                <WelcomeScreen onSuccess={refreshSite} />
-            )}
-            { hasEverHadData && !loading && (
+        <ExpenseContainer $hasNavbar={hasEverHadData}>
+            { !loading && (
                 <>
-                    {/* Development Bomb Button - Remove in production */}
+                    {/* Development Bomb Button - Remove In Production. */}
                     <DevBombButton 
                         onClick={clearDB} 
                         aria-label="Clear All Data (Development)"
@@ -221,6 +223,7 @@ const Dashboard = () => {
                         myStats={stats}
                         myAccounts={accounts}
                         onUpload={handleUploadCSV}
+                        onRefresh={loadAccounts}
                     />
                     {/*<FileList 
                         files={files} 
@@ -231,6 +234,8 @@ const Dashboard = () => {
                         id="transactions-section"
                         transactions={transactions} 
                         onDelete={handleDeleteTransaction}
+                        onRefresh={loadTransactions}
+                        existingAccounts={accounts}
                     />
                 </>
             )}
@@ -246,11 +251,10 @@ const ExpenseContainer = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 2rem;
     background: linear-gradient(135deg,rgb(231, 240, 250) 0%, #e9ecef 100%);
     min-height: 100vh;
     position: relative;
-`
+`;
 
 // -------------------------------------------------------- Development Bomb Button.
 const DevBombButton = styled.button`

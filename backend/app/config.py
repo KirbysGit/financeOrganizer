@@ -48,5 +48,16 @@ class PlaidConfig:
         # Create A Plaid API Client Based On Our API Client.
         self.client = plaid_api.PlaidApi(api_client)
 
-# Create global instance
-plaid_config = PlaidConfig() 
+# Google OAuth Config Set Up.
+class GoogleConfig:
+    def __init__(self):
+        self.client_id = os.getenv('GOOGLE_CLIENT_ID')
+        self.client_secret = os.getenv('GOOGLE_CLIENT_SECRET')
+        
+        # Validate Required Config.
+        if not self.client_id or not self.client_secret:
+            raise ValueError("GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set in environment variables")
+
+# Create global instances
+plaid_config = PlaidConfig()
+google_config = GoogleConfig() 

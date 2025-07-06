@@ -1,7 +1,7 @@
 # Note : These Models Are Used For Serializing, Validating, And Returning Data Through The FastAPI Responses.
 
 # Imports.
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from datetime import date, datetime
 from typing import Optional
 
@@ -13,6 +13,7 @@ class TransactionCreate(BaseModel):
     amount: float
     category_primary: str = "other"
     notes: Optional[str] = None
+    account_data: Optional[dict] = None  # Account selection data
 
 # Transaction Out Model For Responses.
 class TransactionOut(BaseModel):
@@ -61,9 +62,26 @@ class FileUploadOut(BaseModel):
     status: str
     error_message: Optional[str]
     notes: Optional[str]
+    total_rows_processed: Optional[int] = 0
+    transactions_skipped: Optional[int] = 0
+    total_amount_imported: Optional[float] = 0.0
+    processing_completed_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
+
+# Upload Response Model For Detailed Upload Results.
+class UploadResponse(BaseModel):
+    message: str
+    file_id: int
+    transactions_added: int
+    transactions_skipped: int
+    total_rows_processed: int
+    total_amount_imported: float
+    errors: list[str]
+    account_balance: float
+    upload_timestamp: datetime
+    processing_duration_ms: Optional[int] = None
 
 # Plaid Models.
 class LinkTokenRequest(BaseModel):
@@ -113,3 +131,62 @@ class InstitutionOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+# ================================================================= USER AUTHENTICATION MODELS
+
+# User Create Model For Registration.
+class UserCreate(BaseModel):
+    first_name: str
+    last_name: str
+    email: EmailStr
+    password: str
+
+# User Login Model.
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+# User Out Model For Responses (Excludes Password).
+class UserOut(BaseModel):
+    id: int
+    first_name: str
+    last_name: str
+    email: str
+    is_active: bool
+    google_id: Optional[str] = None
+    picture: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
+# Google Authentication Model.
+class GoogleAuthRequest(BaseModel):
+    email: str
+    first_name: str
+    last_name: str
+    google_id: str
+    picture: Optional[str] = None
+    google_credential: str
+
+# Google Auth Code Model for auth-code flow.
+class GoogleAuthCodeRequest(BaseModel):
+    code: str
+    redirect_uri: str
+
+# Authentication Response Model.
+class AuthResponse(BaseModel):
+    user: UserOut
+    access_token: str
+    token_type: str = "bearer"
+    message: str
+
+# Password Reset Request Model.
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+# Password Reset Model.
+class PasswordReset(BaseModel):
+    token: str
+    new_password: str

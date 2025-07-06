@@ -3,12 +3,13 @@ import React from 'react';
 import styled from 'styled-components';
 import { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faUpload, faLink } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faUpload, faLink, faRotateRight } from '@fortawesome/free-solid-svg-icons';
 
 // Local Imports.
 import AccountCard from './AccountCard';
 import PlaidModal from '../PlaidConnect/PlaidModal';
 import FileUploadModal from '../UploadData/FileUploadModal';
+import UploadResultModal from '../UploadData/UploadResultModal';
 
 // ------------------------------------------------------------------------------------------------ Helper Functions.
 
@@ -24,7 +25,7 @@ const getAccountTypeLabel = (type) => {
 };
 
 // Account List Component.
-const AccountList = ({ myStats, myAccounts, onUpload, id }) => {
+const AccountList = ({ myStats, myAccounts, onUpload, onRefresh, id }) => {
     // Account States.
     const [stats, setStats] = useState(null);
     const [accounts, setAccounts] = useState([]);                   // State 4 Account Data.
@@ -39,6 +40,8 @@ const AccountList = ({ myStats, myAccounts, onUpload, id }) => {
     const [showAddMenu, setShowAddMenu] = useState(false);              // State 4 Whether Add Menu Is Open.
     const [uploadModal, setUploadModal] = useState(false);              // State 4 Whether Modal For Upload Is Open.
     const [plaidModal, setPlaidModal] = useState(false);                // State 4 Whether Plaid Modal Is Open.
+    const [uploadResult, setUploadResult] = useState(null);             // State 4 Upload Results.
+    const [refreshLoading, setRefreshLoading] = useState(false);        // State 4 Whether Refresh Is Loading.
 
     // -------------------------------------------------------- Handle Data Import
     const importData = async () => {
@@ -84,17 +87,44 @@ const AccountList = ({ myStats, myAccounts, onUpload, id }) => {
     // -------------------------------------------------------- Handle Uploading Of CSV.
     const handleUpload = async (formData) => {
         try {
-            await onUpload(formData);
-            setUploadModal(false);
+            const result = await onUpload(formData);
+            return result.data; // Return the data, not the full result
         } catch (error) {
             console.error("Upload failed:", error);
             throw error;
         }
     };
 
+    // -------------------------------------------------------- Handle Upload Success.
+    const handleUploadSuccess = (result) => {
+        setUploadResult(result);
+        setUploadModal(false);
+        // Show results modal instead of closing immediately
+    };
+
     // -------------------------------------------------------- Handle Closing Upload Modal.
     const closeUploadModal = () => {
         setUploadModal(false);
+    };
+
+    // -------------------------------------------------------- Handle Results Close.
+    const handleResultsClose = () => {
+        setUploadResult(null);
+        // Optionally refresh data or show success message
+    };
+
+    // -------------------------------------------------------- Handle Refresh Accounts.
+    const handleRefresh = async () => {
+        if (!onRefresh || refreshLoading) return;
+        
+        setRefreshLoading(true);
+        try {
+            await onRefresh();
+        } catch (error) {
+            console.error('Failed to refresh accounts:', error);
+        } finally {
+            setRefreshLoading(false);
+        }
     };
 
     // -------------------------------------------------------- Handle Account Toggle.
@@ -123,6 +153,17 @@ const AccountList = ({ myStats, myAccounts, onUpload, id }) => {
                     <TitleRow>
                         <SectionTitle>Your Accounts</SectionTitle>
                         <AddMenuWrapper className="add-menu-wrapper">
+                        <RefreshButton 
+                            onClick={handleRefresh} 
+                            disabled={refreshLoading}
+                            aria-label="Refresh Accounts"
+                            title="Refresh Accounts"
+                        >
+                            <FontAwesomeIcon 
+                                icon={faRotateRight} 
+                                spin={refreshLoading}
+                            />
+                        </RefreshButton>
                         <AddButton 
                             onClick={() => setShowAddMenu(prev => !prev)} 
                             aria-label="Add New Content."
@@ -197,6 +238,17 @@ const AccountList = ({ myStats, myAccounts, onUpload, id }) => {
                     isOpen={uploadModal}
                     onClose={closeUploadModal}
                     onUpload={handleUpload}
+                    onSuccess={handleUploadSuccess}
+                    existingAccounts={myAccounts}
+                />
+            )}
+
+            {/* Upload Results Modal */}
+            { uploadResult && (
+                <UploadResultModal
+                    isOpen={!!uploadResult}
+                    onClose={handleResultsClose}
+                    uploadResult={uploadResult}
                 />
             )}
 
@@ -268,6 +320,60 @@ const AddMenuWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
+`;
+const RefreshButton = styled.button`
+    cursor: pointer;
+    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
+    color: white;
+    border-radius: 50%;
+    width: 65px;
+    height: 65px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5rem;
+    border: none;
+    margin-right: 1rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.34);
+    position: relative;
+    overflow: hidden;
+
+    &:disabled {
+        cursor: not-allowed;
+        opacity: 0.7;
+        transform: none;
+    }
+
+    &:not(:disabled):hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    }
+    
+    &:not(:disabled):active {
+        transform: translateY(0);
+        transition: all 0.1s ease;
+    }
+
+    &:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3), 0 4px 6px rgba(0, 0, 0, 0.34);
+    }
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s;
+    }
+    
+    &:not(:disabled):hover::before {
+        left: 100%;
+    }
 `;
 const AddButton = styled.button`
     cursor: pointer;

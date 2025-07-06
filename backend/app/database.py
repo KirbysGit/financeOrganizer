@@ -9,12 +9,40 @@ import os
 # Create Base Class For ORM Models.
 Base = declarative_base()
 
+# -------------------------------------------------------- User Model
+class User(Base):
+    __tablename__ = "users"
+    
+    id = Column(Integer, primary_key=True, index=True)      # User ID in DB. (Auto-Incrementing Primary Key)
+    first_name = Column(String, nullable=False)             # User's First Name.
+    last_name = Column(String, nullable=False)              # User's Last Name.
+    email = Column(String, unique=True, index=True, nullable=False)  # User's Email Address. (Unique, Indexed)
+    hashed_password = Column(String, nullable=False)        # Hashed Password. (Never Store Plain Text)
+    
+    # Account Status.
+    is_active = Column(Boolean, default=True)               # Whether User Account Is Active.
+    is_verified = Column(Boolean, default=False)            # Whether Email Has Been Verified.
+    
+    # Google OAuth Fields.
+    google_id = Column(String, unique=True, index=True, nullable=True)  # Google User ID.
+    picture = Column(String, nullable=True)                 # Google Profile Picture URL.
+    
+    # Metadata.
+    created_at = Column(DateTime)                           # When User Account Was Created.
+    updated_at = Column(DateTime)                           # When User Account Was Last Updated.
+    last_login = Column(DateTime)                           # When User Last Logged In.
+    
+    # Relationships.
+    accounts = relationship("Account", back_populates="user")  # One-To-Many Relationship With Accounts.
+    transactions = relationship("Transaction", back_populates="user")  # One-To-Many Relationship With Transactions.
+
 # -------------------------------------------------------- Account Model
 class Account(Base):
     # Set Table Name.
     __tablename__ = "accounts"
     
     id = Column(Integer, primary_key=True, index=True)      # Account ID in DB. (Auto-Incrementing Primary Key)
+    user_id = Column(Integer, ForeignKey("users.id"))       # Foreign Key Linking To User. (User Who Owns This Account)
     account_id = Column(String, unique=True, index=True)    # Plaid Account ID. (Unique Identifier From Plaid API)
     item_id = Column(String, index=True)                    # Plaid item ID. (Links Account To Institution Connection)
     name = Column(String)                                   # Name Of Account. (User-Friendly Name)
@@ -35,6 +63,7 @@ class Account(Base):
     updated_at = Column(DateTime)                           # When Account Was Last Updated/Synced.
     
     # Relationships.
+    user = relationship("User", back_populates="accounts")  # Many-To-One Relationship With User.
     transactions = relationship("Transaction", back_populates="account")  # One-To-Many Relationship With Transactions.
 
 # -------------------------------------------------------- Enhanced Transaction Model
@@ -42,6 +71,7 @@ class Transaction(Base):
     __tablename__ = "transactions"  # Physical Table Name In Database.
     
     id = Column(Integer, primary_key=True, index=True)      # Transaction ID In DB. (Auto-Incrementing Primary Key)
+    user_id = Column(Integer, ForeignKey("users.id"))       # Foreign Key Linking To User. (User Who Owns This Transaction)
     
     # Plaid Integration.
     transaction_id = Column(String, unique=True, index=True)  # Plaid Transaction ID. (Unique Identifier From Plaid API)
@@ -85,6 +115,7 @@ class Transaction(Base):
     transaction_hash = Column(String, unique=True, index=True)  # Hash Of Key Transaction Fields. (Prevents Duplicate Imports)
     
     # Relationships.
+    user = relationship("User", back_populates="transactions")  # Many-To-One Relationship With User.
     account = relationship("Account", back_populates="transactions")  # Many-To-One Relationship With Account.
 
     def __init__(self, **kwargs):
@@ -141,6 +172,12 @@ class FileUpload(Base):
     # Processing Status.
     status = Column(String, default="processed")            # "processing", "processed", "error". (Current Processing Status)
     error_message = Column(Text)                            # Error Message If Processing Failed.
+    
+    # Enhanced Statistics.
+    total_rows_processed = Column(Integer, default=0)       # Total Number Of Rows In CSV File.
+    transactions_skipped = Column(Integer, default=0)       # Number Of Duplicate Transactions Skipped.
+    total_amount_imported = Column(Float, default=0.0)      # Total Amount Of All Imported Transactions.
+    processing_completed_at = Column(DateTime)              # When Processing Was Completed.
 
 # Database Setup.
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./finance_tracker.db")

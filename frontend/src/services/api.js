@@ -1,6 +1,36 @@
+// Imports.
 import axios from 'axios';
 
-const API = axios.create({ baseURL: 'http://localhost:8000', });
+// Create API Instance.
+const API = axios.create({ baseURL: 'http://localhost:8000' });
+
+// -------------------------------------------------------- Request Interceptor To Include Auth Token.
+API.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// -------------------------------------------------------- Response Interceptor To Handle Auth Errors.
+API.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token Expired Or Invalid - Redirect To Login.
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('user');
+      window.location.href = '/'; // Redirect To Landing Page.
+    }
+    return Promise.reject(error);
+  }
+);
 
 // ================================================================= FILE OPERATIONS
 // ----------------------------------------------------------------- Upload CSV File.
@@ -42,6 +72,22 @@ export const getStats = () => API.get('/stats');
 // ================================================================= DATABASE OPERATIONS
 // ----------------------------------------------------------------- Empties Entire Database.
 export const emptyDatabase = () => API.delete('/clear');
+
+// ================================================================= USER AUTHENTICATION
+// ----------------------------------------------------------------- Register New User
+export const registerUser = (userData) => API.post('/auth/register', userData);
+
+// ----------------------------------------------------------------- Login User
+export const loginUser = (credentials) => API.post('/auth/login', credentials);
+
+// ----------------------------------------------------------------- Google Authentication
+export const googleAuth = (googleData) => API.post('/auth/google', googleData);
+
+// ----------------------------------------------------------------- Google Auth Code Authentication
+export const googleAuthCode = (authData) => API.post('/auth/google-code', authData);
+
+// ----------------------------------------------------------------- Get Current User
+export const getCurrentUser = () => API.get('/auth/me');
 
 // ================================================================= PLAID INTEGRATION
 // ----------------------------------------------------------------- Create Link Token for Plaid Link

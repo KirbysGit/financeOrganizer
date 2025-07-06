@@ -522,7 +522,10 @@ const SpendingGrid = ({ myTransactions, id }) => {
                                 <TransactionItem key={tx.id}>
                                     <TransactionInfo>
                                         <TransactionName>{tx.vendor || tx.merchant_name}</TransactionName>
-                                        <TransactionAccount>{tx.account?.name || 'Unknown Account'}</TransactionAccount>
+                                        <TransactionAccount>
+                                            {tx.account_details?.name || 'Unknown Account'}
+                                            {tx.account_details?.mask && ` (****${tx.account_details.mask})`}
+                                        </TransactionAccount>
                                     </TransactionInfo>
                                     <TransactionDetails>
                                         <TransactionAmount style={{ 

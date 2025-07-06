@@ -279,8 +279,6 @@ const StatsSection = ({ myStats }) => {
 
 // -------------------------------------------------------- Wrapper For Stats Section.
 const StatsWrapper = styled.div`
-    display: flex;
-    flex-direction: column;
     width: 90%;
     margin-bottom: 2rem;
 `

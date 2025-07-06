@@ -4,13 +4,18 @@ import { styled } from 'styled-components';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFileUpload, faTimes, faSpinner } from '@fortawesome/free-solid-svg-icons';
 
+// Local Imports.
+import AccountSelectionModal from './AccountSelectionModal';
+
 // -------------------------------------------------------- FileUploadModal Component.
-const FileUploadModal = ({ isOpen, onClose, onUpload }) => {
+const FileUploadModal = ({ isOpen, onClose, onUpload, onSuccess, existingAccounts = [] }) => {
     // Upload CSV States.
     const [file, setFile] = useState(null);                 // State 4 File.
     const [notes, setNotes] = useState('');                 // State 4 Notes.
     const [uploading, setUploading] = useState(false);      // State 4 Uploading State.
     const [uploadError, setUploadError] = useState('');     // State 4 Upload Error.
+    const [showAccountSelection, setShowAccountSelection] = useState(false); // State for account selection modal.
+    const [selectedAccount, setSelectedAccount] = useState(null); // State for selected account.
 
     // -------------------------------------------------------- Handle CSV Upload.
     const handleCSVUpload = async () => {
@@ -19,16 +24,36 @@ const FileUploadModal = ({ isOpen, onClose, onUpload }) => {
             return;
         }
 
+        // Show account selection first
+        setShowAccountSelection(true);
+    };
+
+    // -------------------------------------------------------- Handle Account Selection.
+    const handleAccountSelect = async (account) => {
+        setSelectedAccount(account);
+        setShowAccountSelection(false);
+        
+        // Now proceed with upload
+        await performUpload(account);
+    };
+
+    // -------------------------------------------------------- Perform Actual Upload.
+    const performUpload = async (account) => {
         setUploading(true);                                 // Let User Know Upload Is In Progress.
         setUploadError('');                                 // Clear Any Previous Errors.
 
         const formData = new FormData();                    // Create New FormData Object.
         formData.append('file', file);                      // Add File To FormData.
         formData.append('notes', notes);                    // Add Notes To FormData.
+        
+        // Add account data if not cash
+        if (account && account.type !== 'cash') {
+            formData.append('account_data', JSON.stringify(account));
+        }
 
         try {                                               // Try.
-            await onUpload(formData);                       // API Call For Uploading CSV.
-            alert("File uploaded successfully!");           // Let User Know File Uploaded.
+            const result = await onUpload(formData);        // API Call For Uploading CSV.
+            onSuccess(result);                              // Pass Results To Parent (result is already the data).
             handleClose();                                  // Close Modal.
         } catch (error) {                                   // If Error.
             console.error("Upload failed:", error);         // Log Error.
@@ -46,6 +71,16 @@ const FileUploadModal = ({ isOpen, onClose, onUpload }) => {
         } finally {                                         // Finally.
             setUploading(false);                             // Let User Know Upload Has Finished.
         }
+    };
+
+    // -------------------------------------------------------- Handle Close Modal.
+    const handleClose = () => {
+        setFile(null);
+        setNotes('');
+        setUploadError('');
+        setSelectedAccount(null);
+        setShowAccountSelection(false);
+        onClose();
     };
 
     // -------------------------------------------------------- Handle Drag & Drop On Upload Modal.
@@ -67,68 +102,70 @@ const FileUploadModal = ({ isOpen, onClose, onUpload }) => {
         }
     };
 
-    // -------------------------------------------------------- Handle Close Modal.
-    const handleClose = () => {
-        setFile(null);
-        setNotes('');
-        setUploadError('');
-        onClose();
-    };
-
     if (!isOpen) return null;
 
     return (
-        <Modal onClick={handleClose}>
-            <ModalContent onClick={e => e.stopPropagation()}>
-                <ModalHeader>
-                    <ModalTitle>Upload CSV File</ModalTitle>
-                    <CloseButton onClick={handleClose}>
-                        <FontAwesomeIcon icon={faTimes} />
-                    </CloseButton>
-                </ModalHeader>
+        <>
+            <Modal onClick={handleClose}>
+                <ModalContent onClick={e => e.stopPropagation()}>
+                    <ModalHeader>
+                        <ModalTitle>Upload CSV File</ModalTitle>
+                        <CloseButton onClick={handleClose}>
+                            <FontAwesomeIcon icon={faTimes} />
+                        </CloseButton>
+                    </ModalHeader>
 
-                <UploadSection>
-                    <FileDropZone $hasFile={!!file}>
-                        <input
-                            type="file"
-                            accept=".csv"
-                            onChange={handleFileSelect}
-                            style={{ display: 'none' }}
-                            id="csv-upload"
+                    <UploadSection>
+                        <FileDropZone $hasFile={!!file}>
+                            <input
+                                type="file"
+                                accept=".csv"
+                                onChange={handleFileSelect}
+                                style={{ display: 'none' }}
+                                id="csv-upload"
+                            />
+                            <label htmlFor="csv-upload">
+                                <FontAwesomeIcon icon={faFileUpload} />
+                                {file ? file.name : 'Choose CSV File'}
+                            </label>
+                        </FileDropZone>
+
+                        <NotesInput
+                            placeholder="Optional notes about this upload..."
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
                         />
-                        <label htmlFor="csv-upload">
-                            <FontAwesomeIcon icon={faFileUpload} />
-                            {file ? file.name : 'Choose CSV File'}
-                        </label>
-                    </FileDropZone>
 
-                    <NotesInput
-                        placeholder="Optional notes about this upload..."
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                    />
-
-                    {uploadError && (
-                        <ErrorMessage>{uploadError}</ErrorMessage>
-                    )}
-
-                    <ActionButton 
-                        onClick={handleCSVUpload} 
-                        disabled={!file || uploading}
-                        $primary
-                    >
-                        {uploading ? (
-                            <>
-                                <FontAwesomeIcon icon={faSpinner} spin />
-                                Uploading...
-                            </>
-                        ) : (
-                            'Upload & Parse'
+                        {uploadError && (
+                            <ErrorMessage>{uploadError}</ErrorMessage>
                         )}
-                    </ActionButton>
-                </UploadSection>
-            </ModalContent>
-        </Modal>
+
+                        <ActionButton 
+                            onClick={handleCSVUpload} 
+                            disabled={!file || uploading}
+                            $primary
+                        >
+                            {uploading ? (
+                                <>
+                                    <FontAwesomeIcon icon={faSpinner} spin />
+                                    Uploading...
+                                </>
+                            ) : (
+                                'Upload & Parse'
+                            )}
+                        </ActionButton>
+                    </UploadSection>
+                </ModalContent>
+            </Modal>
+
+            {/* Account Selection Modal */}
+            <AccountSelectionModal
+                isOpen={showAccountSelection}
+                onClose={() => setShowAccountSelection(false)}
+                onAccountSelect={handleAccountSelect}
+                existingAccounts={existingAccounts}
+            />
+        </>
     );
 };
 

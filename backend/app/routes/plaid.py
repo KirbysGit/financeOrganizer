@@ -14,6 +14,8 @@ from plaid.model.transactions_get_request import TransactionsGetRequest
 from plaid.model.link_token_create_request import LinkTokenCreateRequest
 from plaid.model.link_token_create_request_user import LinkTokenCreateRequestUser
 from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
+from plaid.model.item_get_request import ItemGetRequest
+from plaid.model.institutions_get_by_id_request import InstitutionsGetByIdRequest
 
 # Local Imports.
 from app.config import plaid_config
@@ -79,8 +81,37 @@ async def exchange_public_token(request: PublicTokenExchangeRequest):
             
             # If It Doesn't Exist, Create New Institution Item, Then Add To Database.
             if not existing_institution:
+                # Try to get institution details from Plaid
+                try:
+                    # Get institution info from the item
+                    item_response = plaid_config.client.item_get(
+                        plaid.model.item_get_request.ItemGetRequest(
+                            access_token=response['access_token']
+                        )
+                    )
+                    
+                    institution_id = item_response.get('item', {}).get('institution_id')
+                    
+                    # Get institution details
+                    institution_response = plaid_config.client.institutions_get_by_id(
+                        plaid.model.institutions_get_by_id_request.InstitutionsGetByIdRequest(
+                            institution_id=institution_id,
+                            country_codes=[CountryCode('US')]
+                        )
+                    )
+                    
+                    institution_name = institution_response.get('institution', {}).get('name') if institution_response.get('institution') else None
+                    
+                except Exception as e:
+                    # If we can't get institution details, use defaults
+                    print(f"Could not fetch institution details: {e}")
+                    institution_id = None
+                    institution_name = None
+                
                 new_institution = Institution(
                     item_id=response['item_id'],
+                    institution_id=institution_id,
+                    name=institution_name,
                     access_token=response['access_token'],
                     is_connected=True,
                     created_at=datetime.now(),
@@ -142,6 +173,9 @@ async def fetch_transactions(access_token: str):
                 # Set Stored Accounts To 0 (Pre-Processed Accounts).
                 stored_accounts = 0
 
+                # Get the item_id from the response for linking accounts to institutions
+                item_id = response.get('item', {}).get('item_id') if response.get('item') else None
+
                 # Per Account,
                 for account in accounts_data:
 
@@ -170,6 +204,7 @@ async def fetch_transactions(access_token: str):
                     if not existing_account:
                         new_account = Account(
                             account_id=account_id,
+                            item_id=item_id,  # Link to institution
                             name=getattr(account, 'name', None),
                             official_name=getattr(account, 'official_name', None),
                             type=type_str,
@@ -186,10 +221,15 @@ async def fetch_transactions(access_token: str):
                         db.add(new_account)
                         stored_accounts += 1
                     else:
-                        # Update Existing Account Balances.
+                        # Update Existing Account Balances and item_id if missing
                         if balances:
                             existing_account.current_balance = getattr(balances, 'current', existing_account.current_balance)
                             existing_account.available_balance = getattr(balances, 'available', existing_account.available_balance)
+                            existing_account.updated_at = datetime.now()
+                        
+                        # Update item_id if it's missing
+                        if not existing_account.item_id and item_id:
+                            existing_account.item_id = item_id
                             existing_account.updated_at = datetime.now()
                 
                 # Commit Account Changes To Database.

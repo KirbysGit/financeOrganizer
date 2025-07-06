@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 # Local Imports.
-from app.routes import upload, transactions, files, plaid
+from app.routes import upload, transactions, files, plaid, accounts
 
 # Create Instance Of FastAPI Application.
 app = FastAPI()
@@ -30,3 +30,4 @@ app.include_router(files.router)
 app.include_router(upload.router)
 app.include_router(transactions.router)
 app.include_router(plaid.router)
+app.include_router(accounts.router)

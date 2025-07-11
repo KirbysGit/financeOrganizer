@@ -7,17 +7,23 @@ from fastapi import APIRouter, Depends, HTTPException
 
 # Local Imports.
 from app.utils.db_utils import get_db
+from app.utils.auth_utils import get_current_user
 from app.models import TransactionOut, TransactionCreate
 from app.utils.type_label_map import NEGATIVE_TYPES, POSITIVE_TYPES
-from app.database import Transaction, FileUpload, Account, Institution
+from app.database import Transaction, FileUpload, Account, Institution, User
 
 router = APIRouter()    # Sets Up Modular Sub-Router for FastAPI.
 
 # ----------------------------------------------------------------------- Get All Transactions.
 @router.get("/transactions", response_model=list[TransactionOut])
-def get_transactions(db: Session = Depends(get_db)):
-    # Query For All Transactions With Account And Institution Details.
-    transactions = db.query(Transaction).join(
+def get_transactions(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # Query For All Transactions With Account And Institution Details For This User.
+    transactions = db.query(Transaction).filter(
+        Transaction.user_id == current_user.id
+    ).join(
         Account, Transaction.account_id == Account.account_id, isouter=True
     ).join(
         Institution, Account.item_id == Institution.item_id, isouter=True
@@ -47,9 +53,10 @@ def get_transactions(db: Session = Depends(get_db)):
         # Get Institution Details.
         institution_details = None
         if tx.account and tx.account.item_id:
-            # Query for institution using item_id
+            # Query for institution using item_id (must belong to current user)
             institution = db.query(Institution).filter(
-                Institution.item_id == tx.account.item_id
+                Institution.item_id == tx.account.item_id,
+                Institution.user_id == current_user.id
             ).first()
             
             if institution:
@@ -100,9 +107,14 @@ def get_transactions(db: Session = Depends(get_db)):
 
 # ----------------------------------------------------------------------- Get Transactions with Account Info.
 @router.get("/transactions/detailed")
-def get_detailed_transactions(db: Session = Depends(get_db)):
-    # Query For All Transactions, And Join With Account Info.
-    transactions = db.query(Transaction).join(Account, Transaction.account_id == Account.account_id, isouter=True).all()
+def get_detailed_transactions(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # Query For All Transactions For This User, And Join With Account Info.
+    transactions = db.query(Transaction).filter(
+        Transaction.user_id == current_user.id
+    ).join(Account, Transaction.account_id == Account.account_id, isouter=True).all()
     
     # Create Result List.
     result = []
@@ -139,15 +151,24 @@ def get_detailed_transactions(db: Session = Depends(get_db)):
 
 # ----------------------------------------------------------------------- Get All Accounts.
 @router.get("/accounts")
-def get_accounts(db: Session = Depends(get_db)):
-    # Query For All Accounts, And Filter For Only Active Accounts.
-    accounts = db.query(Account).filter(Account.is_active == True).all()
+def get_accounts(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # Query For All Accounts For This User, And Filter For Only Active Accounts.
+    accounts = db.query(Account).filter(
+        Account.user_id == current_user.id,
+        Account.is_active == True
+    ).all()
     
     # Create Result List.
     result = []
     for account in accounts:
-        # Count Transactions For This Account.
-        tx_count = db.query(Transaction).filter(Transaction.account_id == account.account_id).count()
+        # Count Transactions For This Account (must belong to current user).
+        tx_count = db.query(Transaction).filter(
+            Transaction.account_id == account.account_id,
+            Transaction.user_id == current_user.id
+        ).count()
         
         # Create Account Dictionary.
         account_dict = {
@@ -171,9 +192,12 @@ def get_accounts(db: Session = Depends(get_db)):
     # Return Result List.
     return result
 
-# ----------------------------------------------------------------------- Clears Entire Database.
+# ----------------------------------------------------------------------- Clears Entire Database For Current User.
 @router.delete("/clear")
-def clear_database(db: Session = Depends(get_db)):
+def clear_database(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     try:
         # Disable Foreign Key Checks Temporarily.
         if "sqlite" in str(db.bind.url):
@@ -181,11 +205,11 @@ def clear_database(db: Session = Depends(get_db)):
         else:
             db.execute(text("SET FOREIGN_KEY_CHECKS = 0"))
         
-        # Clear All Tables (In Order Of Dependencies).
-        db.query(Transaction).delete()
-        db.query(FileUpload).delete()
-        db.query(Account).delete()
-        db.query(Institution).delete()
+        # Clear All Tables For Current User (In Order Of Dependencies).
+        db.query(Transaction).filter(Transaction.user_id == current_user.id).delete()
+        db.query(FileUpload).filter(FileUpload.user_id == current_user.id).delete()
+        db.query(Account).filter(Account.user_id == current_user.id).delete()
+        db.query(Institution).filter(Institution.user_id == current_user.id).delete()
         
         # Re-enable Foreign Key Checks.
         if "sqlite" in str(db.bind.url):
@@ -196,15 +220,15 @@ def clear_database(db: Session = Depends(get_db)):
         # Commit Changes.
         db.commit()
         
-        # Verify Tables Are Empty.
-        transaction_count = db.query(Transaction).count()
-        file_count = db.query(FileUpload).count()
-        account_count = db.query(Account).count()
-        institution_count = db.query(Institution).count()
+        # Verify Tables Are Empty For Current User.
+        transaction_count = db.query(Transaction).filter(Transaction.user_id == current_user.id).count()
+        file_count = db.query(FileUpload).filter(FileUpload.user_id == current_user.id).count()
+        account_count = db.query(Account).filter(Account.user_id == current_user.id).count()
+        institution_count = db.query(Institution).filter(Institution.user_id == current_user.id).count()
         
         # Return Success Msg With Verification.
         return {
-            "message": "Database cleared successfully",
+            "message": "Your data has been cleared successfully",
             "tables_cleared": ["transactions", "file_uploads", "accounts", "institutions"],
             "verification": {
                 "transactions": transaction_count,
@@ -234,7 +258,11 @@ def clear_database(db: Session = Depends(get_db)):
 
 # ----------------------------------------------------------------------- Manually Add Transaction.
 @router.post("/transactions/", response_model=TransactionOut, status_code=201)
-def create_transaction(transaction: TransactionCreate, db: Session = Depends(get_db)):
+def create_transaction(
+    transaction: TransactionCreate, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     # Get Transaction Data From Request.
     tx_data = transaction.dict()
 
@@ -261,6 +289,7 @@ def create_transaction(transaction: TransactionCreate, db: Session = Depends(get
         elif account_data.get('is_new'):
             # Create new manual account
             selected_account = Account(
+                user_id=current_user.id,
                 account_id=account_data['account_id'],
                 name=account_data['name'],
                 official_name=account_data['name'],
@@ -276,16 +305,18 @@ def create_transaction(transaction: TransactionCreate, db: Session = Depends(get
             db.commit()
             db.refresh(selected_account)
         else:
-            # Use existing account
+            # Use existing account (must belong to current user)
             selected_account = db.query(Account).filter_by(
-                account_id=account_data['account_id']
+                account_id=account_data['account_id'],
+                user_id=current_user.id
             ).first()
             
             if not selected_account:
-                raise HTTPException(status_code=400, detail="Selected account not found")
+                raise HTTPException(status_code=400, detail="Selected account not found or doesn't belong to you")
 
     # Map Old Field Names To New Schema.
     new_tx_data = {
+        "user_id": current_user.id,
         "date": tx_data.get("date"),
         "amount": tx_data.get("amount"),
         "vendor": tx_data.get("vendor"),
@@ -317,9 +348,16 @@ def create_transaction(transaction: TransactionCreate, db: Session = Depends(get
 
 # ----------------------------------------------------------------------- Delete Individual Transaction.
 @router.delete("/transactions/{transaction_id}")
-def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):
-    # Find Transaction By ID.
-    transaction = db.query(Transaction).filter(Transaction.id == transaction_id).first()
+def delete_transaction(
+    transaction_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # Find Transaction By ID (must belong to current user).
+    transaction = db.query(Transaction).filter(
+        Transaction.id == transaction_id,
+        Transaction.user_id == current_user.id
+    ).first()
     
     if not transaction:
         return {"error": "Transaction not found"}
@@ -335,7 +373,10 @@ def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):
 
 # ----------------------------------------------------------------------- Get Stats.
 @router.get("/stats")
-def get_stats(db: Session = Depends(get_db)):
+def get_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     # Get Current Date & Calculate Time Periods.
     now = datetime.now()
     start_of_month = datetime(now.year, now.month, 1).date()
@@ -356,95 +397,109 @@ def get_stats(db: Session = Depends(get_db)):
     # Previous Year.
     prev_year_start = datetime(now.year - 1, 1, 1).date()
 
-    # Get All Transactions.
-    transactions = db.query(Transaction).all()
+    # Get All Transactions For Current User.
+    transactions = db.query(Transaction).filter(Transaction.user_id == current_user.id).all()
     
     # Total Income (All Time).
     total_income = db.query(func.sum(Transaction.amount)).filter(
-        Transaction.amount > 0
+        Transaction.amount > 0,
+        Transaction.user_id == current_user.id
     ).scalar() or 0
     
     # Monthly Income (Current Month).
     monthly_income = db.query(func.sum(Transaction.amount)).filter(
         Transaction.amount > 0,
-        Transaction.date >= start_of_month
+        Transaction.date >= start_of_month,
+        Transaction.user_id == current_user.id
     ).scalar() or 0
     
     # Previous Month Income.
     prev_monthly_income = db.query(func.sum(Transaction.amount)).filter(
         Transaction.amount > 0,
         Transaction.date >= prev_month_start,
-        Transaction.date < start_of_month
+        Transaction.date < start_of_month,
+        Transaction.user_id == current_user.id
     ).scalar() or 0
     
     # Weekly Income (Current Week).
     weekly_income = db.query(func.sum(Transaction.amount)).filter(
         Transaction.amount > 0,
-        Transaction.date >= start_of_week
+        Transaction.date >= start_of_week,
+        Transaction.user_id == current_user.id
     ).scalar() or 0
     
     # Previous Week Income.
     prev_weekly_income = db.query(func.sum(Transaction.amount)).filter(
         Transaction.amount > 0,
         Transaction.date >= prev_week_start,
-        Transaction.date < start_of_week
+        Transaction.date < start_of_week,
+        Transaction.user_id == current_user.id
     ).scalar() or 0
     
     # Year-to-Date Income.
     ytd_income = db.query(func.sum(Transaction.amount)).filter(
         Transaction.amount > 0,
-        Transaction.date >= start_of_year
+        Transaction.date >= start_of_year,
+        Transaction.user_id == current_user.id
     ).scalar() or 0
     
     # Previous Year Income.
     prev_ytd_income = db.query(func.sum(Transaction.amount)).filter(
         Transaction.amount > 0,
         Transaction.date >= prev_year_start,
-        Transaction.date < start_of_year
+        Transaction.date < start_of_year,
+        Transaction.user_id == current_user.id
     ).scalar() or 0
     
     # Total Spending (All Time).
     total_spending = db.query(func.sum(Transaction.amount)).filter(
-        Transaction.amount < 0
+        Transaction.amount < 0,
+        Transaction.user_id == current_user.id
     ).scalar() or 0
     
     # Monthly Spending (Current Month).
     monthly_spending = db.query(func.sum(Transaction.amount)).filter(
         Transaction.amount < 0,
-        Transaction.date >= start_of_month
+        Transaction.date >= start_of_month,
+        Transaction.user_id == current_user.id
     ).scalar() or 0
     
     # Previous Month Spending.
     prev_monthly_spending = db.query(func.sum(Transaction.amount)).filter(
         Transaction.amount < 0,
         Transaction.date >= prev_month_start,
-        Transaction.date < start_of_month
+        Transaction.date < start_of_month,
+        Transaction.user_id == current_user.id
     ).scalar() or 0
     
     # Weekly Spending (Current Week).
     weekly_spending = db.query(func.sum(Transaction.amount)).filter(
         Transaction.amount < 0,
-        Transaction.date >= start_of_week
+        Transaction.date >= start_of_week,
+        Transaction.user_id == current_user.id
     ).scalar() or 0
     
     # Previous Week Spending.
     prev_weekly_spending = db.query(func.sum(Transaction.amount)).filter(
         Transaction.amount < 0,
         Transaction.date >= prev_week_start,
-        Transaction.date < start_of_week
+        Transaction.date < start_of_week,
+        Transaction.user_id == current_user.id
     ).scalar() or 0
     
     # Year-to-Date Spending.
     ytd_spending = db.query(func.sum(Transaction.amount)).filter(
         Transaction.amount < 0,
-        Transaction.date >= start_of_year
+        Transaction.date >= start_of_year,
+        Transaction.user_id == current_user.id
     ).scalar() or 0
     
     # Previous Year Spending.
     prev_ytd_spending = db.query(func.sum(Transaction.amount)).filter(
         Transaction.amount < 0,
         Transaction.date >= prev_year_start,
-        Transaction.date < start_of_year
+        Transaction.date < start_of_year,
+        Transaction.user_id == current_user.id
     ).scalar() or 0
     
     # Calculate Cash Flow.
@@ -489,7 +544,8 @@ def get_stats(db: Session = Depends(get_db)):
         Transaction.category_primary,
         func.sum(Transaction.amount).label('total')
     ).filter(
-        Transaction.amount > 0
+        Transaction.amount > 0,
+        Transaction.user_id == current_user.id
     ).group_by(
         Transaction.category_primary
     ).all()
@@ -499,7 +555,8 @@ def get_stats(db: Session = Depends(get_db)):
         Transaction.category_primary,
         func.sum(Transaction.amount).label('total')
     ).filter(
-        Transaction.amount < 0
+        Transaction.amount < 0,
+        Transaction.user_id == current_user.id
     ).group_by(
         Transaction.category_primary
     ).order_by(
@@ -508,20 +565,28 @@ def get_stats(db: Session = Depends(get_db)):
     
     # Get Average Transaction Amounts.
     avg_income = db.query(func.avg(Transaction.amount)).filter(
-        Transaction.amount > 0
+        Transaction.amount > 0,
+        Transaction.user_id == current_user.id
     ).scalar() or 0
     
     avg_spending = db.query(func.avg(Transaction.amount)).filter(
-        Transaction.amount < 0
+        Transaction.amount < 0,
+        Transaction.user_id == current_user.id
     ).scalar() or 0
     
     # Get Transaction Frequency.
-    transaction_count = db.query(Transaction).count()
-    income_count = db.query(Transaction).filter(Transaction.amount > 0).count()
-    spending_count = db.query(Transaction).filter(Transaction.amount < 0).count()
+    transaction_count = db.query(Transaction).filter(Transaction.user_id == current_user.id).count()
+    income_count = db.query(Transaction).filter(
+        Transaction.amount > 0,
+        Transaction.user_id == current_user.id
+    ).count()
+    spending_count = db.query(Transaction).filter(
+        Transaction.amount < 0,
+        Transaction.user_id == current_user.id
+    ).count()
     
-    # Get Account Statistics.
-    accounts = db.query(Account).all()
+    # Get Account Statistics For Current User.
+    accounts = db.query(Account).filter(Account.user_id == current_user.id).all()
     total_assets = sum(acc.current_balance for acc in accounts if acc.type == 'depository')
     total_liabilities = sum(acc.current_balance for acc in accounts if acc.type == 'credit')
     net_worth = total_assets + total_liabilities
@@ -558,10 +623,13 @@ def get_stats(db: Session = Depends(get_db)):
         "yearly": calculate_growth_percentage(ytd_income, prev_ytd_income)
     }
     
-    # Get Source Statistics.
+    # Get Source Statistics For Current User.
     source_stats = {}
     for source in ['plaid', 'csv', 'manual']:
-        source_transactions = db.query(Transaction).filter(Transaction.source == source).all()
+        source_transactions = db.query(Transaction).filter(
+            Transaction.source == source,
+            Transaction.user_id == current_user.id
+        ).all()
         source_stats[source] = {
             'count': len(source_transactions),
             'total': sum(t.amount for t in source_transactions)
@@ -625,25 +693,30 @@ def get_stats(db: Session = Depends(get_db)):
 
 # ----------------------------------------------------------------------- Update Existing Transactions With Account/Institution Details.
 @router.post("/transactions/update-details")
-def update_transaction_details(db: Session = Depends(get_db)):
+def update_transaction_details(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     try:
-        # Get all transactions that don't have account_details populated
-        transactions = db.query(Transaction).all()
+        # Get all transactions that don't have account_details populated for current user
+        transactions = db.query(Transaction).filter(Transaction.user_id == current_user.id).all()
         
         updated_count = 0
         
         for tx in transactions:
-            # Get account details
+            # Get account details (must belong to current user)
             account = db.query(Account).filter(
-                Account.account_id == tx.account_id
+                Account.account_id == tx.account_id,
+                Account.user_id == current_user.id
             ).first()
             
             if account:
-                # Get institution details
+                # Get institution details (must belong to current user)
                 institution = None
                 if account.item_id:
                     institution = db.query(Institution).filter(
-                        Institution.item_id == account.item_id
+                        Institution.item_id == account.item_id,
+                        Institution.user_id == current_user.id
                     ).first()
                 
                 # Update transaction with account and institution details

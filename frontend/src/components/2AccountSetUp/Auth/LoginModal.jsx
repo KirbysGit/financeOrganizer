@@ -6,10 +6,10 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 
 // Local Imports.
-import '../../styles/colors.css';
-import colorScheme from '../../images/colorSchemeIcon.png';
-import googleLogo from '../../images/googleLogo.png';
-import { loginUser, googleAuth, googleAuthCode } from '../../services/api';
+import '../../../styles/colors.css';
+import colorScheme from '../../../images/colorSchemeIcon.png';
+import googleLogo from '../../../images/googleLogo.png';
+import { loginUser, googleAuth, googleAuthCode } from '../../../services/api';
 
 // -------------------------------------------------------- LoginModal Component.
 const LoginModal = ({ onLoginSuccess, onShowSignUp }) => {
@@ -152,10 +152,24 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp }) => {
             
         } catch (error) {
             console.error('Google authentication failed:', error);
-            if (error.response?.data?.detail) {
+            if (error.response?.status === 409) {
+                // Account already exists with password - show specific message
+                setErrors({ 
+                    general: 'This email is already registered with a password. Please sign in with your password instead.' 
+                });
+            } else if (error.response?.status === 500) {
+                // Server error - likely account conflict
+                setErrors({ 
+                    general: 'This email is already registered. Please sign in with your password instead.'
+                });
+            } else if (error.response?.data?.detail) {
                 setErrors({ general: error.response.data.detail });
             } else if (error.response?.data?.message) {
                 setErrors({ general: error.response.data.message });
+            } else if (error.message && error.message.includes('Failed to process Google authentication')) {
+                setErrors({ 
+                    general: 'This email is already registered with a password. Please sign in with your password instead.'
+                });
             } else if (error.message) {
                 setErrors({ general: error.message });
             } else {
@@ -249,10 +263,12 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp }) => {
                                 onChange={handleInputChange}
                                 placeholder="Enter your password"
                                 $hasError={!!errors.password}
+                                autoComplete="current-password"
                             />
                             <PasswordToggle
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
+                                $hasSuccess={!!successStates.password}
                             >
                                 <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
                             </PasswordToggle>
@@ -261,7 +277,16 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp }) => {
                         {errors.password && <ErrorMessage>{errors.password}</ErrorMessage>}
                     </FormGroup>
                     
-                    {errors.general && <GeneralErrorMessage>{errors.general}</GeneralErrorMessage>}
+                    {errors.general && (
+                        <GeneralErrorMessage $hasPulse={errors.showLoginLink}>
+                            {errors.general}
+                            {errors.showLoginLink && (
+                                <LoginLinkInError onClick={onShowSignUp}>
+                                    Switch to Sign Up
+                                </LoginLinkInError>
+                            )}
+                        </GeneralErrorMessage>
+                    )}
                     
                     <SignInButton type="submit" disabled={isLoading}>
                         {isLoading ? (
@@ -297,7 +322,10 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp }) => {
                         </>
                     )}
                 </CustomGoogleButton>
-                
+                <GoogleInfoText>
+                    New Users Only • Existing Accounts Should Use Password Login
+                </GoogleInfoText>
+                <Divider />
                 <LoginPrompt>
                     Don't have an account? <LoginLink onClick={onShowSignUp}>Sign up</LoginLink>
                 </LoginPrompt>
@@ -482,7 +510,8 @@ const PasswordToggle = styled.button`
     color: var(--text-secondary);
     cursor: pointer;
     padding: 0.75rem;
-    margin-right: 0.25rem;
+    margin-right: ${props => props.$hasSuccess ? '2.5rem' : '0.25rem'};
+    transition: margin-right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     
     &:hover {
         color: var(--text-primary);
@@ -501,11 +530,27 @@ const ErrorMessage = styled.span`
 
 const GeneralErrorMessage = styled.div`
     color: var(--amount-negative);
-    background: rgba(220, 53, 69, 0.1);
-    padding: 0.75rem;
-    border-radius: 8px;
-    font-size: 0.9rem;
+    background: linear-gradient(135deg, rgba(220, 53, 69, 0.15), rgba(220, 53, 69, 0.08));
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: 600;
     text-align: center;
+    border: 2px solid rgba(220, 53, 69, 0.3);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.2), 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(8px);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: center;
+    animation: ${props => props.$hasPulse ? 'pulse 2s infinite' : 'none'};
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.8; }
+    }
 `;
 
 const SignInButton = styled.button`
@@ -639,6 +684,7 @@ const LoginPrompt = styled.p`
     text-align: center;
     color: var(--text-secondary);
     font-size: 0.9rem;
+    padding: 0 0 0.25rem 0;
     margin: 1rem 0 0 0;
 `;
 
@@ -649,6 +695,32 @@ const LoginLink = styled.span`
     
     &:hover {
         text-decoration: underline;
+    }
+`;
+
+const GoogleInfoText = styled.p`
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    margin: 0.5rem 0 0 0;
+    opacity: 0.8;
+`;
+
+const LoginLinkInError = styled.button`
+    background: none;
+    border: none;
+    color: var(--button-primary);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    
+    &:hover {
+        background: rgba(0, 123, 255, 0.1);
+        text-decoration: none;
     }
 `;
 

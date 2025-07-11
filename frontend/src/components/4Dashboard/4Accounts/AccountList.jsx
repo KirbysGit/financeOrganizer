@@ -3,13 +3,11 @@ import React from 'react';
 import styled from 'styled-components';
 import { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faUpload, faLink, faRotateRight } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faLink, faRotateRight } from '@fortawesome/free-solid-svg-icons';
 
 // Local Imports.
 import AccountCard from './AccountCard';
-import PlaidModal from '../PlaidConnect/PlaidModal';
-import FileUploadModal from '../UploadData/FileUploadModal';
-import UploadResultModal from '../UploadData/UploadResultModal';
+import PlaidModal from '../../3FinanceConnect/Ways2Connect/PlaidConnect/PlaidModal';
 
 // ------------------------------------------------------------------------------------------------ Helper Functions.
 
@@ -38,9 +36,7 @@ const AccountList = ({ myStats, myAccounts, onUpload, onRefresh, id }) => {
 
     // Add Menu States.
     const [showAddMenu, setShowAddMenu] = useState(false);              // State 4 Whether Add Menu Is Open.
-    const [uploadModal, setUploadModal] = useState(false);              // State 4 Whether Modal For Upload Is Open.
     const [plaidModal, setPlaidModal] = useState(false);                // State 4 Whether Plaid Modal Is Open.
-    const [uploadResult, setUploadResult] = useState(null);             // State 4 Upload Results.
     const [refreshLoading, setRefreshLoading] = useState(false);        // State 4 Whether Refresh Is Loading.
 
     // -------------------------------------------------------- Handle Data Import
@@ -83,35 +79,6 @@ const AccountList = ({ myStats, myAccounts, onUpload, onRefresh, id }) => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [showAddMenu]);
-
-    // -------------------------------------------------------- Handle Uploading Of CSV.
-    const handleUpload = async (formData) => {
-        try {
-            const result = await onUpload(formData);
-            return result.data; // Return the data, not the full result
-        } catch (error) {
-            console.error("Upload failed:", error);
-            throw error;
-        }
-    };
-
-    // -------------------------------------------------------- Handle Upload Success.
-    const handleUploadSuccess = (result) => {
-        setUploadResult(result);
-        setUploadModal(false);
-        // Show results modal instead of closing immediately
-    };
-
-    // -------------------------------------------------------- Handle Closing Upload Modal.
-    const closeUploadModal = () => {
-        setUploadModal(false);
-    };
-
-    // -------------------------------------------------------- Handle Results Close.
-    const handleResultsClose = () => {
-        setUploadResult(null);
-        // Optionally refresh data or show success message
-    };
 
     // -------------------------------------------------------- Handle Refresh Accounts.
     const handleRefresh = async () => {
@@ -174,15 +141,6 @@ const AccountList = ({ myStats, myAccounts, onUpload, onRefresh, id }) => {
                         {showAddMenu && (
                             <DropDownMenu onClick={(e) => e.stopPropagation()}>
                                 <DropDownItem onClick={() => {
-                                    setUploadModal(true);
-                                    setShowAddMenu(false);
-                                }}>
-                                        <DropDownIcon>
-                                            <FontAwesomeIcon icon={faUpload} />
-                                        </DropDownIcon>
-                                    Upload File
-                                </DropDownItem>
-                                <DropDownItem onClick={() => {
                                     setPlaidModal(true);
                                     setShowAddMenu(false);
                                 }}>
@@ -231,26 +189,6 @@ const AccountList = ({ myStats, myAccounts, onUpload, onRefresh, id }) => {
                         />
             ))}
             </AccountListContainer>
-
-            {/* Upload Modal */}
-            { uploadModal && (
-                <FileUploadModal
-                    isOpen={uploadModal}
-                    onClose={closeUploadModal}
-                    onUpload={handleUpload}
-                    onSuccess={handleUploadSuccess}
-                    existingAccounts={myAccounts}
-                />
-            )}
-
-            {/* Upload Results Modal */}
-            { uploadResult && (
-                <UploadResultModal
-                    isOpen={!!uploadResult}
-                    onClose={handleResultsClose}
-                    uploadResult={uploadResult}
-                />
-            )}
 
             {/* Plaid Modal */}
             { plaidModal && (

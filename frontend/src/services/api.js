@@ -23,10 +23,17 @@ API.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token Expired Or Invalid - Redirect To Login.
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('user');
-      window.location.href = '/'; // Redirect To Landing Page.
+      // Only redirect if user was previously authenticated (has tokens)
+      const token = localStorage.getItem('access_token');
+      const user = localStorage.getItem('user');
+      
+      if (token && user) {
+        // Token Expired Or Invalid - Redirect To Login.
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('user');
+        window.location.href = '/'; // Redirect To Landing Page.
+      }
+      // If no tokens exist, this is likely a login failure - don't redirect
     }
     return Promise.reject(error);
   }

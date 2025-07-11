@@ -6,8 +6,8 @@ import { faArrowLeft, faStar } from '@fortawesome/free-solid-svg-icons';
 
 // Local Imports.
 import '../../styles/colors.css';
-import LoginModal from '../Auth/LoginModal';
-import SignUpModal from '../Auth/SignUpModal';
+import LoginModal from './Auth/LoginModal';
+import SignUpModal from './Auth/SignUpModal';
 
 // -------------------------------------------------------- AccountSetUpScreen Component.
 const AccountSetUpScreen = ({ onBack, onSignUpSuccess, onLoginSuccess, modalType }) => {

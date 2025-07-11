@@ -57,6 +57,9 @@ const PlaidModal = ({ isOpen, onClose, onSuccess }) => {
     return (
         <Modal onClick={handleClose}>
             <PlaidModalContent onClick={e => e.stopPropagation()}>
+                <CloseButton onClick={handleClose}>
+                    <FontAwesomeIcon icon={faTimes} />
+                </CloseButton>
                 <PlaidModalHeader>
                     <PlaidHeaderContent>
                         <PlaidIcon>
@@ -67,9 +70,6 @@ const PlaidModal = ({ isOpen, onClose, onSuccess }) => {
                             Securely link your account to automatically import transactions
                         </PlaidModalSubtitle>
                     </PlaidHeaderContent>
-                    <CloseButton onClick={handleClose}>
-                        <FontAwesomeIcon icon={faTimes} />
-                    </CloseButton>
                 </PlaidModalHeader>
                 
                 <PlaidModalBody>
@@ -160,6 +160,7 @@ const PlaidModalContent = styled.div`
     animation: modalSlideIn 0.3s ease-out;
     scrollbar-width: none;  /* Firefox */
     -ms-overflow-style: none;  /* IE and Edge */
+    position: relative;
 
     &::-webkit-scrollbar {
         display: none;  /* Chrome, Safari, Opera */
@@ -243,15 +244,24 @@ const CloseButton = styled.button`
     background: none;
     border: none;
     font-size: 1.2rem;
-    color: #999;
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: white;
+    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
     cursor: pointer;
-    padding: 0.5rem;
     border-radius: 50%;
     transition: all 0.2s ease;
+    z-index: 1000;
 
     &:hover {
-        background: #f5f5f5;
-        color: #333;
+        opacity: 0.8;
     }
 `;
 // -------------------------------------------------------- Success Message.

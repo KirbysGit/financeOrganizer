@@ -6,12 +6,12 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSort, faSortUp, faSortDown, faPlus, faTrash, faChevronUp, faChevronDown } from '@fortawesome/free-solid-svg-icons';
 
 // Local Imports.
-import '../../styles/colors.css';
+import '../../../styles/colors.css';
 import TableHeader from './TableHeader';
-import ManualTxModal from '../UploadData/ManualTxModal';
+import ManualTxModal from '../../3FinanceConnect/Ways2Connect/ManualConnect/ManualTxModal';
 
 // ------------------------------------------------------------------------------------------------ TransactionTable Component.
-const TransactionTable = ({ transactions, onDelete, onRefresh, id, existingAccounts = [] }) => {
+const TransactionTable = ({ transactions, onDelete, onRefresh, id, existingAccounts = [], onUpload }) => {
     // States.
     const [currentPage, setCurrentPage] = useState(1);                          // Use State 4 Setting Pages. Default Page #1.
     const [entriesPerPage, setEntriesPerPage] = useState(10);                   // Use State 4 Amount Of Entries Per Page. Default Page #10.
@@ -270,6 +270,8 @@ const TransactionTable = ({ transactions, onDelete, onRefresh, id, existingAccou
                 setShowAddMenu={setShowAddMenu}
                 setManualTxModal={setManualTxModal}
                 onRefresh={onRefresh}
+                onUpload={onUpload}
+                existingAccounts={existingAccounts}
             />
 
             <TableContainer $entriesPerPage={entriesPerPage}>

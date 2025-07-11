@@ -10,7 +10,8 @@ import time
 
 # Local Imports.
 from app.utils.db_utils import get_db
-from app.database import Transaction, FileUpload, Account
+from app.utils.auth_utils import get_current_user
+from app.database import Transaction, FileUpload, Account, User
 from app.models import UploadResponse
 
 router = APIRouter()    # Sets Up Modular Sub-Router for FastAPI.
@@ -20,7 +21,8 @@ router = APIRouter()    # Sets Up Modular Sub-Router for FastAPI.
 async def upload_csv(
     file: UploadFile = File(...), 
     account_data: str = Form(None),  # JSON string with account info
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     start_time = time.time()  # Track processing time
     
@@ -35,8 +37,11 @@ async def upload_csv(
     # Create Content Hash For Duplicate Detection.
     content_hash = hashlib.md5(content).hexdigest()
     
-    # Check If File Already Exists.
-    existing_file = db.query(FileUpload).filter_by(content_hash=content_hash).first()
+    # Check If File Already Exists For This User.
+    existing_file = db.query(FileUpload).filter_by(
+        content_hash=content_hash,
+        user_id=current_user.id
+    ).first()
     if existing_file:
         raise HTTPException(status_code=400, detail="This file has already been uploaded")
     
@@ -48,6 +53,7 @@ async def upload_csv(
     
     # Create FileUpload Item.
     uploaded_file = FileUpload(
+        user_id=current_user.id,
         filename=file.filename,
         original_filename=file.filename,
         file_type="csv",
@@ -77,6 +83,7 @@ async def upload_csv(
             elif account_info.get('is_new'):
                 # Create new manual account
                 selected_account = Account(
+                    user_id=current_user.id,
                     account_id=account_info['account_id'],
                     name=account_info['name'],
                     official_name=account_info['name'],
@@ -92,13 +99,14 @@ async def upload_csv(
                 db.commit()
                 db.refresh(selected_account)
             else:
-                # Use existing account
+                # Use existing account (must belong to current user)
                 selected_account = db.query(Account).filter_by(
-                    account_id=account_info['account_id']
+                    account_id=account_info['account_id'],
+                    user_id=current_user.id
                 ).first()
                 
                 if not selected_account:
-                    raise HTTPException(status_code=400, detail="Selected account not found")
+                    raise HTTPException(status_code=400, detail="Selected account not found or doesn't belong to you")
         except json.JSONDecodeError:
             raise HTTPException(status_code=400, detail="Invalid account data format")
     
@@ -125,14 +133,15 @@ async def upload_csv(
             description = str(row.get('Description', row.get('description', '')))
             category = str(row.get('Category', row.get('category', row.get('Type', 'other'))))
             
-            # Check If Transaction Already Exists Using Multiple Fields.
+            # Check If Transaction Already Exists Using Multiple Fields For This User.
             existing_transaction = db.query(Transaction).filter(
                 Transaction.date == date,
                 Transaction.amount == amount,
                 Transaction.vendor == vendor,
                 Transaction.description == description,
                 Transaction.category_primary == category,
-                Transaction.source == 'csv'
+                Transaction.source == 'csv',
+                Transaction.user_id == current_user.id
             ).first()
             
             # If Transaction Already Exists, Skip It.
@@ -147,6 +156,7 @@ async def upload_csv(
             
             # Create Transaction With Account Info.
             transaction_data = {
+                'user_id': current_user.id,
                 'transaction_id': f"csv_{timestamp}_{index}",
                 'date': date,
                 'amount': amount,

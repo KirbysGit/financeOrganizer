@@ -20,9 +20,9 @@ import {
 
 // Local Imports.
 import '../../styles/colors.css';
-import PlaidModal from '../PlaidConnect/PlaidModal';
-import FileUploadModal from '../UploadData/FileUploadModal';
-import ManualTxModal from '../UploadData/ManualTxModal';
+import PlaidModal from './Ways2Connect/PlaidConnect/PlaidModal';
+import FileUploadModal from './Ways2Connect/UploadConnect/FileUploadModal';
+import ManualTxModal from './Ways2Connect/ManualConnect/ManualTxModal';
 import { uploadCSV } from '../../services/api';
 
 // -------------------------------------------------------- Animations.
@@ -159,52 +159,24 @@ const FinanceConnect = ({ onBack, onComplete, user }) => {
                 <Header>
                     <BackButton onClick={onBack}>
                         <FontAwesomeIcon icon={faArrowLeft} />
-                        Back to Home
+                        Back
                     </BackButton>
-                    <HeaderContent>
-                        <WelcomeMessage $animated={showWelcomeAnimation}>
-                            Welcome, {user?.first_name || 'there'}! 🎉
-                            {showWelcomeAnimation && <SparkleIcon icon={faGem} />}
-                        </WelcomeMessage>
-                        <HeaderTitle>Let's Connect Your Finances</HeaderTitle>
-                        <HeaderSubtitle>
-                            Choose how you'd like to get started with Centi.
-                        </HeaderSubtitle>
+                    
+                    <Hero>
+                        <SmallGreeting>
+                            Welcome, <UserName><span>{user?.first_name ?? 'friend'}</span></UserName>
+                            <WavingHand>👋</WavingHand>
+                        </SmallGreeting>
                         
-                        {/* Interactive Progress Indicator */}
-                        <ProgressIndicator>
-                            <ProgressStep $active={true}>
-                                <ProgressDot $completed={true}>
-                                    <FontAwesomeIcon icon={faHandshake} />
-                                </ProgressDot>
-                                <ProgressLabel>Welcome</ProgressLabel>
-                            </ProgressStep>
-                            <ProgressLine />
-                            <ProgressStep $active={false}>
-                                <ProgressDot $completed={false}>
-                                    <FontAwesomeIcon icon={faBank} />
-                                </ProgressDot>
-                                <ProgressLabel>Connect</ProgressLabel>
-                            </ProgressStep>
-                            <ProgressLine />
-                            <ProgressStep $active={false}>
-                                <ProgressDot $completed={false}>
-                                    <FontAwesomeIcon icon={faRocket} />
-                                </ProgressDot>
-                                <ProgressLabel>Launch</ProgressLabel>
-                            </ProgressStep>
-                        </ProgressIndicator>
-                    </HeaderContent>
+                        <HeroTitle>Ready to connect your finances?</HeroTitle>
+                        <HeroSubtitle>Select the connection style that suits you best.</HeroSubtitle>
+                    </Hero>
                 </Header>
 
                 {/* Main Content */}
                 <MainContent>
                     {/* Method Selection */}
                     <MethodSection>
-                        <SectionTitle>
-                            Choose Your Connection Method
-                            <SectionSubtitle>Pick the option that works best for you</SectionSubtitle>
-                        </SectionTitle>
                         <MethodGrid>
                             {/* Plaid Connect - Recommended */}
                             <MethodCard 
@@ -225,8 +197,8 @@ const FinanceConnect = ({ onBack, onComplete, user }) => {
                                 </MethodHeader>
                                 <CardTitle>Connect Bank Account</CardTitle>
                                 <MethodDescription>
-                                    Securely link your bank accounts with Plaid. Get real-time transactions, 
-                                    automatic categorization, and instant balance updates.
+                                    Securely link your bank accounts with Plaid. Get real-time transactions 
+                                    and automatic categorization.
                                 </MethodDescription>
                                 <MethodFeatures>
                                     <FeatureItem>
@@ -325,7 +297,7 @@ const FinanceConnect = ({ onBack, onComplete, user }) => {
 
                         {/* Skip Option */}
                         <SkipSection>
-                            <SkipText>Want to explore first?</SkipText>
+                            <SkipText>Want to explore <Centi>Centi.</Centi> first?</SkipText>
                             <SkipButton onClick={handleSkip}>
                                 Skip for now
                             </SkipButton>
@@ -394,10 +366,12 @@ const ConnectContainer = styled.div`
     flex-direction: column;
 `;
 
-const Header = styled.div`
-    color: white;
-    padding: 4rem 1rem 0rem 1rem;
+const Header = styled.header`
+    padding: 4rem 2.5rem 1rem 2.5rem;
+    text-align: center;
+    color: #fff;
     position: relative;
+    width: 100%;
     
     @media (max-width: 768px) {
         padding: 1.5rem 2rem;
@@ -428,7 +402,7 @@ const BackButton = styled.button`
     padding: 1rem 1.5rem;
     border-radius: 16px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    min-width: 140px;
+
     
     &:hover {
         transform: translateX(-5px);
@@ -437,100 +411,67 @@ const BackButton = styled.button`
     }
 `;
 
-const HeaderContent = styled.div`
-    text-align: center;
-    max-width: 800px;
-    margin: 0 auto;
-`;
-
-const WelcomeMessage = styled.div`
-    font-size: 1.2rem;
-    font-weight: 500;
-    margin-bottom: 0.5rem;
-    opacity: 0.9;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    ${props => props.$animated && css`
-        animation: ${bounce} 1s ease-in-out;
-    `}
-`;
-
-const SparkleIcon = styled(FontAwesomeIcon)`
-    color: #ffd700;
-    animation: ${pulse} 2s infinite;
-`;
-
-const HeaderTitle = styled.h1`
-    font-size: 3rem;
-    font-weight: 700;
-    margin: 0 0 1rem 0;
-    line-height: 1.2;
-    
-    @media (max-width: 768px) {
-        font-size: 2rem;
-    }
-`;
-
-const HeaderSubtitle = styled.p`
-    font-size: 1.2rem;
-    opacity: 0.9;
-    line-height: 1.6;
-    margin: 0 0 2rem 0;
-    
-    @media (max-width: 768px) {
-        font-size: 1rem;
-    }
-`;
-
-const ProgressIndicator = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    margin-top: 2rem;
-`;
-
-const ProgressStep = styled.div`
+const Hero = styled.div`
+    margin-inline: auto;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-    opacity: ${props => props.$active ? 1 : 0.6};
-    transition: all 0.3s ease;
+    gap: 1.25rem;
 `;
 
-const ProgressDot = styled.div`
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background: ${props => props.$completed ? 'var(--amount-positive)' : 'rgba(255, 255, 255, 0.3)'};
-    color: white;
+const SmallGreeting = styled.div`
+    font-size: 2.25rem;
+    font-weight: 500;
+    opacity: .9;
+    animation: ${fadeIn} .8s ease-out;
     display: flex;
-    align-items: center;
+    align-items: baseline;
     justify-content: center;
-    font-size: 1.2rem;
-    transition: all 0.3s ease;
-    border: 2px solid rgba(255, 255, 255, 0.3);
+    gap: 0.5rem;
+`;
+
+const UserName = styled.span`
+    font-size: 1.25em;
+  font-weight: 800;
+  background: linear-gradient(135deg, #b6e0fe 20%, #a7ffeb 80%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 3px 5px rgba(0, 0, 0, 0.1);
+`;
+
+const WavingHand = styled.span`
+    display: inline-block;
+    animation: wave 2.5s infinite;
+    transform-origin: 70% 70%;
+    font-size: 2.5rem;
+    line-height: 1;
+    vertical-align: baseline;
     
-    &:hover {
-        transform: scale(1.1);
+    @keyframes wave {
+        0% { transform: rotate(0deg); }
+        10% { transform: rotate(14deg); }
+        20% { transform: rotate(-8deg); }
+        30% { transform: rotate(14deg); }
+        40% { transform: rotate(-4deg); }
+        50% { transform: rotate(10deg); }
+        60% { transform: rotate(0deg); }
+        100% { transform: rotate(0deg); }
     }
 `;
 
-const ProgressLabel = styled.span`
-    font-size: 0.9rem;
-    font-weight: 500;
+const HeroTitle = styled.h1`
+    font-size: 3.5rem;
+    font-weight: 700;
+    line-height: 1.15;
     color: white;
 `;
 
-const ProgressLine = styled.div`
-    width: 60px;
-    height: 2px;
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 1px;
+const HeroSubtitle = styled.h2`
+    font-size: 1.7rem;
+    font-weight: 500;
+    opacity: 0.8;
+    animation: ${fadeIn} .8s ease-out;
 `;
+
 
 const MainContent = styled.div`
     flex: 1;
@@ -547,21 +488,6 @@ const MethodSection = styled.div`
     margin: 0 auto;
 `;
 
-const SectionTitle = styled.h2`
-    font-size: 2rem;
-    font-weight: 700;
-    text-align: center;
-    margin: 0 0 0.5rem 0;
-    color: white;
-`;
-
-const SectionSubtitle = styled.div`
-    font-size: 1rem;
-    color: rgba(255, 255, 255, 0.8);
-    text-align: center;
-    margin-bottom: 3rem;
-`;
-
 const MethodGrid = styled.div`
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
@@ -573,38 +499,37 @@ const MethodCard = styled.div`
     background: white;
     border-radius: 20px;
     padding: 2rem;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    border: 2px solid ${props => props.$recommended ? 'var(--amount-positive)' : 'transparent'};
+    box-shadow: 
+        0 4px 6px rgba(0, 0, 0, 0.07),
+        0 10px 15px rgba(0, 0, 0, 0.1),
+        0 20px 25px rgba(0, 0, 0, 0.05);
+    border: 3px solid ${props => props.$recommended ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.3)'};
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 400px;
+    backdrop-filter: blur(10px);
     
     &:hover {
         transform: translateY(-8px);
-        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
+        box-shadow: 
+            0 8px 12px rgba(0, 0, 0, 0.12),
+            0 20px 30px rgba(0, 0, 0, 0.15),
+            0 40px 50px rgba(0, 0, 0, 0.08);
+        border-color: rgba(255, 255, 255, 0.9);
     }
     
     ${props => props.$hovered && css`
         transform: translateY(-8px);
-        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
-        border-color: ${props.$recommended ? 'var(--amount-positive)' : 'var(--button-primary)'};
+        box-shadow: 
+            0 8px 12px rgba(0, 0, 0, 0.12),
+            0 20px 30px rgba(0, 0, 0, 0.15),
+            0 40px 50px rgba(0, 0, 0, 0.08);
+        border-color: ${props.$recommended ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.8)'};
     `}
-    
-    &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-        transition: left 0.5s;
-    }
-    
-    &:hover::before {
-        left: 100%;
-    }
 `;
 
 const MethodHeader = styled.div`
@@ -626,10 +551,6 @@ const MethodIcon = styled.div`
     font-size: 1.5rem;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
     transition: all 0.3s ease;
-    
-    ${props => props.$animated && css`
-        animation: ${float} 2s ease-in-out infinite;
-    `}
 `;
 
 const RecommendedBadge = styled.div`
@@ -647,6 +568,23 @@ const RecommendedBadge = styled.div`
     gap: 0.25rem;
     box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
     animation: ${pulse} 2s infinite;
+    overflow: hidden;
+    
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+        animation: shimmer 4s infinite;
+    }
+    
+    @keyframes shimmer {
+        0% { left: -100%; }
+        100% { left: 100%; }
+    }
 `;
 
 const CardTitle = styled.h3`
@@ -660,6 +598,7 @@ const MethodDescription = styled.p`
     color: var(--text-secondary);
     line-height: 1.6;
     margin: 0 0 1.5rem 0;
+    text-align: justify;
     font-size: 1rem;
 `;
 
@@ -702,6 +641,7 @@ const MethodButton = styled.div`
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
+    margin-top: auto;
     
     ${props => props.$hovered && css`
         transform: translateY(-2px);
@@ -734,10 +674,20 @@ const SkipSection = styled.div`
 const SkipText = styled.p`
     color: rgba(255, 255, 255, 0.8);
     margin: 0 0 1rem 0;
-    font-size: 1rem;
+    font-size: 1.3rem;
+`;
+
+const Centi = styled.span`
+    font-weight: 800;
+    font-size: 1.1em;
+    background: linear-gradient(135deg, #b6e0fe 20%, #a7ffeb 80%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 3px 5px rgba(0, 0, 0, 0.1);
 `;
 
 const SkipButton = styled.button`
+    font: inherit;
     background: rgba(255, 255, 255, 0.1);
     border: 2px solid rgba(255, 255, 255, 0.3);
     color: white;

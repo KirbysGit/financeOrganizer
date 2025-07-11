@@ -35,6 +35,8 @@ class User(Base):
     # Relationships.
     accounts = relationship("Account", back_populates="user")  # One-To-Many Relationship With Accounts.
     transactions = relationship("Transaction", back_populates="user")  # One-To-Many Relationship With Transactions.
+    institutions = relationship("Institution", back_populates="user")  # One-To-Many Relationship With Institutions.
+    file_uploads = relationship("FileUpload", back_populates="user")  # One-To-Many Relationship With File Uploads.
 
 # -------------------------------------------------------- Account Model
 class Account(Base):
@@ -143,6 +145,7 @@ class Institution(Base):
     __tablename__ = "institutions"  # Physical Table Name In Database.
     
     id = Column(Integer, primary_key=True, index=True)      # Institution ID In DB. (Auto-Incrementing Primary Key)
+    user_id = Column(Integer, ForeignKey("users.id"))       # Foreign Key Linking To User. (User Who Owns This Institution)
     institution_id = Column(String, unique=True, index=True)  # Plaid Institution ID. (Unique Identifier From Plaid API)
     name = Column(String)                                   # "Chase", "Bank of America", etc. (Institution Name)
     item_id = Column(String, unique=True, index=True)       # Plaid Item ID. (Unique Identifier For This Connection)
@@ -155,12 +158,16 @@ class Institution(Base):
     # Metadata.
     created_at = Column(DateTime)                           # When Institution Was First Connected.
     updated_at = Column(DateTime)                           # When Institution Was Last Updated.
+    
+    # Relationships.
+    user = relationship("User", back_populates="institutions")
 
 # -------------------------------------------------------- File Upload Tracking
 class FileUpload(Base):
     __tablename__ = "file_uploads"  # Physical Table Name In Database.
     
     id = Column(Integer, primary_key=True, index=True)      # Upload ID In DB. (Auto-Incrementing Primary Key)
+    user_id = Column(Integer, ForeignKey("users.id"))       # Foreign Key Linking To User. (User Who Owns This File Upload)
     filename = Column(String)                               # Generated File Name. (Stored On Disk)
     original_filename = Column(String)                      # Original File Name. (User's Original File Name)
     file_type = Column(String)                              # "csv", "plaid" (Type Of File Uploaded)
@@ -178,6 +185,9 @@ class FileUpload(Base):
     transactions_skipped = Column(Integer, default=0)       # Number Of Duplicate Transactions Skipped.
     total_amount_imported = Column(Float, default=0.0)      # Total Amount Of All Imported Transactions.
     processing_completed_at = Column(DateTime)              # When Processing Was Completed.
+    
+    # Relationships.
+    user = relationship("User", back_populates="file_uploads")
 
 # Database Setup.
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./finance_tracker.db")

@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFileUpload, faTimes, faSpinner } from '@fortawesome/free-solid-svg-icons';
 
 // Local Imports.
-import AccountSelectionModal from './AccountSelectionModal';
+import AccountSelectionModal from '../AccountSelect/AccountSelectionModal';
 
 // -------------------------------------------------------- FileUploadModal Component.
 const FileUploadModal = ({ isOpen, onClose, onUpload, onSuccess, existingAccounts = [] }) => {
@@ -130,11 +130,14 @@ const FileUploadModal = ({ isOpen, onClose, onUpload, onSuccess, existingAccount
                             </label>
                         </FileDropZone>
 
+                        <FormGroup>
+                            <FormLabel>Notes (Optional)</FormLabel>
                         <NotesInput
-                            placeholder="Optional notes about this upload..."
+                                placeholder="e.g., Chase Bank Statement March 2024"
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
                         />
+                        </FormGroup>
 
                         {uploadError && (
                             <ErrorMessage>{uploadError}</ErrorMessage>
@@ -192,6 +195,16 @@ const ModalContent = styled.div`
     overflow-y: auto;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     animation: modalSlideIn 0.3s ease-out;
+    position: relative;
+
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    &::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* Hide scrollbar for IE, Edge and Firefox */
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
 
     @keyframes modalSlideIn {
         from {
@@ -222,15 +235,20 @@ const CloseButton = styled.button`
     background: none;
     border: none;
     font-size: 1.2rem;
-    color: #999;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: white;
+    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
     cursor: pointer;
-    padding: 0.5rem;
     border-radius: 50%;
     transition: all 0.2s ease;
 
     &:hover {
-        background: #f5f5f5;
-        color: #333;
+        opacity: 0.8;
     }
 `;
 // -------------------------------------------------------- Upload Section.
@@ -239,6 +257,27 @@ const UploadSection = styled.div`
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+`;
+
+const FormGroup = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    position: relative;
+`;
+
+const FormLabel = styled.label`
+    font-weight: 600;
+    color: #333;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    transition: color 0.3s ease;
+    
+    &:hover {
+        color: var(--button-primary);
+    }
 `;
 // -------------------------------------------------------- File Drop Zone.
 const FileDropZone = styled.div`
@@ -249,10 +288,22 @@ const FileDropZone = styled.div`
     background: ${props => props.$hasFile ? '#f8fff9' : '#fafafa'};
     transition: all 0.3s ease;
     cursor: pointer;
+    position: relative;
+    overflow: hidden;
 
     &:hover {
-        border-color: #007bff;
+        border-color: var(--button-primary);
         background: #f0f8ff;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.1);
+    }
+
+    &:focus-within {
+        border: 2px solid transparent;
+        background: linear-gradient(white, white) padding-box,
+                    linear-gradient(135deg, var(--button-primary), var(--amount-positive)) border-box;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        transform: translateY(-1px);
     }
 
     label {
@@ -263,11 +314,28 @@ const FileDropZone = styled.div`
         cursor: pointer;
         font-weight: 500;
         color: ${props => props.$hasFile ? '#28a745' : '#666'};
+        transition: all 0.3s ease;
 
         svg {
             font-size: 2rem;
-            color: ${props => props.$hasFile ? '#28a745' : '#007bff'};
+            color: ${props => props.$hasFile ? '#28a745' : 'var(--button-primary)'};
+            transition: all 0.3s ease;
         }
+    }
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+        transition: left 0.5s;
+    }
+    
+    &:hover::before {
+        left: 100%;
     }
 `;
 // -------------------------------------------------------- Notes Input.
@@ -281,11 +349,16 @@ const NotesInput = styled.textarea`
     font-size: 1rem;
     resize: vertical;
     min-height: 80px;
-    transition: border-color 0.3s ease;
+    transition: all 0.3s ease;
+    background: white;
 
     &:focus {
         outline: none;
-        border-color: #007bff;
+        border: 2px solid transparent;
+        background: linear-gradient(white, white) padding-box,
+                    linear-gradient(135deg, var(--button-primary), var(--amount-positive)) border-box;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        transform: translateY(-1px);
     }
 `;
 // -------------------------------------------------------- Action Button.
@@ -297,20 +370,42 @@ const ActionButton = styled.button`
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
+    position: relative;
+    overflow: hidden;
 
     ${props => props.$primary ? `
-        background: linear-gradient(135deg, #007bff, #0056b3);
+        background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
         color: white;
         box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
 
         &:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+        }
+
+        &:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+        }
+
+        &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        &:hover::before {
+            left: 100%;
         }
     ` : `
         background: #f8f9fa;
@@ -327,6 +422,11 @@ const ActionButton = styled.button`
         cursor: not-allowed;
         transform: none !important;
     }
+
+    /* Add a subtle press effect */
+    &:active:not(:disabled) {
+        transform: scale(0.98);
+    }
 `;
 // -------------------------------------------------------- Error Message.
 const ErrorMessage = styled.div`
@@ -337,6 +437,12 @@ const ErrorMessage = styled.div`
     border-radius: 12px;
     font-size: 0.9rem;
     text-align: center;
+    animation: fadeIn 0.3s ease-in;
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-5px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
 `;
 
 export default FileUploadModal; 

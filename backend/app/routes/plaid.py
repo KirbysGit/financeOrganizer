@@ -3,7 +3,8 @@ import time
 import json
 import asyncio
 from datetime import datetime, timedelta
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
 
 # Plaid Imports.
 import plaid
@@ -19,14 +20,20 @@ from plaid.model.institutions_get_by_id_request import InstitutionsGetByIdReques
 
 # Local Imports.
 from app.config import plaid_config
-from app.database import SessionLocal, Transaction, Account, Institution
+from app.database import SessionLocal, Transaction, Account, Institution, User
 from app.models import LinkTokenRequest, PublicTokenExchangeRequest, LinkTokenResponse, AccessTokenResponse
+from app.utils.db_utils import get_db
+from app.utils.auth_utils import get_current_user
 
 router = APIRouter(prefix="/plaid", tags=["plaid"])     # Sets Up Modular Sub-Router For FastAPI.
 
 # ----------------------------------------------------------------------- Creates Plaid Link Token.
 @router.post("/create_link_token", response_model=LinkTokenResponse)
-async def create_link_token(request: LinkTokenRequest):
+async def create_link_token(
+    request: LinkTokenRequest, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     try:
         # Initialize Empty Product List, Then Build List Of Products Requested.
         products = []
@@ -45,7 +52,7 @@ async def create_link_token(request: LinkTokenRequest):
             client_name="Centi.",
             country_codes=country_codes,
             language='en',
-            user=LinkTokenCreateRequestUser(client_user_id=request.user_id)
+            user=LinkTokenCreateRequestUser(client_user_id=str(current_user.id))
         )
         
         # Call Plaids API W/ Request.
@@ -59,7 +66,11 @@ async def create_link_token(request: LinkTokenRequest):
 
 # ----------------------------------------------------------------------- Exchange Frontend Token For Access Token.
 @router.post("/exchange_public_token", response_model=AccessTokenResponse)
-async def exchange_public_token(request: PublicTokenExchangeRequest):
+async def exchange_public_token(
+    request: PublicTokenExchangeRequest, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     try:
 
         # Build Plaid Exchange Request W/ Public Token.
@@ -71,12 +82,11 @@ async def exchange_public_token(request: PublicTokenExchangeRequest):
         response = plaid_config.client.item_public_token_exchange(exchange_request)
                
         # Store Institution In Database.
-        db = SessionLocal()
-
         try:
-            # Check If Institution Already Exists.
+            # Check If Institution Already Exists For This User.
             existing_institution = db.query(Institution).filter(
-                Institution.item_id == response['item_id']
+                Institution.item_id == response['item_id'],
+                Institution.user_id == current_user.id
             ).first()
             
             # If It Doesn't Exist, Create New Institution Item, Then Add To Database.
@@ -109,6 +119,7 @@ async def exchange_public_token(request: PublicTokenExchangeRequest):
                     institution_name = None
                 
                 new_institution = Institution(
+                    user_id=current_user.id,
                     item_id=response['item_id'],
                     institution_id=institution_id,
                     name=institution_name,
@@ -140,7 +151,11 @@ async def exchange_public_token(request: PublicTokenExchangeRequest):
 
 # ----------------------------------------------------------------------- Fetches Transactions From Access Token.
 @router.post("/fetch_transactions/{access_token}")
-async def fetch_transactions(access_token: str):
+async def fetch_transactions(
+    access_token: str, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     # Set Var For Max Retries Per Connection.
     max_retries = 5
 
@@ -165,7 +180,6 @@ async def fetch_transactions(access_token: str):
             response = plaid_config.client.transactions_get(request)
             
             # Process And Store Accounts First.
-            db = SessionLocal()
             try:
                 # Get Account Data.
                 accounts_data = response.get('accounts', [])
@@ -184,9 +198,10 @@ async def fetch_transactions(access_token: str):
                     if not account_id:
                         continue
                         
-                    # Check If Account Already Exists.
+                    # Check If Account Already Exists For This User.
                     existing_account = db.query(Account).filter(
-                        Account.account_id == account_id
+                        Account.account_id == account_id,
+                        Account.user_id == current_user.id
                     ).first()
                     
                     # Get Balances From Account.
@@ -203,6 +218,7 @@ async def fetch_transactions(access_token: str):
                     # Create New Account, Add To Database, Then Increment Stored Accounts.
                     if not existing_account:
                         new_account = Account(
+                            user_id=current_user.id,
                             account_id=account_id,
                             item_id=item_id,  # Link to institution
                             name=getattr(account, 'name', None),
@@ -261,9 +277,10 @@ async def fetch_transactions(access_token: str):
                     if not transaction_id:
                         continue
                     
-                    # Check If Transaction Already Exists.
+                    # Check If Transaction Already Exists For This User.
                     existing = db.query(Transaction).filter(
-                        Transaction.transaction_id == transaction_id
+                        Transaction.transaction_id == transaction_id,
+                        Transaction.user_id == current_user.id
                     ).first()
                     
                     # If Transaction Doesn't Exist,
@@ -283,6 +300,7 @@ async def fetch_transactions(access_token: str):
                         
                         # Create New Transaction With Enhanced Data.
                         new_transaction = Transaction(
+                            user_id=current_user.id,
                             transaction_id=transaction_id,
                             account_id=account_id,
                             date=date,
@@ -371,7 +389,11 @@ async def fetch_transactions(access_token: str):
 
 # ----------------------------------------------------------------------- Fetches Accounts From Access Token,
 @router.get("/accounts/{access_token}")
-async def get_accounts(access_token: str):
+async def get_accounts(
+    access_token: str, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     try:
         # Create Account Request Using Token.
         request = AccountsGetRequest(access_token=access_token)

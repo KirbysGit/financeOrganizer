@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 
-import NavBar from './components/NavBar';
-import Dashboard from './pages/Dashboard';
-import WelcomeScreen from './components/LandingPage/WelcomeScreen';
-import AccountSetUpScreen from './components/LandingPage/AccountSetUpScreen';
-import FinanceConnect from './components/Connect/FinanceConnect';
+import Dashboard from './components/4Dashboard/Dashboard';
+import WelcomeScreen from './components/1WelcomePage/WelcomeScreen';
+import AccountSetUpScreen from './components/2AccountSetUp/AccountSetUpScreen';
+import FinanceConnect from './components/3FinanceConnect/FinanceConnect';
 import styled from 'styled-components';
 
 function App() {
@@ -30,8 +29,12 @@ function App() {
     
     if (token && user) {
       setIsAuthenticated(true);
-      // Determine where to send authenticated user
-      if (hasConnectedData) {
+      
+      // Check for existing data and determine navigation
+      const checkInitialData = async () => {
+        const hasExistingData = await checkForExistingData();
+        
+        if (hasExistingData) {
         // User has connected data, go to dashboard
         setCurrentPage('dashboard');
       } else if (hasEverHadData) {
@@ -39,6 +42,9 @@ function App() {
         setCurrentPage('finance-connect');
       }
       // If neither, stay on welcome or account-setup
+      };
+      
+      checkInitialData();
     }
   }, [hasEverHadData, hasConnectedData]);
 
@@ -62,6 +68,36 @@ function App() {
 
   // -------------------------------------------------------- Navigation Handlers.
 
+  // Check if user already has connected data
+  const checkForExistingData = async () => {
+    try {
+      // Import the API functions we need
+      const { fetchTransactions, getFiles, getAccounts } = await import('./services/api');
+      
+      // Check for existing data
+      const [transactionsRes, filesRes, accountsRes] = await Promise.allSettled([
+        fetchTransactions(),
+        getFiles(),
+        getAccounts()
+      ]);
+      
+      // If any of these have data, user has connected data
+      const hasTransactions = transactionsRes.status === 'fulfilled' && transactionsRes.value.data.length > 0;
+      const hasFiles = filesRes.status === 'fulfilled' && filesRes.value.data.length > 0;
+      const hasAccounts = accountsRes.status === 'fulfilled' && accountsRes.value.data.length > 0;
+      
+      if (hasTransactions || hasFiles || hasAccounts) {
+        localStorage.setItem('hasConnectedData', 'true');
+        setHasConnectedData(true);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error checking for existing data:', error);
+      return false;
+    }
+  };
+
   // Sets Current Page To 'account-setup'.
   const handleShowAccountSetUp = (modalType) => {
     setCurrentPage('account-setup');
@@ -70,30 +106,43 @@ function App() {
 
   // Sets Current Page To 'welcome' or 'account-setup' based on authentication.
   const handleBackToWelcome = () => {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      // User is authenticated, go back to account setup
-      setCurrentPage('account-setup');
+    setCurrentPage('welcome');
+  };
+
+  // Sets 'hasEverHadData' To True And Sets Current Page To 'finance-connect'.
+  const handleSignUpSuccess = async () => {
+    console.log('App: Sign up successful, checking for existing data...');
+    localStorage.setItem('hasEverHadData', 'true');
+    setHasEverHadData(true);
+    
+    // Check if user already has connected data
+    const hasExistingData = await checkForExistingData();
+    
+    if (hasExistingData) {
+      console.log('App: User has existing data, navigating to dashboard...');
+      setCurrentPage('dashboard');
     } else {
-      // User is not authenticated, go back to welcome
-      setCurrentPage('welcome');
+      console.log('App: No existing data, navigating to finance connect...');
+    setCurrentPage('finance-connect');
     }
   };
 
   // Sets 'hasEverHadData' To True And Sets Current Page To 'finance-connect'.
-  const handleSignUpSuccess = () => {
-    console.log('App: Sign up successful, navigating to finance connect...');
+  const handleLoginSuccess = async () => {
+    console.log('App: Login successful, checking for existing data...');
     localStorage.setItem('hasEverHadData', 'true');
     setHasEverHadData(true);
+    
+    // Check if user already has connected data
+    const hasExistingData = await checkForExistingData();
+    
+    if (hasExistingData) {
+      console.log('App: User has existing data, navigating to dashboard...');
+      setCurrentPage('dashboard');
+    } else {
+      console.log('App: No existing data, navigating to finance connect...');
     setCurrentPage('finance-connect');
-  };
-
-  // Sets 'hasEverHadData' To True And Sets Current Page To 'finance-connect'.
-  const handleLoginSuccess = () => {
-    console.log('App: Login successful, navigating to finance connect...');
-    localStorage.setItem('hasEverHadData', 'true');
-    setHasEverHadData(true);
-    setCurrentPage('finance-connect');
+    }
   };
 
   // Sets 'hasEverHadData' To True And Sets Current Page To 'dashboard'.
@@ -117,8 +166,10 @@ function App() {
     localStorage.removeItem('access_token');
     localStorage.removeItem('user');
     localStorage.removeItem('hasConnectedData');
+    localStorage.removeItem('hasEverHadData');
     setIsAuthenticated(false);
     setHasConnectedData(false);
+    setHasEverHadData(false);
     setCurrentPage('welcome');
   };
 
@@ -150,10 +201,13 @@ function App() {
       
       {/* Dashboard */}
       {currentPage === 'dashboard' && (
-        <>
-          <NavBar onLogout={handleLogout} />
-          <Dashboard hasEverHadData={hasEverHadData} setHasEverHadData={setHasEverHadData} />
-        </>
+        <Dashboard 
+          hasEverHadData={hasEverHadData} 
+          setHasEverHadData={setHasEverHadData}
+          hasConnectedData={hasConnectedData}
+          setHasConnectedData={setHasConnectedData}
+          onLogout={handleLogout}
+        />
       )}
     </RootWrapper>
   );

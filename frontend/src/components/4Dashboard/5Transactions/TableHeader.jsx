@@ -1,12 +1,14 @@
 // Imports.
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { styled } from 'styled-components';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSort, faSortUp, faSortDown, faSearch, faFilter, faXmark, faPlus, faRotateRight } from '@fortawesome/free-solid-svg-icons';
+import { faSort, faSortUp, faSortDown, faSearch, faFilter, faXmark, faPlus, faRotateRight, faUpload } from '@fortawesome/free-solid-svg-icons';
 import CountUp from 'react-countup';
 
 // Local Imports.
-import '../../styles/colors.css';
+import '../../../styles/colors.css';
+import FileUploadModal from '../../3FinanceConnect/Ways2Connect/UploadConnect/FileUploadModal';
+import UploadResultModal from '../../3FinanceConnect/Ways2Connect/UploadConnect/UploadResultModal';
 
 // -------------------------------------------------------- AnimatedNumber Component.
 const AnimatedNumber = ({ value, duration = 1.5 }) => {
@@ -48,8 +50,43 @@ const TableHeader = ({
     showAddMenu,
     setShowAddMenu,
     setManualTxModal,
-    onRefresh
+    onRefresh,
+    onUpload,
+    existingAccounts
 }) => {
+    // Upload States
+    const [uploadModal, setUploadModal] = useState(false);
+    const [uploadResult, setUploadResult] = useState(null);
+
+    // -------------------------------------------------------- Handle Uploading Of CSV.
+    const handleUpload = async (formData) => {
+        try {
+            const result = await onUpload(formData);
+            return result.data; // Return the data, not the full result
+        } catch (error) {
+            console.error("Upload failed:", error);
+            throw error;
+        }
+    };
+
+    // -------------------------------------------------------- Handle Upload Success.
+    const handleUploadSuccess = (result) => {
+        setUploadResult(result);
+        setUploadModal(false);
+        // Show results modal instead of closing immediately
+    };
+
+    // -------------------------------------------------------- Handle Closing Upload Modal.
+    const closeUploadModal = () => {
+        setUploadModal(false);
+    };
+
+    // -------------------------------------------------------- Handle Results Close.
+    const handleResultsClose = () => {
+        setUploadResult(null);
+        // Optionally refresh data or show success message
+    };
+
     return (
         <>
             <TableHeaderContainer>
@@ -84,6 +121,15 @@ const TableHeader = ({
                                     <FontAwesomeIcon icon={faPlus} />
                                 </DropDownIcon>
                                 Add Manual Transaction
+                            </DropDownItem>
+                            <DropDownItem onClick={() => {
+                                setUploadModal(true);
+                                setShowAddMenu(false);
+                            }}>
+                                <DropDownIcon>
+                                    <FontAwesomeIcon icon={faUpload} />
+                                </DropDownIcon>
+                                Upload File
                             </DropDownItem>
                         </DropDownMenu>
                     )}
@@ -161,6 +207,26 @@ const TableHeader = ({
                     </SortingPills>
                 </ControlsRow>
             </HeaderControls>
+
+            {/* Upload Modal */}
+            { uploadModal && (
+                <FileUploadModal
+                    isOpen={uploadModal}
+                    onClose={closeUploadModal}
+                    onUpload={handleUpload}
+                    onSuccess={handleUploadSuccess}
+                    existingAccounts={existingAccounts}
+                />
+            )}
+
+            {/* Upload Results Modal */}
+            { uploadResult && (
+                <UploadResultModal
+                    isOpen={!!uploadResult}
+                    onClose={handleResultsClose}
+                    uploadResult={uploadResult}
+                />
+            )}
         </>
     );
 };
@@ -521,8 +587,8 @@ const DropDownMenu = styled.div`
     min-width: 220px;
     margin-top: 8px;
     position: absolute;
-    top: 75%;
-    right: 3.25%;
+    top: 100%;
+    right: 2.5%;
     background: rgba(255, 255, 255, 0.95);
     border: 1px solid rgba(182, 182, 182, 0.3);
     border-radius: 16px;

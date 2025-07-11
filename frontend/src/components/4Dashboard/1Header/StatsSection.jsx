@@ -15,6 +15,25 @@ const StatsSection = ({ myStats }) => {
     // Explanation State.
     const [explanationVisible, setExplanationVisible] = useState({});   // State 4 Explanation Visibility.
 
+    // User State.
+    const [userName, setUserName] = useState('Guest');   // State 4 User Name.
+
+    // -------------------------------------------------------- Get User Name From Local Storage.
+    const getUserName = () => {
+        try {
+            const userData = localStorage.getItem('user');
+            if (userData) {
+                const user = JSON.parse(userData);
+                if (user.first_name) {
+                    return user.first_name;
+                }
+            }
+        } catch (error) {
+            console.error('Error getting user name from localStorage:', error);
+        }
+        return 'Guest';
+    };
+
     // -------------------------------------------------------- Handle Stats Import.
     const importStats = async () => {
         try {
@@ -39,6 +58,8 @@ const StatsSection = ({ myStats }) => {
     // -------------------------------------------------------- Use Effect To Import Stats & Accounts.
     useEffect(() => {
         importStats();
+        // Set user name from localStorage
+        setUserName(getUserName());
     }, [myStats]);
 
     // -------------------------------------------------------- Calculate Monthly Spending. (Later Implementation...)
@@ -129,7 +150,7 @@ const StatsSection = ({ myStats }) => {
                 <WelcomeContent>
                     <WelcomeGreeting>
                         <GreetingText>Hey,</GreetingText>
-                        <UserName>Guest</UserName>
+                        <UserName>{userName}</UserName>
                         <WavingHand>👋</WavingHand>
                     </WelcomeGreeting>
                     <IntroStatement>
@@ -280,6 +301,7 @@ const StatsSection = ({ myStats }) => {
 // -------------------------------------------------------- Wrapper For Stats Section.
 const StatsWrapper = styled.div`
     width: 90%;
+    margin-top: 2rem;
     margin-bottom: 2rem;
 `
 // -------------------------------------------------------- Welcome Section.
@@ -306,7 +328,7 @@ const WelcomeGreeting = styled.div`
     align-items: center;
     gap: 0.75rem;
     padding: 0.25rem 0rem;
-    font-size: 2.5rem;
+    font-size: 3rem;
     font-weight: 600;
     margin: 0;
     color: rgb(100, 100, 100);

@@ -15,10 +15,6 @@ import centiLogo from '../../images/colorScheme.png';   // Centi Logo In Navbar.
 
 // Local Imports.
 import '../../styles/colors.css';
-import PlaidModal from '../PlaidConnect/PlaidModal';
-import ManualTxModal from '../UploadData/ManualTxModal';
-import FileUploadModal from '../UploadData/FileUploadModal';
-
 // API Imports.
 import { uploadCSV } from '../../services/api';
 
@@ -304,7 +300,7 @@ const WelcomeScreen = ({ onShowAccountSetUp }) => {
 // -------------------------------------------------------- Landing Container.
 const LandingContainer = styled.div`
     width: 100%;
-    padding: 2rem 6rem;
+    padding: 2rem 6rem 0 6rem;
 `;
 
 // -------------------------------------------------------- Hero Section.

@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBank, faSpinner } from '@fortawesome/free-solid-svg-icons';
 
 // Local Imports.
-import { createLinkToken, exchangePublicToken, fetchPlaidTransactions } from '../../services/api';
+import { createLinkToken, exchangePublicToken, fetchPlaidTransactions } from '../../../../services/api';
 
 // -------------------------------------------------------- PlaidLink Component.
 const PlaidLink = ({ onSuccess, onError }) => {

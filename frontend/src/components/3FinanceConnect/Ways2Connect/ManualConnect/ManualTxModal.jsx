@@ -5,9 +5,9 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes, faSpinner, faExclamationCircle } from '@fortawesome/free-solid-svg-icons';
 
 // Local Imports.
-import '../../styles/colors.css';
-import { createTransaction } from '../../services/api';
-import AccountSelectionModal from './AccountSelectionModal';
+import '../../../../styles/colors.css';
+import { createTransaction } from '../../../../services/api';
+import AccountSelectionModal from '../AccountSelect/AccountSelectionModal';
 
 // -------------------------------------------------------- ManualTxModal Component.
 const ManualTxModal = ({ isOpen, onClose, onSuccess, existingAccounts = [] }) => {

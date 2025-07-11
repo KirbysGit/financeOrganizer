@@ -28,7 +28,14 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 # -------------------------------------------------------- Password Utilities.
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify A Plain Password Against Its Hash."""
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        print(f"Verifying password for hash: {hashed_password[:20]}...")
+        result = pwd_context.verify(plain_password, hashed_password)
+        print(f"Password verification result: {result}")
+        return result
+    except Exception as e:
+        print(f"Password verification error: {e}")
+        return False
 
 def get_password_hash(password: str) -> str:
     """Hash A Password."""
@@ -62,16 +69,25 @@ def get_user_by_email(db: Session, email: str) -> Optional[User]:
 def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
     """Authenticate A User With Email And Password."""
     user = get_user_by_email(db, email)
+    
+    print(f"User found: {user}")
     if not user:
+        print("No user found")
         return None
     
+    print(f"User hashed_password: {user.hashed_password}")
     # Check if user is a Google OAuth user (no password)
     if not user.hashed_password or user.hashed_password == "":
+        print("User is Google OAuth user (no password)")
         return None  # Google OAuth users can't login with password
     
+    print("Attempting password verification...")
     # Verify password for regular users
     if not verify_password(password, user.hashed_password):
+        print("Password verification failed")
         return None
+    
+    print("Password verification successful")
     return user
 
 # -------------------------------------------------------- API Endpoints.
@@ -143,9 +159,12 @@ def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
 @router.post("/login", response_model=AuthResponse)
 def login_user(user_credentials: UserLogin, db: Session = Depends(get_db)):
     """Authenticate and login a user."""
+
+    print("here")
     
     # Authenticate user.
     user = authenticate_user(db, user_credentials.email, user_credentials.password)
+    print(user)
     if not user:
         # Check if user exists but is a Google OAuth user
         existing_user = get_user_by_email(db, user_credentials.email)
@@ -212,12 +231,20 @@ def google_auth(google_data: GoogleAuthRequest, db: Session = Depends(get_db)):
         user = existing_user_by_google
         message = "Google authentication successful"
     elif existing_user_by_email:
-        # User exists with email but no Google ID - link Google account
-        user = existing_user_by_email
-        user.google_id = google_data.google_id
-        user.picture = google_data.picture
-        user.updated_at = datetime.utcnow()
-        message = "Google account linked successfully"
+        # Check if the existing user has a password (manual account)
+        if existing_user_by_email.hashed_password and existing_user_by_email.hashed_password.strip():
+            # Manual account exists - prevent Google SSO
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"An account with email {google_data.email} already exists. Please sign in with your password instead of using Google Sign-In."
+            )
+        else:
+            # User exists with email but no password - link Google account
+            user = existing_user_by_email
+            user.google_id = google_data.google_id
+            user.picture = google_data.picture
+            user.updated_at = datetime.utcnow()
+            message = "Google account linked successfully"
     else:
         # Create new user with Google data
         user = User(
@@ -316,12 +343,20 @@ def google_auth_code(auth_data: GoogleAuthCodeRequest, db: Session = Depends(get
             user = existing_user_by_google
             message = "Google authentication successful"
         elif existing_user_by_email:
-            # User exists with email but no Google ID - link Google account
-            user = existing_user_by_email
-            user.google_id = google_user_data["google_id"]
-            user.picture = google_user_data["picture"]
-            user.updated_at = datetime.utcnow()
-            message = "Google account linked successfully"
+            # Check if the existing user has a password (manual account)
+            if existing_user_by_email.hashed_password and existing_user_by_email.hashed_password.strip():
+                # Manual account exists - prevent Google SSO
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"An account with email {google_user_data['email']} already exists. Please sign in with your password instead of using Google Sign-In."
+                )
+            else:
+                # User exists with email but no password - link Google account
+                user = existing_user_by_email
+                user.google_id = google_user_data["google_id"]
+                user.picture = google_user_data["picture"]
+                user.updated_at = datetime.utcnow()
+                message = "Google account linked successfully"
         else:
             # Create new user with Google data
             user = User(
@@ -366,6 +401,9 @@ def google_auth_code(auth_data: GoogleAuthCodeRequest, db: Session = Depends(get
             message=message
         )
         
+    except HTTPException:
+        # Re-raise HTTP exceptions (like 409 Conflict) without modification
+        raise
     except requests.exceptions.RequestException as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

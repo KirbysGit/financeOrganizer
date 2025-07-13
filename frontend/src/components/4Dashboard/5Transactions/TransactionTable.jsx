@@ -380,7 +380,7 @@ const TransactionTable = ({ transactions, onDelete, onRefresh, id, existingAccou
                                                         <>
                                                             <DetailItem>
                                                                 <DetailLabel>Account</DetailLabel>
-                                                                <DetailValue>
+                                                                <DetailValue $isCash={tx.account_details.type === 'cash'}>
                                                                     {tx.account_details.name || 'Unknown Account'}
                                                                     {tx.account_details.mask && ` (****${tx.account_details.mask})`}
                                                                 </DetailValue>
@@ -852,9 +852,9 @@ const DetailLabel = styled.span`
     letter-spacing: 0.5px;
 `
 const DetailValue = styled.span`
-    font-weight: 400;
+    font-weight: ${props => props.$isCash ? '600' : '400'};
     font-size: 0.95rem;
-    color: var(--text-primary);
+    color: ${props => props.$isCash ? 'rgb(40, 167, 69)' : 'var(--text-primary)'};
     word-wrap: break-word;
     line-height: 1.5;
     background: rgba(255, 255, 255, 0.1);

@@ -211,6 +211,8 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
     const loadStats = async () => {
         try {                                           // Try.
             const statsData = await getStats();             // API Request For Fetch Stats.
+            console.log('Dashboard: Received stats data:', statsData.data);
+            console.log('Dashboard: Cash flow data:', statsData.data.cash_flow);
             setStats(statsData.data);                      // Set Stats To State.
         } catch (err) {                                 // If Error.
             console.error("Load Failed:", err);             // Display Error To Console.

@@ -49,6 +49,22 @@ def get_transactions(
                 "currency": tx.account.currency,
                 "is_active": tx.account.is_active
             }
+        elif tx.account_id is None:
+            # Handle cash transactions
+            account_details = {
+                "id": None,
+                "account_id": None,
+                "name": "Cash",
+                "official_name": "Cash Transaction",
+                "type": "cash",
+                "subtype": "cash",
+                "mask": None,
+                "current_balance": None,
+                "available_balance": None,
+                "limit": None,
+                "currency": "USD",
+                "is_active": True
+            }
         
         # Get Institution Details.
         institution_details = None
@@ -119,6 +135,24 @@ def get_detailed_transactions(
     # Create Result List.
     result = []
     for tx in transactions:
+        # Handle account details for cash transactions
+        account_info = None
+        if tx.account:
+            account_info = {
+                "name": tx.account.name,
+                "type": tx.account.type,
+                "subtype": tx.account.subtype,
+                "mask": tx.account.mask
+            }
+        elif tx.account_id is None:
+            # Handle cash transactions
+            account_info = {
+                "name": "Cash",
+                "type": "cash",
+                "subtype": "cash",
+                "mask": None
+            }
+        
         tx_dict = {
             "id": tx.id,
             "transaction_id": tx.transaction_id,
@@ -135,12 +169,7 @@ def get_detailed_transactions(
             "location_city": tx.location_city,
             "location_state": tx.location_state,
             "created_at": tx.created_at,
-            "account": {
-                "name": tx.account.name if tx.account else None,
-                "type": tx.account.type if tx.account else None,
-                "subtype": tx.account.subtype if tx.account else None,
-                "mask": tx.account.mask if tx.account else None
-            } if tx.account else None
+            "account": account_info
         }
 
         # Add Transaction To Result List.
@@ -188,6 +217,35 @@ def get_accounts(
 
         # Add Account To Result List.
         result.append(account_dict)
+    
+    # Add Cash Account If User Has Cash Transactions
+    cash_balance = db.query(func.sum(Transaction.amount)).filter(
+        Transaction.account_id.is_(None),  # Cash transactions have account_id = None
+        Transaction.user_id == current_user.id
+    ).scalar() or 0
+    
+    if cash_balance != 0:  # Only add cash account if there are cash transactions
+        cash_tx_count = db.query(Transaction).filter(
+            Transaction.account_id.is_(None),
+            Transaction.user_id == current_user.id
+        ).count()
+        
+        cash_account = {
+            "id": None,
+            "account_id": None,
+            "name": "Cash",
+            "official_name": "Cash Balance",
+            "type": "cash",
+            "subtype": "cash",
+            "mask": None,
+            "current_balance": cash_balance,
+            "available_balance": cash_balance,
+            "currency": "USD",
+            "transaction_count": cash_tx_count,
+            "updated_at": datetime.now()
+        }
+        
+        result.append(cash_account)
     
     # Return Result List.
     return result
@@ -589,7 +647,16 @@ def get_stats(
     accounts = db.query(Account).filter(Account.user_id == current_user.id).all()
     total_assets = sum(acc.current_balance for acc in accounts if acc.type == 'depository')
     total_liabilities = sum(acc.current_balance for acc in accounts if acc.type == 'credit')
-    net_worth = total_assets + total_liabilities
+    
+    # Calculate Cash Balance From Cash Transactions
+    cash_balance = db.query(func.sum(Transaction.amount)).filter(
+        Transaction.account_id.is_(None),  # Cash transactions have account_id = None
+        Transaction.user_id == current_user.id
+    ).scalar() or 0
+    
+    # Include Cash Balance In Total Assets And Net Worth
+    total_assets_with_cash = total_assets + cash_balance
+    net_worth = total_assets_with_cash + total_liabilities
     
     # Helper Function To Get Account Totals By Type.
     def get_account_total_by_type(account_type):
@@ -640,7 +707,8 @@ def get_stats(
         "totals": {
             "transactions": transaction_count,
             "accounts": len(accounts),
-            "total_assets": total_assets,
+            "total_assets": total_assets_with_cash,
+            "cash_balance": cash_balance,
             "total_liabilities": total_liabilities,
             "net_worth": net_worth,
             "average_income": avg_income,
@@ -677,6 +745,7 @@ def get_stats(
         "accounts": {
             "by_type": {
                 "depository": total_assets,
+                "cash": cash_balance,
                 "credit": total_liabilities,
                 "loan": sum(acc.current_balance for acc in accounts if acc.type == 'loan'),
                 "investment": sum(acc.current_balance for acc in accounts if acc.type == 'investment')
@@ -735,4 +804,90 @@ def update_transaction_details(
             status_code=500,
             detail=f"Error updating transaction details: {str(e)}"
         )
+
+# ----------------------------------------------------------------------- Debug Cash Flow Calculations.
+@router.get("/debug/cash-flow")
+def debug_cash_flow(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Debug endpoint to check cash flow calculations."""
+    
+    # Get Current Date & Calculate Time Periods.
+    now = datetime.now()
+    start_of_month = datetime(now.year, now.month, 1).date()
+    start_of_week = (now - timedelta(days=now.weekday())).date()
+    
+    # Get all transactions for current user
+    all_transactions = db.query(Transaction).filter(
+        Transaction.user_id == current_user.id
+    ).all()
+    
+    # Get cash transactions
+    cash_transactions = db.query(Transaction).filter(
+        Transaction.account_id.is_(None),
+        Transaction.user_id == current_user.id
+    ).all()
+    
+    # Get monthly transactions
+    monthly_transactions = db.query(Transaction).filter(
+        Transaction.date >= start_of_month,
+        Transaction.user_id == current_user.id
+    ).all()
+    
+    # Get monthly cash transactions
+    monthly_cash_transactions = db.query(Transaction).filter(
+        Transaction.account_id.is_(None),
+        Transaction.date >= start_of_month,
+        Transaction.user_id == current_user.id
+    ).all()
+    
+    # Get weekly transactions
+    weekly_transactions = db.query(Transaction).filter(
+        Transaction.date >= start_of_week,
+        Transaction.user_id == current_user.id
+    ).all()
+    
+    # Calculate monthly income and spending
+    monthly_income = db.query(func.sum(Transaction.amount)).filter(
+        Transaction.amount > 0,
+        Transaction.date >= start_of_month,
+        Transaction.user_id == current_user.id
+    ).scalar() or 0
+    
+    monthly_spending = db.query(func.sum(Transaction.amount)).filter(
+        Transaction.amount < 0,
+        Transaction.date >= start_of_month,
+        Transaction.user_id == current_user.id
+    ).scalar() or 0
+    
+    monthly_cash_flow = monthly_income + monthly_spending
+    
+    return {
+        "debug_info": {
+            "current_date": now.isoformat(),
+            "start_of_month": start_of_month.isoformat(),
+            "start_of_week": start_of_week.isoformat(),
+            "total_transactions": len(all_transactions),
+            "cash_transactions": len(cash_transactions),
+            "monthly_transactions": len(monthly_transactions),
+            "monthly_cash_transactions": len(monthly_cash_transactions),
+            "weekly_transactions": len(weekly_transactions),
+            "monthly_income": monthly_income,
+            "monthly_spending": monthly_spending,
+            "monthly_cash_flow": monthly_cash_flow,
+            "recent_transaction_dates": [
+                tx.date.isoformat() for tx in all_transactions[:10]  # Show first 10 transaction dates
+            ],
+            "cash_transaction_details": [
+                {
+                    "id": tx.id,
+                    "date": tx.date.isoformat(),
+                    "amount": tx.amount,
+                    "vendor": tx.vendor,
+                    "description": tx.description
+                } for tx in monthly_cash_transactions
+            ]
+        }
+    }
 

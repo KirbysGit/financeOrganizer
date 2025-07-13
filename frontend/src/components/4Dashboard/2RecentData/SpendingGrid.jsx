@@ -522,7 +522,7 @@ const SpendingGrid = ({ myTransactions, id }) => {
                                 <TransactionItem key={tx.id}>
                                     <TransactionInfo>
                                         <TransactionName>{tx.vendor || tx.merchant_name}</TransactionName>
-                                        <TransactionAccount>
+                                        <TransactionAccount $isCash={tx.account_details?.type === 'cash'}>
                                             {tx.account_details?.name || 'Unknown Account'}
                                             {tx.account_details?.mask && ` (****${tx.account_details.mask})`}
                                         </TransactionAccount>
@@ -880,7 +880,8 @@ const TransactionName = styled.div`
 // -------------------------------------------------------- Transaction Account. (Account Of Transaction)
 const TransactionAccount = styled.div`
     font-size: 0.9rem;
-    color: var(--text-secondary);
+    color: ${props => props.$isCash ? 'rgb(40, 167, 69)' : 'var(--text-secondary)'};
+    font-weight: ${props => props.$isCash ? '600' : '400'};
 `
 // -------------------------------------------------------- Transaction Details. (Amount, Date)
 const TransactionDetails = styled.div`

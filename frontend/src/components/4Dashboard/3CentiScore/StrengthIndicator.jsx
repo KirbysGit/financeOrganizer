@@ -3,10 +3,10 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import MeterGauge from './MeterGauge';
 import ResultsCard from './ResultsCard';
-import { getCurrentCentiScore, getCentiScoreHistory, calculateWeeklyScore, getCentiScoreTrend, getCentiScoreGrowth } from '../../../services/api';
+import { calculateWeeklyScore } from '../../../services/api';
 
 // ------------------------------------------------------------------------------------------------ Strength Indicator Component.
-const StrengthIndicator = ({ myStats }) => {
+const StrengthIndicator = ({ myStats, myCentiScore, myCentiScoreHistory, myCentiScoreGrowth, myCentiScoreTrend }) => {
     // State Management.
     const [score, setScore] = useState(null);                       // State 4 Storing Score.
     const [isLoading, setIsLoading] = useState(false);              // State 4 If Loading.
@@ -60,7 +60,6 @@ const StrengthIndicator = ({ myStats }) => {
     const formatCountdown = (targetDate) => {
         const now = new Date();
 
-        console.log(targetDate);
         const diff = targetDate - now;
         
         if (diff <= 0) return 'Updates soon';
@@ -95,8 +94,7 @@ const StrengthIndicator = ({ myStats }) => {
     // -------------------------------------------------------- Function 4 Loading Growth Data.
     const loadGrowthData = async () => {
         try {
-            const response = await getCentiScoreGrowth();
-            setGrowthData(response.data);
+            setGrowthData(myCentiScoreGrowth);
         } catch (error) {
             console.error('Error loading growth data:', error);
         }
@@ -153,7 +151,7 @@ const StrengthIndicator = ({ myStats }) => {
             // Set next update time
             setNextUpdate(getNextMonday12AM());
             
-            // Fetch the updated score data for breakdown and growth
+            // Load the updated score data for breakdown and growth
             await loadCurrentScore();
             await loadGrowthData();
             
@@ -169,17 +167,16 @@ const StrengthIndicator = ({ myStats }) => {
     // -------------------------------------------------------- Load Current Score.
     const loadCurrentScore = async () => {
         try {
-            const response = await getCurrentCentiScore();
-            const scoreData = response.data;
-            
-            setScore(scoreData.score);
-            setScoreBreakdown(scoreData.breakdown);
-            setLastCalculated(scoreData.last_updated ? new Date(scoreData.last_updated) : new Date());
-            setIsWeeklyScore(scoreData.is_weekly_score || false);
-            
-            // Set next update time if we have a last calculated date
-            if (scoreData.last_updated) {
-                setNextUpdate(getNextMonday12AM());
+            if (myCentiScore && myCentiScore.score) {
+                setScore(myCentiScore.score);
+                setScoreBreakdown(myCentiScore.breakdown);
+                setLastCalculated(myCentiScore.last_updated ? new Date(myCentiScore.last_updated) : new Date());
+                setIsWeeklyScore(myCentiScore.is_weekly_score || false);
+                
+                // Set next update time if we have a last calculated date
+                if (myCentiScore.last_updated) {
+                    setNextUpdate(getNextMonday12AM());
+                }
             }
         } catch (error) {
             console.error('Error loading current score:', error);
@@ -190,7 +187,7 @@ const StrengthIndicator = ({ myStats }) => {
     useEffect(() => {
         loadCurrentScore();
         loadGrowthData();
-    }, []);
+    }, [myCentiScore, myCentiScoreGrowth]);
 
     // -------------------------------------------------------- Return.
     return (
@@ -239,6 +236,10 @@ const StrengthIndicator = ({ myStats }) => {
                     nextUpdate={nextUpdate}
                     countdown={countdown}
                     growthData={growthData}
+                    userStats={myStats}
+                    myCentiScoreHistory={myCentiScoreHistory}
+                    myCentiScoreGrowth={myCentiScoreGrowth}
+                    myCentiScoreTrend={myCentiScoreTrend}
                 />
             )}
         </StrengthIndicatorContainer>

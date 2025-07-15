@@ -1,10 +1,13 @@
 // Imports.
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
 import { keyframes } from 'styled-components';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faChevronDown } from '@fortawesome/free-solid-svg-icons';
 
 // Local Imports.
 import MeterGauge from './MeterGauge';
+import ProgressPanel from './ProgressPanel';
 import { 
     getPersonalizedPositiveInsights, 
     getPersonalizedGrowthAreas, 
@@ -23,92 +26,51 @@ const fadeInUp = keyframes`
   }
 `;
 
-// ------------------------------------------------------------------------------------------------ Functions.
-// -------------------------------------------------------- Function 4 Formatting Currency.
-const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-        minimumFractionDigits: 0
-    }).format(amount);
-};
-
-// -------------------------------------------------------- Function 4 Formatting Last Updated Time.
-const formatLastUpdated = (date) => {
-    if (!date) return 'Never';
-    
-    const now = new Date();
-    const diff = now - date;
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    
-    if (days > 0) {
-        return `${days} day${days > 1 ? 's' : ''} ago`;
-    } else if (hours > 0) {
-        return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-    } else {
-        return 'Just now';
-    }
-};
-
 // ------------------------------------------------------------------------------------------------ Results Card Component.
-const ResultsCard = ({ score, lastCalculated, onRecalculate, scoreBreakdown, userStats = {}, nextUpdate, countdown, growthData }) => {
+const ResultsCard = ({ 
+    score, 
+    lastCalculated, 
+    onRecalculate, 
+    scoreBreakdown, 
+    userStats = {}, 
+    nextUpdate, 
+    countdown, 
+    growthData,
+    myCentiScoreHistory,
+    myCentiScoreGrowth,
+    myCentiScoreTrend
+}) => {
     const [infoVisible, setInfoVisible] = useState(false); // State 4 Info Panel Visibility.
+    const [progressVisible, setProgressVisible] = useState(false); // State 4 Progress Panel Visibility.
+    const [scoreHistory, setScoreHistory] = useState(null); // State 4 Score History Data.
 
     // Function 4 Toggling Info Panel Visibility.
     const toggleInfoPanel = () => setInfoVisible(v => !v);
+
+    // Function 4 Toggling Progress Panel Visibility.
+    const toggleProgressPanel = () => setProgressVisible(v => !v);
 
     // Get personalized insights using the new utility
     const positiveInsight = getPersonalizedPositiveInsights(scoreBreakdown, userStats);
     const growthArea = getPersonalizedGrowthAreas(scoreBreakdown, userStats);
     const actionStep = getPersonalizedActionSteps(scoreBreakdown, userStats);
 
-    // Growth insights
-    const getGrowthInsight = () => {
-        if (!growthData || !growthData.has_growth_data) {
-            return null;
-        }
+    // Set score history data from props
+    useEffect(() => {
+        if (myCentiScoreHistory && myCentiScoreGrowth && myCentiScoreTrend) {
+            console.log("Setting score history from props:", {
+                history: myCentiScoreHistory,
+                growth: myCentiScoreGrowth,
+                trend: myCentiScoreTrend
+            });
 
-        const { current_score, previous_score, change, change_percentage } = growthData;
-        
-        if (change > 0) {
-            if (change >= 5) {
-                return {
-                    message: `Excellent progress! Your score jumped ${change} points (${change_percentage}% increase). You're building strong financial momentum!`,
-                    type: 'positive'
-                };
-            } else if (change >= 2) {
-                return {
-                    message: `Great improvement! Your score increased by ${change} points. Keep up the good work!`,
-                    type: 'positive'
-                };
-            } else {
-                return {
-                    message: `Small but steady progress! Your score went up ${change} points. Every improvement counts.`,
-                    type: 'positive'
-                };
-            }
-        } else if (change < 0) {
-            if (change <= -5) {
-                return {
-                    message: `Your score dropped ${Math.abs(change)} points. This might be a good time to review your spending habits and financial goals.`,
-                    type: 'negative'
-                };
-            } else {
-                return {
-                    message: `Your score decreased slightly by ${Math.abs(change)} points. Small setbacks are normal - focus on your long-term goals.`,
-                    type: 'negative'
-                };
-            }
-        } else {
-            return {
-                message: "Your score stayed the same. Consistency is key - keep maintaining your good financial habits!",
-                type: 'neutral'
-            };
+            setScoreHistory({
+                history: myCentiScoreHistory,
+                growth: myCentiScoreGrowth,
+                trend: myCentiScoreTrend
+            });
         }
-    };
-
-    const growthInsight = getGrowthInsight();
+    }, [myCentiScoreHistory, myCentiScoreGrowth, myCentiScoreTrend]);
 
     return (
         <ResultsCardContainer>
@@ -168,19 +130,28 @@ const ResultsCard = ({ score, lastCalculated, onRecalculate, scoreBreakdown, use
                         </HowToImproveHeader>
                         <MessageText>{actionStep.message}</MessageText>
                     </MessageContainer>
-
-                    {/* Growth Insight */}
-                    {growthInsight && (
-                        <MessageContainer>
-                            <GrowthInsightHeader $type={growthInsight.type}>
-                                How you're trending <span className="emoji">📊</span>
-                            </GrowthInsightHeader>
-                            <MessageText>{growthInsight.message}</MessageText>
-                        </MessageContainer>
-                    )}
+                    
                     
                 </RightColumn>
             </ResultsGrid>
+            {/* Progress Section */}
+            <ProgressSection>
+                <ProgressPrompt>
+                    Want to see how your Centi Score has changed?
+                </ProgressPrompt>
+                <ProgressButton 
+                    onClick={toggleProgressPanel}
+                    $isExpanded={progressVisible}
+                    role="button"
+                    aria-expanded={progressVisible}
+                >
+                    <ButtonText>
+                        {progressVisible ? 'Hide Progress' : 'Show me my progress! 🚀'}
+                    </ButtonText>
+                </ProgressButton>
+            </ProgressSection>
+            {/* Progress Panel */}
+            <ProgressPanel isVisible={progressVisible} onToggle={toggleProgressPanel} scoreHistory={scoreHistory} />
         </ResultsCardContainer>
     );
 };
@@ -193,13 +164,15 @@ const ResultsCardContainer = styled.div`
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    border-radius: 16px;
-    padding: 2rem 2rem 0rem 2rem;
-    transition: all 0.3s ease;
     position: relative;
-    overflow: hidden;
-    text-align: center;
+
+    padding: 2rem 2rem 0rem 2rem;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+
+    transition: all 0.3s ease;
+
+    border-radius: 16px;
+    text-align: center;
     
     @media (max-width: 768px) {
         gap: 1.5rem;
@@ -260,7 +233,7 @@ const QuestionIcon = styled.div`
     font-size: 1.2rem;
     font-weight: bold;
     cursor: pointer;
-    z-index: 9;
+    z-index: 1;
     
     background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
@@ -397,35 +370,6 @@ const HowToImproveHeader = styled(MessageHeader)`
         background: linear-gradient(135deg, rgb(13, 110, 253), rgb(120, 88, 209));
     }
 `;
-// -------------------------------------------------------- Growth Insight Header.
-const GrowthInsightHeader = styled(MessageHeader)`
-    background: ${props => {
-        switch (props.$type) {
-            case 'positive':
-                return 'linear-gradient(135deg, rgb(25, 135, 84), rgb(40, 167, 69))';
-            case 'negative':
-                return 'linear-gradient(135deg, rgb(220, 53, 69), rgb(220, 53, 69))';
-            default:
-                return 'linear-gradient(135deg, rgb(108, 117, 125), rgb(108, 117, 125))';
-        }
-    }};
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    
-    &::before {
-        background: ${props => {
-            switch (props.$type) {
-                case 'positive':
-                    return 'linear-gradient(135deg, rgb(25, 135, 84), rgb(40, 167, 69))';
-                case 'negative':
-                    return 'linear-gradient(135deg, rgb(220, 53, 69), rgb(220, 53, 69))';
-                default:
-                    return 'linear-gradient(135deg, rgb(108, 117, 125), rgb(108, 117, 125))';
-            }
-        }};
-    }
-`;
 // -------------------------------------------------------- Slide-in Info Panel.
 const InfoPanel = styled.div`
     position: absolute;
@@ -498,6 +442,81 @@ const CloseButton = styled.button`
         box-shadow: 0 2px 8px rgba(0,0,0,0.12);
         transform: scale(1.1) rotate(9deg);
     }
+`;
+
+// -------------------------------------------------------- Progress Section.
+const ProgressSection = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding-top: 1rem;
+
+    .svg {
+        font-size: 1.25rem;
+        background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+
+        font-weight: 500;
+        text-align: center;
+        margin-bottom: 0.5rem;
+    }
+`;
+
+// -------------------------------------------------------- Progress Prompt.
+const ProgressPrompt = styled.div`
+    font-size: 1.25rem;
+    color: var(--text-primary);
+    font-weight: 500;
+    text-align: center;
+    margin-bottom: 0.5rem;
+`;
+
+// -------------------------------------------------------- Progress Button.
+const ProgressButton = styled.button`
+    font: inherit;
+    display: flex;
+    align-items: center;    
+    justify-content: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.2);
+    width: 100%;
+    align-self: center;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
+    }
+
+    &:active {
+        transform: translateY(0);
+    }
+    
+    @keyframes shimmer {
+        0% { background-position: 0% 0; }
+        100% { background-position: 100% 0; }
+    }
+
+    ${props => props.$isExpanded && `
+        background: linear-gradient(135deg, #6366f1, #059669);
+        box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+    `}
+`;
+
+// -------------------------------------------------------- Button Text.
+const ButtonText = styled.span`
+    font-size: 1rem;
+    font-weight: 600;
 `;
 
 // Export Component.

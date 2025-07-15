@@ -45,9 +45,6 @@ const StatsSection = ({ myStats }) => {
                 console.warn('StatsSection: Empty data object received');
                 setStats({});
             } else {
-                console.log('StatsSection: Received stats data:', myStats);
-                console.log('Cash flow data:', myStats.cash_flow);
-                console.log('Monthly cash flow:', myStats.cash_flow?.this_month);
                 setStats(myStats);
             }
         } catch (err) {

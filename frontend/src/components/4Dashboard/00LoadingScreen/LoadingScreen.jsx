@@ -238,7 +238,6 @@ const LoadingScreen = ({
     
     return (
         <LoadingScreenContainer>
-            {console.log('🎬 LoadingScreen render - loading:', loading, 'progress:', loadingProgress, 'step:', loadingStep)}
             {/* =============================================================================
                 STATIC STOCK CHART BACKGROUND
                 =============================================================================

@@ -21,6 +21,12 @@ import { getAccounts } from '../../services/api';
 import { emptyDatabase } from '../../services/api';
 import { deleteFile, renameFile, getFiles } from '../../services/api';
 import { fetchTransactions, deleteTransaction } from '../../services/api';
+import { 
+    getCurrentCentiScore, 
+    getCentiScoreHistory, 
+    getCentiScoreGrowth, 
+    getCentiScoreTrend 
+} from '../../services/api';
 
 // Loading Steps Configuration.
 const LOADING_STEPS = [
@@ -62,6 +68,10 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
     const [files, setFiles] = useState([]);                     // State 4 Storing All Files.
     const [accounts, setAccounts] = useState([]);               // State 4 Storing All Accounts.
     const [transactions, setTransactions] = useState([]);       // State 4 Storing All Transactions.
+    const [centiScore, setCentiScore] = useState({});          // State 4 Storing Centi Score.
+    const [centiScoreHistory, setCentiScoreHistory] = useState([]); // State 4 Storing Centi Score History.
+    const [centiScoreGrowth, setCentiScoreGrowth] = useState({}); // State 4 Storing Centi Score Growth.
+    const [centiScoreTrend, setCentiScoreTrend] = useState({}); // State 4 Storing Centi Score Trend.
     const [loadingStep, setLoadingStep] = useState(0);         // State 4 Loading Step.
     const [loadingProgress, setLoadingProgress] = useState(0); // State 4 Loading Progress.
     const [isTransitioning, setIsTransitioning] = useState(false); // State 4 Transition Animation.
@@ -148,7 +158,11 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
             loadTransactions(),
             loadFiles(),
             loadStats(),
-            loadAccounts()
+            loadAccounts(),
+            loadCentiScore(),
+            loadCentiScoreHistory(),
+            loadCentiScoreGrowth(),
+            loadCentiScoreTrend()
         ]);
 
         // Fixed 3-second loading time
@@ -172,31 +186,43 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
 
     // -------------------------------------------------------- Load Transactions To Site.
     const loadTransactions = async () => {
-        try {                                           // Try.
-            const tx = await fetchTransactions();           // API Request For Fetch Transaction.   
-            setTransactions(tx.data);                       // Set Transactions To State.
-        } catch (err) {                                 // If Error.
-            console.error("Load Failed:", err);             // Display Error To Console.
+        try {
+            const transactionsData = await fetchTransactions();
+            setTransactions(transactionsData.data);
+            // Set localStorage flag if we have transactions
+            if (transactionsData.data.length > 0) {
+                localStorage.setItem('hasTransactions', 'true');
+            }
+        } catch (err) {
+            console.error("Load Failed:", err);
         }
     };
 
     // -------------------------------------------------------- Load Files To Site.
     const loadFiles = async () => {                 
-        try {                                           // Try.
-            const fileData = await getFiles();             // API Request For Fetch Files.
-            setFiles(fileData.data);                      // Set Files To State.
-        } catch (err) {                                 // If Error.
-            console.error("Load Failed:", err);             // Display Error To Console.
+        try {
+            const filesData = await getFiles();
+            setFiles(filesData.data);
+            // Set localStorage flag if we have files
+            if (filesData.data.length > 0) {
+                localStorage.setItem('hasFiles', 'true');
+            }
+        } catch (err) {
+            console.error("Load Failed:", err);
         }
     };
 
     // -------------------------------------------------------- Load Accounts To Site.
     const loadAccounts = async () => {
-        try {                                           // Try.
-            const accountData = await getAccounts();        // API Request For Fetch Accounts.
-            setAccounts(accountData.data);                 // Set Accounts To State.
-        } catch (err) {                                 // If Error.
-            console.error("Load Failed:", err);             // Display Error To Console.
+        try {
+            const accountsData = await getAccounts();
+            setAccounts(accountsData.data);
+            // Set localStorage flag if we have accounts
+            if (accountsData.data.length > 0) {
+                localStorage.setItem('hasAccounts', 'true');
+            }
+        } catch (err) {
+            console.error("Load Failed:", err);
         }
     };
 
@@ -204,11 +230,49 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
     const loadStats = async () => {
         try {                                           // Try.
             const statsData = await getStats();             // API Request For Fetch Stats.
-            console.log('Dashboard: Received stats data:', statsData.data);
-            console.log('Dashboard: Cash flow data:', statsData.data.cash_flow);
             setStats(statsData.data);                      // Set Stats To State.
         } catch (err) {                                 // If Error.
             console.error("Load Failed:", err);             // Display Error To Console.
+        }
+    };
+
+    // -------------------------------------------------------- Load Centi Score To Site.
+    const loadCentiScore = async () => {
+        try {
+            const centiScoreData = await getCurrentCentiScore();
+            setCentiScore(centiScoreData.data);
+        } catch (err) {
+            console.error("Load Failed:", err);
+        }
+    };
+
+    // -------------------------------------------------------- Load Centi Score History To Site.
+    const loadCentiScoreHistory = async () => {
+        try {
+            const historyData = await getCentiScoreHistory();
+            setCentiScoreHistory(historyData.data);
+        } catch (err) {
+            console.error("Load Failed:", err);
+        }
+    };
+
+    // -------------------------------------------------------- Load Centi Score Growth To Site.
+    const loadCentiScoreGrowth = async () => {
+        try {
+            const growthData = await getCentiScoreGrowth();
+            setCentiScoreGrowth(growthData.data);
+        } catch (err) {
+            console.error("Load Failed:", err);
+        }
+    };
+
+    // -------------------------------------------------------- Load Centi Score Trend To Site.
+    const loadCentiScoreTrend = async () => {
+        try {
+            const trendData = await getCentiScoreTrend();
+            setCentiScoreTrend(trendData.data);
+        } catch (err) {
+            console.error("Load Failed:", err);
         }
     };
 
@@ -330,6 +394,10 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
                                 />
                                 <StrengthIndicator 
                                     myStats={stats} 
+                                    myCentiScore={centiScore}
+                                    myCentiScoreHistory={centiScoreHistory}
+                                    myCentiScoreGrowth={centiScoreGrowth}
+                                    myCentiScoreTrend={centiScoreTrend}
                                 />
                                 <AccountList 
                                     id="accounts-section"

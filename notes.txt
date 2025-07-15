@@ -59,6 +59,29 @@ Overall Notes :
 
     - .raise_for_status() - checks out HTTP status code, if success, return and code continues, if error, raises HTTPError
 
+- sqlalchemy lib - 
+    
+    - .ext.declarative import declarative_base - Used for setting the empty parent class you extend, serves as a foundation tat lets sqlalchemy discover and manage all real tables declared location_address\
+    
+    - In Classes (Models) - 
+        - __tablename__ -> Sets the TableName in the DB.
+        
+        - Column ->
+            - serves as a dedicated slot for a desired var
+
+            - can be 'Integer', 'String', 'Boolean', 'DateTime', 'Float', 'Date'
+            - primary_key -> makes this column the tables primary key, also triggers auto-increment on int types
+            - index -> adds a separate index for faster look-ups
+            - nullable -> T or F , if cell can be left blank
+            - unique -> the data in this cell must not be replicated in any other row in the column
+            - default -> use this value automatically when i don't supply one
+
+        - relationship ->
+            - wires up python-side shortcut so that once your table is linked by foreign keys, you can navigate between x -> y &  y -> x
+
+            - attached to a python attribute, so that when accessed, sqlalchemy should pull respective row that belongs to the user
+            - back_populates - and inside the respective row their is a mirror attribute based on the parent, keep both sides in sync
+
 - salt - 
     - "a unique seasonging you add to every password before you cook it."
 - cost - 

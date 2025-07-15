@@ -204,7 +204,6 @@ const AccountList = ({ myStats, myAccounts, onUpload, onRefresh, id }) => {
                             // Ensure consistent string comparison
                             isExpanded = String(expandedAccount) === String(acc.id);
                         }
-                        console.log('Rendering account:', acc.name, 'ID:', acc.id, 'Expanded:', isExpanded);
                         return (
                         <AccountCard 
                                 key={acc.id || 'cash-account'}

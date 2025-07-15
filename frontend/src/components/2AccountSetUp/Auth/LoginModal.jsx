@@ -233,13 +233,13 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp }) => {
     useGoogleOneTapLogin({
         onSuccess: handleGoogleSuccess,
         onError: () => {
+            // Log Google One Tap Login Failure.
             console.error('Google One Tap Login Failed');
-            // Don't show error for One Tap as it's optional
         },
-        disabled: false, // Enable One Tap
-        auto_select: false, // Don't auto-select, let user choose
-        cancel_on_tap_outside: true, // Close when clicking outside
-        prompt_parent_id: 'google-one-tap-container' // Optional: specify container
+        disabled: false, // Enable One Tap.
+        auto_select: false, // Don't Auto-Select, Let User Choose.
+        cancel_on_tap_outside: true, // Close When Clicking Outside.
+        prompt_parent_id: 'google-one-tap-container' // Optional: Specify Container.
     });
 
     return (
@@ -357,7 +357,7 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp }) => {
     );
 };
 
-// -------------------------------------------------------- Styled Components
+// -------------------------------------------------------- Entire Modal Container.
 const ModalContainer = styled.div`
     display: flex;
     flex-direction: column;
@@ -379,22 +379,24 @@ const ModalContainer = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Form Container (Inner Container).
 const FormContainer = styled.div`
     width: 100%;
 `;
 
+// -------------------------------------------------------- Logo Container.
 const LogoContainer = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
 `;
-
 const Logo = styled.img`
     height: 80px;
     width: auto;
     border-radius: 8px;
 `;
 
+// -------------------------------------------------------- Form Title ("Welcome Back").
 const FormTitle = styled.h2`
     font-size: 2rem;
     font-weight: 700;
@@ -403,6 +405,7 @@ const FormTitle = styled.h2`
     text-align: center;
 `;
 
+// -------------------------------------------------------- Form Subtitle ("Sign in to ...").
 const FormSubtitle = styled.p`
     color: var(--text-secondary);
     text-align: center;
@@ -410,18 +413,21 @@ const FormSubtitle = styled.p`
     font-size: 1rem;
 `;
 
+// -------------------------------------------------------- Styled Input Form ("Email Address", "Password").
 const StyledForm = styled.form`
     display: flex;
     flex-direction: column;
     gap: 1rem;
 `;
 
+// -------------------------------------------------------- Form Group (Label & Input Form).
 const FormGroup = styled.div`
     display: flex;
     flex-direction: column;
     gap: 0.325rem;
 `;
 
+// -------------------------------------------------------- Label (Small Font Above Input Form).
 const Label = styled.label`
     font-weight: 600;
     color: var(--text-primary);
@@ -433,6 +439,7 @@ const Label = styled.label`
     }
 `;
 
+// -------------------------------------------------------- Input Form.
 const Input = styled.input`
     font: inherit;
     padding: 0.75rem 1rem;
@@ -452,6 +459,7 @@ const Input = styled.input`
     }
 `;
 
+// -------------------------------------------------------- Success Checkmark. (If Email/Password Is Valid)
 const SuccessCheckmark = styled.div`
     position: absolute;
     right: 0.75rem;
@@ -486,6 +494,7 @@ const SuccessCheckmark = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Input Wrapper.
 const InputWrapper = styled.div`
     display: flex;
     align-items: center;

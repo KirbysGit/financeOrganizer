@@ -8,23 +8,12 @@ import styled from 'styled-components';
 import { logoutUser } from './services/api';
 
 function App() {
-  // State 2 Track Current Page.
-  const [currentPage, setCurrentPage] = useState(null); // Start with null to prevent flash
-  
-  // State 2 Track If User Has Ever Had Data.
-  const [hasEverHadData, setHasEverHadData] = useState(localStorage.getItem('hasEverHadData') === 'true');
-  
-  // State to track if user has connected financial data
-  const [hasConnectedData, setHasConnectedData] = useState(localStorage.getItem('hasConnectedData') === 'true');
-  
-  // Check If User Is Already Authenticated.
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  // State to track if app is initializing
-  const [isInitializing, setIsInitializing] = useState(true);
-
-  // 
-  const [modalType, setModalType] = useState('signup');
+  const [currentPage, setCurrentPage] = useState(null); // State 2 Track Current Page.
+  const [hasEverHadData, setHasEverHadData] = useState(localStorage.getItem('hasEverHadData') === 'true');   // State 2 Track If User Has Ever Had Data.
+  const [hasConnectedData, setHasConnectedData] = useState(localStorage.getItem('hasConnectedData') === 'true');   // State 2 Track If User Has Connected Financial Data.
+  const [isAuthenticated, setIsAuthenticated] = useState(false);   // State 2 Track If User Is Already Authenticated.
+  const [isInitializing, setIsInitializing] = useState(true);   // State 2 Track If App Is Initializing.
+  const [modalType, setModalType] = useState('signup');   // State 2 Track Modal Type.
 
   // Check Authentication Status On App Load.
   useEffect(() => {
@@ -34,32 +23,32 @@ function App() {
       if (user) {
       setIsAuthenticated(true);
       
-      // Check for existing data and determine navigation
+      // Check For Existing Data And Determine Navigation.
         const hasExistingData = await checkForExistingData();
         
         if (hasExistingData) {
-        // User has connected data, go to dashboard
+        // User Has Connected Data, Go To Dashboard.
         setCurrentPage('dashboard');
       } else if (hasEverHadData) {
-        // User has account but no connected data, go to finance connect
+        // User Has Account But No Connected Data, Go To Finance Connect.
         setCurrentPage('finance-connect');
         } else {
-          // User is authenticated but no data, go to welcome
+          // User Is Authenticated But No Data, Go To Welcome.
           setCurrentPage('welcome');
         }
       } else {
-        // No user found, go to welcome
+        // No User Found, Go To Welcome.
         setCurrentPage('welcome');
       }
       
-      // Mark initialization as complete
+      // Mark Initialization As Complete.
       setIsInitializing(false);
     };
     
     initializeApp();
   }, [hasEverHadData, hasConnectedData]);
 
-  // Update 'hasEverHadData' and 'hasConnectedData' When They Change.
+  // Update 'hasEverHadData' And 'hasConnectedData' When They Change.
   useEffect(() => {
     const handleStorageChange = () => {
       setHasEverHadData(localStorage.getItem('hasEverHadData') === 'true');
@@ -79,23 +68,13 @@ function App() {
 
   // -------------------------------------------------------- Navigation Handlers.
 
-  // Check if user already has connected data
+  // Check If User Already Has Connected Data.
   const checkForExistingData = async () => {
     try {
-      // Import the API functions we need
-      const { fetchTransactions, getFiles, getAccounts } = await import('./services/api');
-      
-      // Check for existing data
-      const [transactionsRes, filesRes, accountsRes] = await Promise.allSettled([
-        fetchTransactions(),
-        getFiles(),
-        getAccounts()
-      ]);
-      
-      // If any of these have data, user has connected data
-      const hasTransactions = transactionsRes.status === 'fulfilled' && transactionsRes.value.data.length > 0;
-      const hasFiles = filesRes.status === 'fulfilled' && filesRes.value.data.length > 0;
-      const hasAccounts = accountsRes.status === 'fulfilled' && accountsRes.value.data.length > 0;
+      // Check localStorage for existing data indicators instead of making API calls
+      const hasTransactions = localStorage.getItem('hasTransactions') === 'true';
+      const hasFiles = localStorage.getItem('hasFiles') === 'true';
+      const hasAccounts = localStorage.getItem('hasAccounts') === 'true';
       
       if (hasTransactions || hasFiles || hasAccounts) {
         localStorage.setItem('hasConnectedData', 'true');
@@ -115,7 +94,7 @@ function App() {
     setModalType(modalType);
   };
 
-  // Sets Current Page To 'welcome' or 'account-setup' based on authentication.
+  // Sets Current Page To 'welcome' Or 'account-setup' Based On Authentication.
   const handleBackToWelcome = () => {
     setCurrentPage('welcome');
   };
@@ -164,10 +143,13 @@ function App() {
     setCurrentPage('dashboard');
   };
 
-  // Handle finance connection completion
+  // Handle Finance Connection Completion.
   const handleFinanceConnectComplete = () => {
     console.log('App: Finance connection completed, navigating to dashboard...');
     localStorage.setItem('hasConnectedData', 'true');
+    localStorage.setItem('hasTransactions', 'true'); // Assume transactions will be loaded
+    localStorage.setItem('hasFiles', 'true'); // Assume files will be uploaded
+    localStorage.setItem('hasAccounts', 'true'); // Assume accounts will be connected
     setHasConnectedData(true);
     setCurrentPage('dashboard');
   };
@@ -185,14 +167,16 @@ function App() {
     localStorage.removeItem('user');
     localStorage.removeItem('hasConnectedData');
     localStorage.removeItem('hasEverHadData');
+    localStorage.removeItem('hasTransactions');
+    localStorage.removeItem('hasFiles');
+    localStorage.removeItem('hasAccounts');
     setIsAuthenticated(false);
     setHasConnectedData(false);
     setHasEverHadData(false);
     setCurrentPage('welcome');
   };
 
-
-
+  // -------------------------------------------------------- Return Loading Screen While Initializing.
   // Show Loading Screen While Initializing.
   if (isInitializing || currentPage === null) {
     return (
@@ -221,6 +205,7 @@ function App() {
     );
   }
 
+  // -------------------------------------------------------- Return App.
   return (
     <RootWrapper>
       {/* Welcome Screen */}
@@ -261,9 +246,11 @@ function App() {
   );
 }
 
+// -------------------------------------------------------- Root Wrapper.
 const RootWrapper = styled.div`
   padding: 0;
   margin: 0;
 `
 
+// Return App.
 export default App;

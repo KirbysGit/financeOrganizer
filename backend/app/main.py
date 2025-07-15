@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 # Local Imports.
-from app.routes import upload, transactions, files, plaid, accounts
+from app.routes import upload, transactions, files, plaid, accounts, centi_score
 
 # Create Instance Of FastAPI Application.
 app = FastAPI()
@@ -31,3 +31,9 @@ app.include_router(upload.router)
 app.include_router(transactions.router)
 app.include_router(plaid.router)
 app.include_router(accounts.router)
+app.include_router(centi_score.router)
+
+# Start The Centi Score Scheduler.
+from app.utils.scheduler import start_scheduler
+
+start_scheduler()

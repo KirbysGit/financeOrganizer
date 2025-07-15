@@ -15,27 +15,27 @@ const LOADING_STEPS = [
     { 
         icon: faUser, 
         message: "Grabbing your data...", 
-        duration: 800 
+        duration: 600 
     },
     { 
         icon: faDatabase, 
         message: "Connecting to accounts...", 
-        duration: 800 
+        duration: 600 
     },
     { 
         icon: faSync, 
         message: "Syncing transactions...", 
-        duration: 800 
+        duration: 600 
     },
     { 
         icon: faChartLine, 
         message: "Calculating insights...", 
-        duration: 800 
+        duration: 600 
     },
     { 
         icon: faPalette, 
         message: "Making it beautiful...", 
-        duration: 800 
+        duration: 600 
     },
 ];
 
@@ -238,6 +238,7 @@ const LoadingScreen = ({
     
     return (
         <LoadingScreenContainer>
+            {console.log('🎬 LoadingScreen render - loading:', loading, 'progress:', loadingProgress, 'step:', loadingStep)}
             {/* =============================================================================
                 STATIC STOCK CHART BACKGROUND
                 =============================================================================
@@ -582,7 +583,7 @@ const LoadingMessage = styled.h2`
     font-weight: 600;
     color: var(--text-primary);
     text-align: center;
-    animation: fadeInOut 0.5s ease-in-out;
+    animation: fadeInOut 0.3s ease-in-out;
     background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
     background-clip: text;
     -webkit-background-clip: text;

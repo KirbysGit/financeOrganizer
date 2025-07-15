@@ -2,7 +2,7 @@
 import React from 'react';
 import { styled } from 'styled-components';
 import { useEffect, useState } from 'react';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 // -------------------------------------------------------- StatsSection Component.
 const StatsSection = ({ myStats }) => {
@@ -98,10 +98,12 @@ const StatsSection = ({ myStats }) => {
     // -------------------------------------------------------- Calculate Growth Percentage.
     const getGrowthData = (statId) => {
         // Get Growth Data.
-        if (!stats?.totals?.growth) return { percentage: 0, amount: 0 };
+        if (!stats?.totals?.growth) return { percentage: 0, amount: 0, hasHistoricalData: false };
         
         // Set Growth Data.
         const growthData = stats.totals.growth;
+        const snapshots = stats.snapshots;
+        const hasHistoricalData = snapshots?.has_historical_data || false;
         
         // Get Current Values.
         const currentValues = {
@@ -111,10 +113,17 @@ const StatsSection = ({ myStats }) => {
             monthlyCashFlow: stats?.cash_flow?.this_month || 0
         };
         
-        // Calculate Dollar Amount Change.
-        const getAmountChange = (percentage, currentValue) => {
-            if (percentage === 0) return 0;
-            return (currentValue * percentage) / 100;
+        // Get Previous Values from snapshots if available
+        const previousValues = {
+            netWorth: snapshots?.previous_month?.net_worth || 0,
+            totalAssets: snapshots?.previous_month?.total_assets || 0,
+            totalLiabilities: snapshots?.previous_month?.total_liabilities || 0,
+            monthlyCashFlow: snapshots?.previous_month?.monthly_cash_flow || 0
+        };
+        
+        // Calculate Dollar Amount Change based on actual previous values
+        const getAmountChange = (currentValue, previousValue) => {
+            return currentValue - previousValue;
         };
         
         // Return Growth Data Based On Stat ID.
@@ -122,26 +131,33 @@ const StatsSection = ({ myStats }) => {
             case 'netWorth':
                 return {
                     percentage: growthData.net_worth || 0,
-                    amount: getAmountChange(growthData.net_worth || 0, currentValues.netWorth)
+                    amount: getAmountChange(currentValues.netWorth, previousValues.netWorth),
+                    hasHistoricalData,
+                    previousValue: previousValues.netWorth
                 };
             case 'totalAssets':
                 return {
                     percentage: growthData.total_assets || 0,
-                    amount: getAmountChange(growthData.total_assets || 0, currentValues.totalAssets)
+                    amount: getAmountChange(currentValues.totalAssets, previousValues.totalAssets),
+                    hasHistoricalData,
+                    previousValue: previousValues.totalAssets
                 };
             case 'totalLiabilities':
-                // Always show growth indicator, even if 0%
                 return {
                     percentage: growthData.total_liabilities || 0,
-                    amount: getAmountChange(growthData.total_liabilities || 0, currentValues.totalLiabilities)
+                    amount: getAmountChange(currentValues.totalLiabilities, previousValues.totalLiabilities),
+                    hasHistoricalData,
+                    previousValue: previousValues.totalLiabilities
                 };
             case 'monthlyCashFlow':
                 return {
                     percentage: growthData.monthly_cash_flow || 0,
-                    amount: getAmountChange(growthData.monthly_cash_flow || 0, currentValues.monthlyCashFlow)
+                    amount: getAmountChange(currentValues.monthlyCashFlow, previousValues.monthlyCashFlow),
+                    hasHistoricalData,
+                    previousValue: previousValues.monthlyCashFlow
                 };
             default:
-                return { percentage: 0, amount: 0 };
+                return { percentage: 0, amount: 0, hasHistoricalData: false };
         }
     };
 
@@ -181,21 +197,36 @@ const StatsSection = ({ myStats }) => {
                                     ? formatCurrency(stats.totals.net_worth)
                                     : formatCurrency(0)}
                             </StatValue>
-                            <GrowthIndicatorWrapper $isPositive={getGrowthData('netWorth').percentage > 0}>
-                                <GrowthIcon $isPositive={getGrowthData('netWorth').percentage > 0}>
-                                    {getGrowthData('netWorth').percentage > 0 ? (
-                                        <TrendingUp size={16} color="currentColor" />
+                            <GrowthIndicatorWrapper $isPositive={getGrowthData('netWorth').hasHistoricalData ? getGrowthData('netWorth').percentage > 0 : null}>
+                                <GrowthIcon $isPositive={getGrowthData('netWorth').hasHistoricalData ? getGrowthData('netWorth').percentage > 0 : null}>
+                                    {getGrowthData('netWorth').hasHistoricalData ? (
+                                        getGrowthData('netWorth').percentage > 0 ? (
+                                            <TrendingUp size={16} color="currentColor" />
+                                        ) : (
+                                            <TrendingDown size={16} color="currentColor" />
+                                        )
                                     ) : (
-                                        <TrendingDown size={16} color="currentColor" />
+                                        <Minus size={16} color="currentColor" />
                                     )}
                                 </GrowthIcon>
                                 <GrowthText>
-                                    {getGrowthData('netWorth').amount > 0 ? '+' : ''}{formatCurrency(Math.abs(getGrowthData('netWorth').amount))} ({getGrowthData('netWorth').percentage > 0 ? '+' : ''}{getGrowthData('netWorth').percentage.toFixed(1)}%)
+                                    {getGrowthData('netWorth').hasHistoricalData ? (
+                                        <>
+                                            {getGrowthData('netWorth').amount > 0 ? '+' : ''}{formatCurrency(Math.abs(getGrowthData('netWorth').amount))} ({getGrowthData('netWorth').percentage > 0 ? '+' : ''}{getGrowthData('netWorth').percentage.toFixed(1)}%)
+                                        </>
+                                    ) : (
+                                        '0.0% (First Month)'
+                                    )}
                                 </GrowthText>
                             </GrowthIndicatorWrapper>
                         </StatContent>
                         <StatExplanation className={explanationVisible['netWorth'] ? 'visible' : ''}>
                             Your net worth is everything you own — like cash, accounts, and investments — minus what you owe. It's a quick way to see your overall financial picture.
+                            {getGrowthData('netWorth').hasHistoricalData && (
+                                <div style={{ marginTop: '8px', fontSize: '12px', opacity: 0.8 }}>
+                                    Last month: {formatCurrency(getGrowthData('netWorth').previousValue)}
+                                </div>
+                            )}
                         </StatExplanation>
                     </StatCard>
 
@@ -212,21 +243,36 @@ const StatsSection = ({ myStats }) => {
                                     ? formatCurrency(stats.totals.total_assets)
                                     : formatCurrency(0)}
                             </StatValue>
-                            <GrowthIndicatorWrapper $isPositive={getGrowthData('totalAssets').percentage > 0}>
-                                <GrowthIcon $isPositive={getGrowthData('totalAssets').percentage > 0}>
-                                    {getGrowthData('totalAssets').percentage > 0 ? (
-                                        <TrendingUp size={16} color="currentColor" />
+                            <GrowthIndicatorWrapper $isPositive={getGrowthData('totalAssets').hasHistoricalData ? getGrowthData('totalAssets').percentage > 0 : null}>
+                                <GrowthIcon $isPositive={getGrowthData('totalAssets').hasHistoricalData ? getGrowthData('totalAssets').percentage > 0 : null}>
+                                    {getGrowthData('totalAssets').hasHistoricalData ? (
+                                        getGrowthData('totalAssets').percentage > 0 ? (
+                                            <TrendingUp size={16} color="currentColor" />
+                                        ) : (
+                                            <TrendingDown size={16} color="currentColor" />
+                                        )
                                     ) : (
-                                        <TrendingDown size={16} color="currentColor" />
+                                        <Minus size={16} color="currentColor" />
                                     )}
                                 </GrowthIcon>
                                 <GrowthText>
-                                    {getGrowthData('totalAssets').amount > 0 ? '+' : ''}{formatCurrency(Math.abs(getGrowthData('totalAssets').amount))} ({getGrowthData('totalAssets').percentage > 0 ? '+' : ''}{getGrowthData('totalAssets').percentage.toFixed(1)}%)
+                                    {getGrowthData('totalAssets').hasHistoricalData ? (
+                                        <>
+                                            {getGrowthData('totalAssets').amount > 0 ? '+' : ''}{formatCurrency(Math.abs(getGrowthData('totalAssets').amount))} ({getGrowthData('totalAssets').percentage > 0 ? '+' : ''}{getGrowthData('totalAssets').percentage.toFixed(1)}%)
+                                        </>
+                                    ) : (
+                                        '0.0% (First Month)'
+                                    )}
                                 </GrowthText>
                             </GrowthIndicatorWrapper>
                         </StatContent>
                         <StatExplanation className={explanationVisible['totalAssets'] ? 'visible' : ''}>
                         Your total assets are everything you own that adds value — like your bank accounts, investments, and anything else that boosts your financial worth.
+                        {getGrowthData('totalAssets').hasHistoricalData && (
+                            <div style={{ marginTop: '8px', fontSize: '12px', opacity: 0.8 }}>
+                                Last month: {formatCurrency(getGrowthData('totalAssets').previousValue)}
+                            </div>
+                        )}
                         </StatExplanation>
                     </StatCard>
 
@@ -243,21 +289,36 @@ const StatsSection = ({ myStats }) => {
                                     ? formatCurrency(stats.totals.total_liabilities)
                                     : formatCurrency(0)}
                             </StatValue>
-                            <GrowthIndicatorWrapper $isPositive={getGrowthData('totalLiabilities').percentage < 0}>
-                                <GrowthIcon $isPositive={getGrowthData('totalLiabilities').percentage < 0}>
-                                    {getGrowthData('totalLiabilities').percentage < 0 ? (
-                                        <TrendingUp size={16} color="currentColor" />
+                            <GrowthIndicatorWrapper $isPositive={getGrowthData('totalLiabilities').hasHistoricalData ? getGrowthData('totalLiabilities').percentage < 0 : null}>
+                                <GrowthIcon $isPositive={getGrowthData('totalLiabilities').hasHistoricalData ? getGrowthData('totalLiabilities').percentage < 0 : null}>
+                                    {getGrowthData('totalLiabilities').hasHistoricalData ? (
+                                        getGrowthData('totalLiabilities').percentage < 0 ? (
+                                            <TrendingUp size={16} color="currentColor" />
+                                        ) : (
+                                            <TrendingDown size={16} color="currentColor" />
+                                        )
                                     ) : (
-                                        <TrendingDown size={16} color="currentColor" />
+                                        <Minus size={16} color="currentColor" />
                                     )}
                                 </GrowthIcon>
                                 <GrowthText>
-                                    {getGrowthData('totalLiabilities').amount > 0 ? '+' : ''}{formatCurrency(Math.abs(getGrowthData('totalLiabilities').amount))} ({getGrowthData('totalLiabilities').percentage > 0 ? '+' : ''}{getGrowthData('totalLiabilities').percentage.toFixed(1)}%)
+                                    {getGrowthData('totalLiabilities').hasHistoricalData ? (
+                                        <>
+                                            {getGrowthData('totalLiabilities').amount > 0 ? '+' : ''}{formatCurrency(Math.abs(getGrowthData('totalLiabilities').amount))} ({getGrowthData('totalLiabilities').percentage > 0 ? '+' : ''}{getGrowthData('totalLiabilities').percentage.toFixed(1)}%)
+                                        </>
+                                    ) : (
+                                        '0.0% (First Month)'
+                                    )}
                                 </GrowthText>
                             </GrowthIndicatorWrapper>
                         </StatContent>
                         <StatExplanation className={explanationVisible['totalLiabilities'] ? 'visible' : ''}>
                             Your total liabilities are what you owe — like credit cards, loans, or any other money you still need to pay back.
+                            {getGrowthData('totalLiabilities').hasHistoricalData && (
+                                <div style={{ marginTop: '8px', fontSize: '12px', opacity: 0.8 }}>
+                                    Last month: {formatCurrency(getGrowthData('totalLiabilities').previousValue)}
+                                </div>
+                            )}
                         </StatExplanation>
                     </StatCard>
 
@@ -278,21 +339,36 @@ const StatsSection = ({ myStats }) => {
                                     ? formatCurrency(stats.cash_flow.this_month)
                                     : formatCurrency(0)}
                             </StatValue>
-                            <GrowthIndicatorWrapper $isPositive={getGrowthData('monthlyCashFlow').percentage > 0}>
-                                <GrowthIcon $isPositive={getGrowthData('monthlyCashFlow').percentage > 0}>
-                                    {getGrowthData('monthlyCashFlow').percentage > 0 ? (
-                                        <TrendingUp size={16} color="currentColor" />
+                            <GrowthIndicatorWrapper $isPositive={getGrowthData('monthlyCashFlow').hasHistoricalData ? getGrowthData('monthlyCashFlow').percentage > 0 : null}>
+                                <GrowthIcon $isPositive={getGrowthData('monthlyCashFlow').hasHistoricalData ? getGrowthData('monthlyCashFlow').percentage > 0 : null}>
+                                    {getGrowthData('monthlyCashFlow').hasHistoricalData ? (
+                                        getGrowthData('monthlyCashFlow').percentage > 0 ? (
+                                            <TrendingUp size={16} color="currentColor" />
+                                        ) : (
+                                            <TrendingDown size={16} color="currentColor" />
+                                        )
                                     ) : (
-                                        <TrendingDown size={16} color="currentColor" />
+                                        <Minus size={16} color="currentColor" />
                                     )}
                                 </GrowthIcon>
                                 <GrowthText>
-                                    {getGrowthData('monthlyCashFlow').amount > 0 ? '+' : ''}{formatCurrency(Math.abs(getGrowthData('monthlyCashFlow').amount))} ({getGrowthData('monthlyCashFlow').percentage > 0 ? '+' : ''}{getGrowthData('monthlyCashFlow').percentage.toFixed(1)}%)
+                                    {getGrowthData('monthlyCashFlow').hasHistoricalData ? (
+                                        <>
+                                            {getGrowthData('monthlyCashFlow').amount > 0 ? '+' : ''}{formatCurrency(Math.abs(getGrowthData('monthlyCashFlow').amount))} ({getGrowthData('monthlyCashFlow').percentage > 0 ? '+' : ''}{getGrowthData('monthlyCashFlow').percentage.toFixed(1)}%)
+                                        </>
+                                    ) : (
+                                        '0.0% (First Month)'
+                                    )}
                                 </GrowthText>
                             </GrowthIndicatorWrapper>
                         </StatContent>
                         <StatExplanation className={explanationVisible['monthlyCashFlow'] ? 'visible' : ''}>
                         Monthly cash flow shows how much money you have left after covering your expenses. If it's positive, you're spending less than you make this month.
+                        {getGrowthData('monthlyCashFlow').hasHistoricalData && (
+                            <div style={{ marginTop: '8px', fontSize: '12px', opacity: 0.8 }}>
+                                Last month: {formatCurrency(getGrowthData('monthlyCashFlow').previousValue)}
+                            </div>
+                        )}
                         </StatExplanation>
                     </StatCard>
                 </StatsGrid>
@@ -492,7 +568,7 @@ const StatExplanation = styled.div`
     width: 100%;
     transition: all 0.3s ease;
     opacity: 0;
-    transform: translateY(30%);
+    transform: translateY(10%);
     position: absolute;
     top: 50%;
     left: 0;
@@ -501,6 +577,7 @@ const StatExplanation = styled.div`
     color: var(--text-secondary);
     font-size: 1rem;
     line-height: 1.4;
+    z-index: 1;
     
     &.visible {
         opacity: 1;
@@ -551,27 +628,39 @@ const GrowthIndicatorWrapper = styled.div`
     width: max-content;
     align-self: center;
     gap: 0.25rem;
-    background: ${props => props.$isPositive 
-        ? 'rgba(40, 167, 69, 0.1)' 
-        : 'rgba(220, 53, 69, 0.1)'};
-    color: ${props => props.$isPositive 
-        ? 'rgb(40, 167, 69)' 
-        : 'rgb(220, 53, 69)'};
+    background: ${props => {
+        if (props.$isPositive === null) return 'rgba(100, 100, 100, 0.1)';
+        return props.$isPositive 
+            ? 'rgba(40, 167, 69, 0.1)' 
+            : 'rgba(220, 53, 69, 0.1)';
+    }};
+    color: ${props => {
+        if (props.$isPositive === null) return 'rgb(100, 100, 100)';
+        return props.$isPositive 
+            ? 'rgb(40, 167, 69)' 
+            : 'rgb(220, 53, 69)';
+    }};
     padding: 0.25rem 0.75rem;
     border-radius: 20px;
     font-size: 0.85rem;
     font-weight: 600;
     margin-top: 0.5rem;
-    border: 1px solid ${props => props.$isPositive 
-        ? 'rgba(40, 167, 69, 0.2)' 
-        : 'rgba(220, 53, 69, 0.2)'};
+    border: 1px solid ${props => {
+        if (props.$isPositive === null) return 'rgba(100, 100, 100, 0.2)';
+        return props.$isPositive 
+            ? 'rgba(40, 167, 69, 0.2)' 
+            : 'rgba(220, 53, 69, 0.2)';
+    }};
     transition: all 0.3s ease;
     
     &:hover {
         transform: translateY(-1px);
-        box-shadow: 0 2px 8px ${props => props.$isPositive 
-            ? 'rgba(40, 167, 69, 0.2)' 
-            : 'rgba(220, 53, 69, 0.2)'};
+        box-shadow: 0 2px 8px ${props => {
+            if (props.$isPositive === null) return 'rgba(100, 100, 100, 0.2)';
+            return props.$isPositive 
+                ? 'rgba(40, 167, 69, 0.2)' 
+                : 'rgba(220, 53, 69, 0.2)';
+        }};
     }
 `;
 
@@ -583,12 +672,18 @@ const GrowthIcon = styled.span`
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    background: ${props => props.$isPositive 
-        ? 'rgba(40, 167, 69, 0.15)' 
-        : 'rgba(220, 53, 69, 0.15)'};
-    color: ${props => props.$isPositive 
-        ? 'rgb(40, 167, 69)' 
-        : 'rgb(220, 53, 69)'};
+    background: ${props => {
+        if (props.$isPositive === null) return 'rgba(100, 100, 100, 0.15)';
+        return props.$isPositive 
+            ? 'rgba(40, 167, 69, 0.15)' 
+            : 'rgba(220, 53, 69, 0.15)';
+    }};
+    color: ${props => {
+        if (props.$isPositive === null) return 'rgb(100, 100, 100)';
+        return props.$isPositive 
+            ? 'rgb(40, 167, 69)' 
+            : 'rgb(220, 53, 69)';
+    }};
     transition: all 0.2s ease;
     
     svg {
@@ -596,9 +691,12 @@ const GrowthIcon = styled.span`
     }
     
     ${GrowthIndicatorWrapper}:hover & {
-        background: ${props => props.$isPositive 
-            ? 'rgba(40, 167, 69, 0.25)' 
-            : 'rgba(220, 53, 69, 0.25)'};
+        background: ${props => {
+            if (props.$isPositive === null) return 'rgba(100, 100, 100, 0.25)';
+            return props.$isPositive 
+                ? 'rgba(40, 167, 69, 0.25)' 
+                : 'rgba(220, 53, 69, 0.25)';
+        }};
         
         svg {
             transform: scale(1.1);

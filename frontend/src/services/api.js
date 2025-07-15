@@ -2,38 +2,25 @@
 import axios from 'axios';
 
 // Create API Instance.
-const API = axios.create({ baseURL: 'http://localhost:8000' });
-
-// -------------------------------------------------------- Request Interceptor To Include Auth Token.
-API.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+const API = axios.create({ 
+  baseURL: 'http://localhost:8000',
+  withCredentials: true  // Important: This allows cookies to be sent with requests
+});
 
 // -------------------------------------------------------- Response Interceptor To Handle Auth Errors.
 API.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     if (error.response?.status === 401) {
-      // Only redirect if user was previously authenticated (has tokens)
-      const token = localStorage.getItem('access_token');
-      const user = localStorage.getItem('user');
-      
-      if (token && user) {
-        // Token Expired Or Invalid - Redirect To Login.
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('user');
-        window.location.href = '/'; // Redirect To Landing Page.
+      // Try to refresh the token
+      try {
+        await API.post('/auth/refresh');
+        // Retry the original request
+        return API.request(error.config);
+      } catch (refreshError) {
+        // Refresh failed, redirect to login
+        window.location.href = '/';
       }
-      // If no tokens exist, this is likely a login failure - don't redirect
     }
     return Promise.reject(error);
   }
@@ -76,6 +63,28 @@ export const getAccounts = () => API.get('/accounts');
 // ----------------------------------------------------------------- Get Overview Statistics.
 export const getStats = () => API.get('/stats');
 
+// ================================================================= CENTI SCORE OPERATIONS
+// ----------------------------------------------------------------- Get Current Centi Score
+export const getCurrentCentiScore = () => API.get('/centi-score/current');
+
+// ----------------------------------------------------------------- Get Centi Score Status
+export const getCentiScoreStatus = () => API.get('/centi-score/status');
+
+// ----------------------------------------------------------------- Get Centi Score History
+export const getCentiScoreHistory = (limit = 12) => API.get(`/centi-score/history?limit=${limit}`);
+
+// ----------------------------------------------------------------- Get Centi Score Growth Analysis
+export const getCentiScoreGrowth = () => API.get('/centi-score/growth');
+
+// ----------------------------------------------------------------- Get Centi Score Summary
+export const getCentiScoreSummary = () => API.get('/centi-score/summary');
+
+// ----------------------------------------------------------------- Calculate Weekly Centi Score
+export const calculateWeeklyScore = () => API.post('/centi-score/calculate');
+
+// ----------------------------------------------------------------- Get Centi Score Trend
+export const getCentiScoreTrend = () => API.get('/centi-score/trend');
+
 // ================================================================= DATABASE OPERATIONS
 // ----------------------------------------------------------------- Empties Entire Database.
 export const emptyDatabase = () => API.delete('/clear');
@@ -87,14 +96,17 @@ export const registerUser = (userData) => API.post('/auth/register', userData);
 // ----------------------------------------------------------------- Login User
 export const loginUser = (credentials) => API.post('/auth/login', credentials);
 
-// ----------------------------------------------------------------- Google Authentication
-export const googleAuth = (googleData) => API.post('/auth/google', googleData);
-
 // ----------------------------------------------------------------- Google Auth Code Authentication
 export const googleAuthCode = (authData) => API.post('/auth/google-code', authData);
 
 // ----------------------------------------------------------------- Get Current User
 export const getCurrentUser = () => API.get('/auth/me');
+
+// ----------------------------------------------------------------- Logout User
+export const logoutUser = () => API.post('/auth/logout');
+
+// ----------------------------------------------------------------- Refresh Token
+export const refreshToken = () => API.post('/auth/refresh');
 
 // ================================================================= PLAID INTEGRATION
 // ----------------------------------------------------------------- Create Link Token for Plaid Link

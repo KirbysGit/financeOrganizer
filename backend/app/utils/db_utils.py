@@ -1,5 +1,7 @@
+# Imports.
 from app.database import SessionLocal
 
+# -------------------------------------------------------- Get Database Session.
 def get_db():
     db = SessionLocal()   # Create A New Database Session.
     try:

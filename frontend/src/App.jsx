@@ -5,10 +5,11 @@ import WelcomeScreen from './components/1WelcomePage/WelcomeScreen';
 import AccountSetUpScreen from './components/2AccountSetUp/AccountSetUpScreen';
 import FinanceConnect from './components/3FinanceConnect/FinanceConnect';
 import styled from 'styled-components';
+import { logoutUser } from './services/api';
 
 function App() {
   // State 2 Track Current Page.
-  const [currentPage, setCurrentPage] = useState('welcome'); // (E.g. 'welcome', 'account-setup', 'finance-connect', 'dashboard')
+  const [currentPage, setCurrentPage] = useState(null); // Start with null to prevent flash
   
   // State 2 Track If User Has Ever Had Data.
   const [hasEverHadData, setHasEverHadData] = useState(localStorage.getItem('hasEverHadData') === 'true');
@@ -19,19 +20,21 @@ function App() {
   // Check If User Is Already Authenticated.
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // State to track if app is initializing
+  const [isInitializing, setIsInitializing] = useState(true);
+
   // 
   const [modalType, setModalType] = useState('signup');
 
   // Check Authentication Status On App Load.
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
+    const initializeApp = async () => {
     const user = localStorage.getItem('user');
     
-    if (token && user) {
+      if (user) {
       setIsAuthenticated(true);
       
       // Check for existing data and determine navigation
-      const checkInitialData = async () => {
         const hasExistingData = await checkForExistingData();
         
         if (hasExistingData) {
@@ -40,12 +43,20 @@ function App() {
       } else if (hasEverHadData) {
         // User has account but no connected data, go to finance connect
         setCurrentPage('finance-connect');
+        } else {
+          // User is authenticated but no data, go to welcome
+          setCurrentPage('welcome');
+        }
+      } else {
+        // No user found, go to welcome
+        setCurrentPage('welcome');
       }
-      // If neither, stay on welcome or account-setup
-      };
       
-      checkInitialData();
-    }
+      // Mark initialization as complete
+      setIsInitializing(false);
+    };
+    
+    initializeApp();
   }, [hasEverHadData, hasConnectedData]);
 
   // Update 'hasEverHadData' and 'hasConnectedData' When They Change.
@@ -162,8 +173,15 @@ function App() {
   };
 
   // -------------------------------------------------------- Handle Logout.
-  const handleLogout = () => {
-    localStorage.removeItem('access_token');
+  const handleLogout = async () => {
+    try {
+      // Call Backend Logout Endpoint To Clear Cookies.
+      await logoutUser();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+    
+    // Clear Local Storage.
     localStorage.removeItem('user');
     localStorage.removeItem('hasConnectedData');
     localStorage.removeItem('hasEverHadData');
@@ -172,6 +190,36 @@ function App() {
     setHasEverHadData(false);
     setCurrentPage('welcome');
   };
+
+
+
+  // Show Loading Screen While Initializing.
+  if (isInitializing || currentPage === null) {
+    return (
+      <RootWrapper>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          background: 'linear-gradient(135deg, rgb(231, 240, 250) 0%, #e9ecef 100%)'
+        }}>
+          <div style={{
+            textAlign: 'center',
+            color: 'var(--text-primary)'
+          }}>
+            <div style={{
+              fontSize: '2rem',
+              fontWeight: 'bold',
+              marginBottom: '1rem'
+            }}>
+              Loading...
+            </div>
+          </div>
+        </div>
+      </RootWrapper>
+    );
+  }
 
   return (
     <RootWrapper>

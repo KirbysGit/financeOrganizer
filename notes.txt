@@ -16,5 +16,106 @@ npm run dev
 
 
 
+# Libraries In Use.
+
+jwt - PyJWT Library - Responsible for Encoding / Decoding JSON Web Tokens for Stateless Auth.
+
+requests - HTTP Client Library - Calls external REST APIs (e.g. get / post / patch).
+
+sqlalchemy - DB -
+    - orm.Session : Wraps all DB reads / writes into one session, commit / rollback as a single transaction.
+
+passlib -
+
+    - content.CryptContext : Used for hashing, verifying, and migrating passwords, without writing the actual crypto yourself.
+            - schemes - Choose the algorithm for hasing. (I use bcrypt)
+            - deprecated - If you add newer schemes in future, it will mark old ones as deprecated automatically. It won't reject them but suggest rehasing on next login,
+
+    - verify : Parses stored hash to learn alg, cost fasctor, and salt, then re-run algorithm with that same salt and cost on the plaid password, then compare the two digests.
+    - hash : Hashes password with set alg. it generates that new random salt, then runs bcrypt wit hthe salt and cost, and then returns full has string (alg_id + cost + salt + digest) 
+
+datetime - Used for grabbing Date & Time w/ Specific Time Zone references.
+
+timedelta - For solving Time Until Sort of Math.
+
+fastapi -
+    - APIRouter - Mini-app/router in Fast API. Serves to group endpoitns and include them in main app with prefix & tags.
+    - Depends - 
+        - Dependency-injection marker. Serves that a path / parameter needs something (like a DB session or the current user).
+        - basically "please call this other function first and pass its return value into my parameter"
+    - HTTPException - Exception translated into HTTP response. 
+    - status - Enum-like constants for status codes. Something like "status.HTTP_201_CREATED" is clearer than magic number "201".
+    - Response - Raw Object you can mutate / send manually. Sets cookies, custom headers, stream bytes, etc.
+    - Request - Incoming request object. 
 
 
+
+
+
+
+Overall Notes : 
+
+- requests lib - 
+
+    - .raise_for_status() - checks out HTTP status code, if success, return and code continues, if error, raises HTTPError
+
+- salt - 
+    - "a unique seasonging you add to every password before you cook it."
+- cost - 
+    - "how long the oven keeps the password "cooking"." 
+    - so this is specific to the password hashing, but it seems as if it works for setting the exponent for shuffling.
+- digest -
+    - the Base64 chunk at the end, this is the result of the algorithms internal math.
+
+
+- encoding -
+    - during encoding you want to pass the data, the "secret" key (if applicable), and the relative algorithm.
+        - the data "The Paper Inside The Letter."
+            - just serves as the message body.
+        - the secret key "Sealing Envelope W/ A Wax Stamp Only You Own."
+            - serves as a private string only your server knows, its mixed into signature so its hard to tamper with token without knowing the key.
+        - the relative alogrithm "Recipe For How Wax Stamp Is Made."
+            - tells the library which signing method to use.
+
+- decoding -
+    - serves as inverse of encode with two extra checks
+        - grabs the algorithm, re-creates the signature based on the secret key and alg, check if it matches
+        - if it doesn't, raises an error, if it does, checks for other contents to verify token isn't expired or something else
+        - on success you should get the same dict you encoded.
+
+    
+- Database Stuff -
+
+    Parameters -
+
+        - .query(x) - start a 'SELECT' against table mapped by 'User' model.
+        - .filter(User.email == email) - add a WHERE clause that keeps only rows where email matches provided 'email' var 
+        - .first() - execute query returning first matching rows
+        - .all() - return all that match query
+        - .add() - adds obj of that type to table
+        - .commit() - sends all queued statements to db engine, which then writes those changes to disk
+        - .refresh() - requeries db for that row and synchronizes with model instance with latest committed data
+        - .rollback() - cancels current transaction, goes back to last commit
+
+    Reason for Diff Models -
+
+    - e.g User - serves as the row exactly as it lives in the DB, we do this to map directly to tables / columns as its not meant to be sent over the wire 
+    - e.g UserIn - serves as what the client is allowed to send, it validates input, and excludes server only fields like id
+    - e.g UserOut - serves as what the API returns, keep it separate for the sake fo hiding secrets 
+
+- Cookies! - 
+
+    - set_cookie - 
+        - drops JWT into a browser cookie instead of sending back in JSON payload or requiring the client to store it manually
+        - every request automatically carries JWT cookie, so backend can authenticate user without keeping server-side session data
+
+        - key - the cookie's name 
+        - value - the jwt string
+        - max_age - lifetime in seconds
+        - httponly (if true) - JS in the page cannot read / modify it
+        - secure (if true) - send only over https
+        - samesite (lax, none) - limits cross-site requests
+        - path - path the cookie is sent for
+
+
+salt prevents mass look ups, cost makes brute-force unbearably slow.

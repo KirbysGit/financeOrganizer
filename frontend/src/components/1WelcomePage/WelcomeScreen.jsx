@@ -15,64 +15,43 @@ import centiLogo from '../../images/colorScheme.png';   // Centi Logo In Navbar.
 
 // Local Imports.
 import '../../styles/colors.css';
-// API Imports.
-import { uploadCSV } from '../../services/api';
+
 
 // -------------------------------------------------------- WelcomeScreen Component.
 const WelcomeScreen = ({ onShowAccountSetUp }) => {
-    // Modal States.
-    const [activeModal, setActiveModal] = useState(null);           // 'plaid', 'csv', 'transaction'.
-    const [existingAccounts, setExistingAccounts] = useState([]);   // Existing Accounts.
-    const [activeStep, setActiveStep] = useState(0);                // Active Step.
 
-    // -------------------------------------------------------- Step Animation Effect.
+    const [activeStep, setActiveStep] = useState(0);                // State 4 Active Step.
+
     useEffect(() => {
         const interval = setInterval(() => {
             setActiveStep((prevStep) => (prevStep + 1) % 3);
-        }, 5000); // Change step every 3 seconds
+        }, 3000); // Change Step Every 3 Seconds.
 
         return () => clearInterval(interval);
     }, []);
 
-    // -------------------------------------------------------- Handle CSV Upload.
-    const handleCSVUpload = async (formData) => {
-        try {
-            const response = await uploadCSV(formData);
-            return response.data; // Return the data directly
-        } catch (error) {
-            // Re-throw the error so FileUploadModal can handle it
-            throw error;
-        }
-    };
-
-    // -------------------------------------------------------- Handle Upload Success.
-    const handleUploadSuccess = (result) => {
-        console.log('Upload successful:', result);
-        onGetStarted(); // Navigate to dashboard
-    };
-
-    // -------------------------------------------------------- Close Modal & Clear States.
-    const closeModal = () => {
-        // Set Active Modal State To Null.
-        setActiveModal(null);
-    };
-
+    // -------------------------------------------------------- Handle Sign In.
     const handleSignIn = () => {
         onShowAccountSetUp('login');
     };
 
+    // -------------------------------------------------------- Handle Get Started.
     const handleGetStarted = () => {
         onShowAccountSetUp('signup');
     };
 
+    // -------------------------------------------------------- Return JSX.
     return (
         <>
+            {/* Navbar */}
             <NavBar>
                 <NavLogo src={centiLogo} alt="Centi Logo" />
                 <NavActions>
                     <SignInButton onClick={handleSignIn}>Sign In</SignInButton>
                 </NavActions>
             </NavBar>
+
+            {/* Landing Container */}
             <LandingContainer>
                 {/* Hero Section */}
                 <HeroSection>
@@ -294,8 +273,6 @@ const WelcomeScreen = ({ onShowAccountSetUp }) => {
         </>
     );
 };
-
-// -------------------------------------------------------- Styled Components.
 
 // -------------------------------------------------------- Landing Container.
 const LandingContainer = styled.div`

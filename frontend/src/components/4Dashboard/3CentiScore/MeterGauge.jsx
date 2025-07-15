@@ -90,8 +90,26 @@ const polarToCartesian = (centerX, centerY, r, angleInDegrees) => {
     return { x, y };                                            // Returns X & Y Coordinates.
 };
 
+// -------------------------------------------------------- Function 4 Formatting Last Updated Time.
+const formatLastUpdated = (date) => {
+    if (!date) return 'Never';
+    
+    const now = new Date();
+    const diff = now - date;
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    
+    if (days > 0) {
+        return `${days} day${days > 1 ? 's' : ''} ago`;
+    } else if (hours > 0) {
+        return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    } else {
+        return 'Just now';
+    }
+};
+
 // ------------------------------------------------------------------------------------------------ Meter Gauge Component.
-const MeterGauge = ({ score = 0, status, lastUpdated, minScore = 0, maxScore = 100 }) => {
+const MeterGauge = ({ score = 0, status, lastUpdated, minScore = 0, maxScore = 100, lastCalculated, countdown, growthData }) => {
 
     const requestRef = useRef();  // Ref 4 Request Animation Frame.
 
@@ -99,9 +117,6 @@ const MeterGauge = ({ score = 0, status, lastUpdated, minScore = 0, maxScore = 1
 
     // Set Display Status.
     const displayStatus = status || "Good";
-
-    // Set Display Last Updated.
-    const displayLastUpdated = lastUpdated || "Last Updated 10 Jul 2020";
 
     // Normalize Score (0-100).
     const normalizedScore = Math.max(0, Math.min(100, ((score - minScore) / (maxScore - minScore)) * 100));
@@ -174,15 +189,17 @@ const MeterGauge = ({ score = 0, status, lastUpdated, minScore = 0, maxScore = 1
     const gradientPosition = scorePercentage; // This Is Already 0-1.
     const markerColor = getColorFromGradient(gradientPosition); // Gets Marker Color. (Based On Location In Gradient)
 
-    // Format The Date.
-    const today = format(new Date(), 'MMM d, yyyy');
-
     // Determine User Percentile Color.
     let userPercent = 10;
     if (score >= 90) userPercent = 95;
     else if (score >= 75) userPercent = 75;
     else if (score >= 60) userPercent = 50;
     else if (score >= 45) userPercent = 25;
+
+    // Growth indicator logic
+    const hasGrowthData = growthData && growthData.has_growth_data;
+    const scoreChange = hasGrowthData ? growthData.current_score - growthData.previous_score : 0;
+    const showGrowthIndicator = hasGrowthData && Math.abs(scoreChange) > 0;
 
     return (
         <GaugeContainer>
@@ -255,8 +272,25 @@ const MeterGauge = ({ score = 0, status, lastUpdated, minScore = 0, maxScore = 1
                 <GaugeCenterText>
                         <GaugeScore color={markerColor}>{Math.round(animatedScore)}</GaugeScore>
                         <GaugeStatus>{displayStatus}</GaugeStatus>
+                        
+                        {/* Growth Indicator */}
+                        {showGrowthIndicator && (
+                            <GrowthIndicator $isPositive={scoreChange > 0}>
+                                <GrowthIcon>{scoreChange > 0 ? '↗' : '↘'}</GrowthIcon>
+                                <GrowthText>{Math.abs(scoreChange)} pts</GrowthText>
+                            </GrowthIndicator>
+                        )}
+                        
                         <GaugeUpdate>
-                            Last Updated <UpdateDate>{today}</UpdateDate>
+                            <UpdateInfo>
+                                <UpdateLabel>Last updated:</UpdateLabel>
+                                <UpdateTime>{formatLastUpdated(lastCalculated)}</UpdateTime>
+                            </UpdateInfo>
+                            {countdown && (
+                                <CountdownInfo>
+                                    <CountdownText>{countdown}</CountdownText>
+                                </CountdownInfo>
+                            )}
                         </GaugeUpdate>
                 </GaugeCenterText>
                 
@@ -320,23 +354,87 @@ const GaugeStatus = styled.div`
     font-weight: 600;
     color: var(--text-secondary);
 `;
+// -------------------------------------------------------- Growth Indicator.
+const GrowthIndicator = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    margin-top: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    background: ${props => props.$isPositive ? 'rgba(25, 135, 84, 0.15)' : 'rgba(220, 53, 69, 0.15)'};
+    border: 1px solid ${props => props.$isPositive ? 'rgba(25, 135, 84, 0.3)' : 'rgba(220, 53, 69, 0.3)'};
+    animation: ${props => props.$isPositive ? 'pulse' : 'shake'} 2s ease-in-out;
+    
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+    }
+    
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-2px); }
+        75% { transform: translateX(2px); }
+    }
+`;
+// -------------------------------------------------------- Growth Icon.
+const GrowthIcon = styled.span`
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: ${props => props.$isPositive ? 'rgb(25, 135, 84)' : 'rgb(220, 53, 69)'};
+`;
+// -------------------------------------------------------- Growth Text.
+const GrowthText = styled.span`
+    font-size: 1rem;
+    font-weight: 600;
+    color: ${props => props.$isPositive ? 'rgb(25, 135, 84)' : 'rgb(220, 53, 69)'};
+`;
 // -------------------------------------------------------- Gauge Update Text. (Last Updated ...)
 const GaugeUpdate = styled.div`
     margin-top: 0.5rem;
     margin-bottom: 0.25rem;
-    font-size: 1.1rem;
+    font-size: 1rem;
     color: var(--text-tertiary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5em 1.2em;
+`;
+// -------------------------------------------------------- Update Info Container.
+const UpdateInfo = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.25em;
-    padding: 0.5em 1.2em;
+    gap: 0.375em;
 `;
-// -------------------------------------------------------- Gauge Update Date Text. (... June 23rd, 2025)
-const UpdateDate = styled.div`
-    font-size: 1.1rem;
-    font-weight: 800;
+// -------------------------------------------------------- Update Label Text.
+const UpdateLabel = styled.div`
+    font-size: 1.25rem;
+    color: var(--text-tertiary);
+`;
+// -------------------------------------------------------- Update Time Text.
+const UpdateTime = styled.div`
+    font-size: 1.25rem;
+    font-weight: 600;
     background: linear-gradient(to right, var(--button-primary), var(--amount-positive));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+`;
+// -------------------------------------------------------- Countdown Info Container.
+const CountdownInfo = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+`;
+// -------------------------------------------------------- Countdown Text.
+const CountdownText = styled.div`
+    font-size: 1rem;
+    font-weight: 600;
+    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 `;

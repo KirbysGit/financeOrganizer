@@ -1,4 +1,6 @@
-# type_label_map.py
+# Imports.
+
+# -------------------------------------------------------- Transaction Type Labels.
 TRANSACTION_TYPE_LABELS = {
     "sale": "Purchase",
     "payment": "Credit Card Payment",
@@ -10,5 +12,6 @@ TRANSACTION_TYPE_LABELS = {
     "other": "Other",
 }
 
+# -------------------------------------------------------- Negative Types.
 NEGATIVE_TYPES = {"sale", "fee", "interest", "adjustment"}
 POSITIVE_TYPES = {"refund", "payment", "transfer"}

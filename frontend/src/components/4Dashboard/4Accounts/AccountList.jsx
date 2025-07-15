@@ -66,6 +66,12 @@ const AccountList = ({ myStats, myAccounts, onUpload, onRefresh, id }) => {
         importData();
     }, []);
 
+    // -------------------------------------------------------- Reset Expanded Account When Accounts Change.
+    useEffect(() => {
+        // Reset expanded account when accounts change to ensure no default expansion
+        setExpandedAccount(null);
+    }, [accounts]);
+
     // -------------------------------------------------------- Handle Click Outside Dropdown.
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -96,7 +102,16 @@ const AccountList = ({ myStats, myAccounts, onUpload, onRefresh, id }) => {
 
     // -------------------------------------------------------- Handle Account Toggle.
     const handleAccountToggle = (accountId) => {
-        setExpandedAccount(expandedAccount === accountId ? null : accountId);
+        console.log('Toggle account:', accountId, 'Current expanded:', expandedAccount);
+        // Handle null case properly - if accountId is null, toggle between null and a special value
+        if (accountId === null) {
+            setExpandedAccount(expandedAccount === 'CASH_ACCOUNT' ? null : 'CASH_ACCOUNT');
+        } else {
+            // Ensure both values are strings for consistent comparison
+            const currentExpanded = String(expandedAccount);
+            const newAccountId = String(accountId);
+            setExpandedAccount(currentExpanded === newAccountId ? null : accountId);
+        }
     };
 
     // Get Unique Account Types.
@@ -180,14 +195,25 @@ const AccountList = ({ myStats, myAccounts, onUpload, onRefresh, id }) => {
             <AccountListContainer>
                 {accounts
                     .filter(acc => selectedType === 'all' || acc.type === selectedType)
-                    .map((acc) => (
+                    .map((acc) => {
+                        // Handle null ID case for Cash account
+                        let isExpanded;
+                        if (acc.id === null) {
+                            isExpanded = expandedAccount === 'CASH_ACCOUNT';
+                        } else {
+                            // Ensure consistent string comparison
+                            isExpanded = String(expandedAccount) === String(acc.id);
+                        }
+                        console.log('Rendering account:', acc.name, 'ID:', acc.id, 'Expanded:', isExpanded);
+                        return (
                         <AccountCard 
-                            key={acc.id}
+                                key={acc.id || 'cash-account'}
                             account={acc}
-                            isExpanded={expandedAccount === acc.id}
+                                isExpanded={isExpanded}
                             onToggle={handleAccountToggle}
                         />
-            ))}
+                        );
+                    })}
             </AccountListContainer>
 
             {/* Plaid Modal */}

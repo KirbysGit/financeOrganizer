@@ -5,6 +5,8 @@ from pydantic import BaseModel, EmailStr
 from datetime import date, datetime
 from typing import Optional
 
+# -------------------------------------------------------- Transaction Models.
+
 # Transaction Create Model For Requests.
 class TransactionCreate(BaseModel):
     date: date
@@ -51,6 +53,8 @@ class TransactionOut(BaseModel):
     class Config:
         from_attributes = True
 
+# -------------------------------------------------------- File Upload Models.
+
 # FileUpload Out Model For Responses.
 class FileUploadOut(BaseModel):
     id: int
@@ -83,7 +87,8 @@ class UploadResponse(BaseModel):
     upload_timestamp: datetime
     processing_duration_ms: Optional[int] = None
 
-# Plaid Models.
+# -------------------------------------------------------- Plaid Models.
+
 class LinkTokenRequest(BaseModel):
     user_id: str
 
@@ -96,6 +101,8 @@ class PublicTokenExchangeRequest(BaseModel):
 class AccessTokenResponse(BaseModel):
     access_token: str
     item_id: str
+
+# -------------------------------------------------------- Account Models.
 
 # Account Out Model For Responses.
 class AccountOut(BaseModel):
@@ -132,7 +139,7 @@ class InstitutionOut(BaseModel):
     class Config:
         from_attributes = True
 
-# ================================================================= USER AUTHENTICATION MODELS
+# -------------------------------------------------------- User Authentication Models.
 
 # User Create Model For Registration.
 class UserCreate(BaseModel):
@@ -161,16 +168,9 @@ class UserOut(BaseModel):
     class Config:
         from_attributes = True
 
-# Google Authentication Model.
-class GoogleAuthRequest(BaseModel):
-    email: str
-    first_name: str
-    last_name: str
-    google_id: str
-    picture: Optional[str] = None
-    google_credential: str
+# -------------------------------------------------------- User Authentication Models.
 
-# Google Auth Code Model for auth-code flow.
+# Google Auth Code Model For Auth-Code Flow.
 class GoogleAuthCodeRequest(BaseModel):
     code: str
     redirect_uri: str
@@ -190,3 +190,71 @@ class PasswordResetRequest(BaseModel):
 class PasswordReset(BaseModel):
     token: str
     new_password: str
+
+# -------------------------------------------------------- Monthly Snapshot Models.
+
+# Monthly Snapshot Model For Tracking User Financial Metrics Over Time.
+class MonthlySnapshot(BaseModel):
+    id: int
+    user_id: int
+    snapshot_date: date  # First day of the month
+    net_worth: float
+    total_assets: float
+    total_liabilities: float
+    monthly_cash_flow: float
+    monthly_income: float
+    monthly_spending: float
+    transaction_count: int
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+# -------------------------------------------------------- Monthly Snapshot Create Model.
+
+class MonthlySnapshotCreate(BaseModel):
+    user_id: int
+    snapshot_date: date
+    net_worth: float
+    total_assets: float
+    total_liabilities: float
+    monthly_cash_flow: float
+    monthly_income: float
+    monthly_spending: float
+    transaction_count: int
+
+# Weekly Centi Score Model
+class WeeklyCentiScore(BaseModel):
+    id: int
+    user_id: int
+    score_date: date
+    total_score: int
+    net_worth_score: int
+    assets_score: int
+    liabilities_score: int
+    cash_flow_score: int
+    net_worth: float
+    total_assets: float
+    total_liabilities: float
+    monthly_cash_flow: float
+    transaction_count: int
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+# -------------------------------------------------------- Weekly Centi Score Create Model.
+
+class WeeklyCentiScoreCreate(BaseModel):
+    user_id: int
+    score_date: date
+    total_score: int
+    net_worth_score: int
+    assets_score: int
+    liabilities_score: int
+    cash_flow_score: int
+    net_worth: float
+    total_assets: float
+    total_liabilities: float
+    monthly_cash_flow: float
+    transaction_count: int

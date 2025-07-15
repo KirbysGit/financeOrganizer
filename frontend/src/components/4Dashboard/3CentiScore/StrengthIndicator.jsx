@@ -3,84 +3,133 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import MeterGauge from './MeterGauge';
 import ResultsCard from './ResultsCard';
+import { getCurrentCentiScore, getCentiScoreHistory, calculateWeeklyScore, getCentiScoreTrend, getCentiScoreGrowth } from '../../../services/api';
 
 // ------------------------------------------------------------------------------------------------ Strength Indicator Component.
 const StrengthIndicator = ({ myStats }) => {
     // State Management.
     const [score, setScore] = useState(null);                       // State 4 Storing Score.
     const [isLoading, setIsLoading] = useState(false);              // State 4 If Loading.
-    const [loadingStep, setLoadingStep] = useState(0);              // State 4 Loading Step.
+    const [loadingStage, setLoadingStage] = useState(0);            // State 4 Current Loading Stage.
     const [showPrompt, setShowPrompt] = useState(true);             // State 4 If Prompt Is Showing (e.g. Not Showing After Score Is Calculated).
     const [showResults, setShowResults] = useState(false);          // State 4 If Results Are Showing.
     const [loadingProgress, setLoadingProgress] = useState(0);      // State 4 Loading Progress.
     const [lastCalculated, setLastCalculated] = useState(null);     // State 4 When Score Was Last Calculated.
     const [scoreBreakdown, setScoreBreakdown] = useState(null);     // State 4 Score Breakdown.
+    const [isWeeklyScore, setIsWeeklyScore] = useState(false);     // State 4 If Score Is From Weekly Tracking.
+    const [nextUpdate, setNextUpdate] = useState(null);             // State 4 Next Update Time.
+    const [countdown, setCountdown] = useState('');                 // State 4 Countdown Display.
+    const [growthData, setGrowthData] = useState(null);             // State 4 Growth Analysis Data.
+
+    // Typewriter tagline messages
+    const stageMessages = [
+        'Grabbing your data …',
+        'Crunching the numbers …',
+        'Building insights …',
+    ];
+
+    const [tagline, setTagline] = useState(stageMessages[0]);
+
+    // Typewriter effect for loading messages
+    useEffect(() => {
+        if (isLoading && loadingStage > 0 && loadingStage <= stageMessages.length) {
+            setTagline(stageMessages[loadingStage - 1]);
+        }
+    }, [loadingStage, isLoading]);
+
+    // -------------------------------------------------------- Function 4 Getting Next Monday 12 AM.
+    const getNextMonday12AM = () => {
+        const now = new Date();
+        const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+        
+        // Calculate days until next Monday
+        let daysUntilNextMonday;
+        if (currentDay === 1) { // If it's Monday
+            daysUntilNextMonday = 7; // Next Monday is 7 days away
+        } else {
+            daysUntilNextMonday = (8 - currentDay) % 7; // Calculate days until next Monday
+        }
+        
+        const nextMonday = new Date(now);
+        nextMonday.setDate(now.getDate() + daysUntilNextMonday);
+        nextMonday.setHours(0, 0, 0, 0); // Set to 12:00 AM
+        return nextMonday;
+    };
+
+    // -------------------------------------------------------- Function 4 Formatting Countdown.
+    const formatCountdown = (targetDate) => {
+        const now = new Date();
+
+        console.log(targetDate);
+        const diff = targetDate - now;
+        
+        if (diff <= 0) return 'Updates soon';
+        
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        
+        if (days > 0) {
+            return `${days}d ${hours}h until next update`;
+        } else if (hours > 0) {
+            return `${hours}h ${minutes}m until next update`;
+        } else {
+            return `${minutes}m until next update`;
+        }
+    };
+
+    // -------------------------------------------------------- Function 4 Updating Countdown.
+    useEffect(() => {
+        if (!nextUpdate) return;
+        
+        const updateCountdown = () => {
+            setCountdown(formatCountdown(nextUpdate));
+        };
+        
+        updateCountdown();
+        const interval = setInterval(updateCountdown, 60000); // Update every minute
+        
+        return () => clearInterval(interval);
+    }, [nextUpdate]);
+
+    // -------------------------------------------------------- Function 4 Loading Growth Data.
+    const loadGrowthData = async () => {
+        try {
+            const response = await getCentiScoreGrowth();
+            setGrowthData(response.data);
+        } catch (error) {
+            console.error('Error loading growth data:', error);
+        }
+    };
 
     // -------------------------------------------------------- Function 4 Calculating Score.
     const handleCalculateClick = async () => {
         // Start "Loading" Process.
         setIsLoading(true);
         setLoadingProgress(0);
-        setLoadingStep(0);
+        setLoadingStage(0);
         const startTime = Date.now();
         
         try {
-            // Step 1: Analyzing Financial Data.
-            setLoadingStep(1);
-            setLoadingProgress(25);
+            // Stage 1: Grabbing your data
+            setLoadingStage(1);
+            setLoadingProgress(20);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Stage 2: Calculating the score
+            setLoadingStage(2);
+            setLoadingProgress(60);
+            await new Promise(resolve => setTimeout(resolve, 1200));
+            
+            // Stage 3: Generating insights
+            setLoadingStage(3);
+            setLoadingProgress(85);
             await new Promise(resolve => setTimeout(resolve, 800));
             
-            // Step 2: Calculating Net Worth Impact.
-            setLoadingStep(2);
-            setLoadingProgress(50);
-            await new Promise(resolve => setTimeout(resolve, 800));
+            // Call backend API to calculate and store weekly score
+            const response = await calculateWeeklyScore();
+            const scoreData = response.data;
             
-            // Step 3: Evaluating Assets & Liabilities.
-            setLoadingStep(3);
-            setLoadingProgress(75);
-            await new Promise(resolve => setTimeout(resolve, 800));
-            
-            // Step 4: Finalizing Score Calculation.
-            setLoadingStep(4);
-            setLoadingProgress(90);
-            await new Promise(resolve => setTimeout(resolve, 600));
-            
-            // Get Stats.
-            const netWorth = myStats?.totals?.net_worth || 0;
-            const assets = myStats?.totals?.total_assets || 0;
-            const liabilities = myStats?.totals?.total_liabilities || 0;
-            const cashFlow = myStats?.cash_flow?.last_30_days || 0;
-
-            // Calculate Individual Scores.
-            let netWorthScore = 0;
-            let assetsScore = 0;
-            let liabilitiesScore = 0;
-            let cashFlowScore = 0;
-            
-            // Net Worth Contribution (Up To 40 Points).
-            if (netWorth > 0) netWorthScore = Math.min(40, (netWorth / 100000) * 40);
-            
-            // Assets Contribution (Up To 30 Points).
-            if (assets > 0) assetsScore = Math.min(30, (assets / 100000) * 30);
-            
-            // Liabilities Contribution (Up To 20 Points).
-            if (liabilities === 0) liabilitiesScore = 20;
-            else liabilitiesScore = Math.max(0, 20 - (liabilities / 10000) * 20);
-            
-            // Cash Flow Contribution (Up To 10 Points).
-            if (cashFlow > 0) cashFlowScore = Math.min(10, (cashFlow / 5000) * 10);
-
-            // Calculate Final Score.
-            const calculatedScore = Math.round(netWorthScore + assetsScore + liabilitiesScore + cashFlowScore);
-            
-            // Store Breakdown For Display.
-            const scoreBreakdown = {
-                netWorth: { score: Math.round(netWorthScore), max: 40, value: netWorth },
-                assets: { score: Math.round(assetsScore), max: 30, value: assets },
-                liabilities: { score: Math.round(liabilitiesScore), max: 20, value: liabilities },
-                cashFlow: { score: Math.round(cashFlowScore), max: 10, value: cashFlow }
-            };
-
             // Ensure Minimum 3 Second Loading Time.
             const elapsedTime = Date.now() - startTime;
             const minimumLoadingTime = 3000; // 3 Seconds.
@@ -96,19 +145,52 @@ const StrengthIndicator = ({ myStats }) => {
             setLoadingProgress(100);
             await new Promise(resolve => setTimeout(resolve, 200));
 
-            // Set Score, Score Breakdown, Show Results, And Last Calculated Date.
-            setScore(calculatedScore);
-            setScoreBreakdown(scoreBreakdown);
+            // Set Score and show results
+            setScore(scoreData.total_score);
             setShowResults(true);
-            setLastCalculated(new Date());
+            setLastCalculated(new Date(scoreData.created_at));
+            
+            // Set next update time
+            setNextUpdate(getNextMonday12AM());
+            
+            // Fetch the updated score data for breakdown and growth
+            await loadCurrentScore();
+            await loadGrowthData();
+            
         } catch (error) {
             console.error('Error calculating financial strength:', error);
         } finally {
             setIsLoading(false);
             setLoadingProgress(0);
-            setLoadingStep(0);
+            setLoadingStage(0);
         }
     };
+
+    // -------------------------------------------------------- Load Current Score.
+    const loadCurrentScore = async () => {
+        try {
+            const response = await getCurrentCentiScore();
+            const scoreData = response.data;
+            
+            setScore(scoreData.score);
+            setScoreBreakdown(scoreData.breakdown);
+            setLastCalculated(scoreData.last_updated ? new Date(scoreData.last_updated) : new Date());
+            setIsWeeklyScore(scoreData.is_weekly_score || false);
+            
+            // Set next update time if we have a last calculated date
+            if (scoreData.last_updated) {
+                setNextUpdate(getNextMonday12AM());
+            }
+        } catch (error) {
+            console.error('Error loading current score:', error);
+        }
+    };
+
+    // -------------------------------------------------------- Load Score On Component Mount.
+    useEffect(() => {
+        loadCurrentScore();
+        loadGrowthData();
+    }, []);
 
     // -------------------------------------------------------- Return.
     return (
@@ -116,50 +198,34 @@ const StrengthIndicator = ({ myStats }) => {
             {showPrompt && !showResults && (
                 <PromptCard>
                     <LeftSide>
-                        <PromptTitle>Curious how your finances are doing?</PromptTitle>
+                        <PromptTitle>
+                            Curious how your finances are doing?
+                        </PromptTitle>
                         <PromptDescription>
-                            Get a quick snapshot of your financial strength and see where you stand compared to others.
+                            Your Centi Score is a friendly benchmark that updates weekly and whenever you add new financial data. It's designed to point you in the right direction for financial growth.
                         </PromptDescription>
                     </LeftSide>
                     <RightSide>
+                        <PromptQuestion>
+                            Want to see your Centi. score?
+                        </PromptQuestion>
                         <PromptButton onClick={() => {
                             setShowPrompt(false);
                             handleCalculateClick();
                         }}>
-                            Show Me My Score 🔍
+                            Sure, why not? ✨
                         </PromptButton>
                     </RightSide>
                 </PromptCard>
             )}
 
             {isLoading && (
-                <LoadingCard>
+                <LoadingCard isLoading={isLoading} showResults={showResults}>
                     <LoadingSpinner />
-                    <LoadingText>Calculating your Centi. Score...</LoadingText>
-                    <LoadingProgress>
-                        <ProgressBar>
-                            <ProgressFill $progress={loadingProgress} />
-                        </ProgressBar>
-                        <ProgressText>{loadingProgress}%</ProgressText>
-                    </LoadingProgress>
-                    <LoadingSteps>
-                        <LoadingStep $active={loadingStep >= 1} $completed={loadingStep > 1}>
-                            <StepIcon $completed={loadingStep > 1} $active={loadingStep >= 1}>{loadingStep > 1 ? '✓' : '1'}</StepIcon>
-                            <StepText>Analyzing financial data</StepText>
-                        </LoadingStep>
-                        <LoadingStep $active={loadingStep >= 2} $completed={loadingStep > 2}>
-                            <StepIcon $completed={loadingStep > 2} $active={loadingStep >= 2}>{loadingStep > 2 ? '✓' : '2'}</StepIcon>
-                            <StepText>Calculating net worth impact</StepText>
-                        </LoadingStep>
-                        <LoadingStep $active={loadingStep >= 3} $completed={loadingStep > 3}>
-                            <StepIcon $completed={loadingStep > 3} $active={loadingStep >= 3}>{loadingStep > 3 ? '✓' : '3'}</StepIcon>
-                            <StepText>Evaluating assets & liabilities</StepText>
-                        </LoadingStep>
-                        <LoadingStep $active={loadingStep >= 4} $completed={loadingStep > 4}>
-                            <StepIcon $completed={loadingStep > 4} $active={loadingStep >= 4}>{loadingStep > 4 ? '✓' : '4'}</StepIcon>
-                            <StepText>Finalizing score calculation</StepText>
-                        </LoadingStep>
-                    </LoadingSteps>
+                    <LoadingText>{tagline}</LoadingText>
+                    <ProgressBar>
+                        <Wave $progress={loadingProgress} />
+                    </ProgressBar>
                 </LoadingCard>
             )}
 
@@ -169,6 +235,10 @@ const StrengthIndicator = ({ myStats }) => {
                     lastCalculated={lastCalculated}
                     onRecalculate={handleCalculateClick}
                     scoreBreakdown={scoreBreakdown}
+                    isWeeklyScore={true}
+                    nextUpdate={nextUpdate}
+                    countdown={countdown}
+                    growthData={growthData}
                 />
             )}
         </StrengthIndicatorContainer>
@@ -181,7 +251,9 @@ const StrengthIndicator = ({ myStats }) => {
 const StrengthIndicatorContainer = styled.div`
     width: 90%;
     margin-bottom: 2rem;
+    position: relative;
 `;
+
 // -------------------------------------------------------- Card That Holds Text & Button.
 const PromptCard = styled.div`
     display: grid;
@@ -200,11 +272,6 @@ const PromptCard = styled.div`
         grid-template-columns: 1fr;
         gap: 1.5rem;
         padding: 1.5rem;
-    }
-    
-    &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
     }
     
     &::before {
@@ -248,24 +315,42 @@ const LeftSide = styled.div`
 // -------------------------------------------------------- Right Side Of Prompt Card. (Button)
 const RightSide = styled.div`
     display: flex;
+    flex-direction: column;
     text-align: center;
     justify-content: center;
     align-items: center;
     width: 100%;
     z-index: 1;
     position: relative;
+    gap: 1rem;
+`;
+
+// -------------------------------------------------------- Prompt Question.
+const PromptQuestion = styled.div`
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, #4f46e5, #10b981);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    
+    @media (max-width: 768px) {
+        font-size: 1.1rem;
+    }
 `;
 // -------------------------------------------------------- Prompt Title. ("Your Centi. Score")
 const PromptTitle = styled.h2`
-    font-size: 2.2rem;
+    font-size: 2.5rem;
     font-weight: 700;
-    margin-bottom: 1rem;
+    margin-bottom: 0.25rem;
     background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
+    width: max-content;
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     text-shadow: none;
-    line-height: 1.2;
     
     @media (max-width: 768px) {
         font-size: 1.8rem;
@@ -288,20 +373,21 @@ const PromptDescription = styled.p`
 // -------------------------------------------------------- Prompt Button. ("Show Me My Score 🔍")
 const PromptButton = styled.button`
     font: inherit;
-    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
+    background: linear-gradient(135deg, #4f46e5, #10b981);
     color: white;
     border: none;
     padding: 1.25rem 2rem;
     height: 100%;
-    border-radius: 16px;
+    border-radius: 20px;
     font-size: 1.2rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 6px 20px rgba(79, 70, 229, 0.25);
     min-height: 60px;
+    border: 2px solid transparent;
     
     @media (max-width: 768px) {
         padding: 1rem 2rem;
@@ -310,12 +396,14 @@ const PromptButton = styled.button`
     }
     
     &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        transform: translateY(-3px) scale(1.02);
+        box-shadow: 0 12px 30px rgba(79, 70, 229, 0.35);
+        background: linear-gradient(135deg, #6366f1, #059669);
+        border-color: rgba(255, 255, 255, 0.2);
     }
     
     &:active {
-        transform: translateY(0);
+        transform: translateY(-1px) scale(1.01);
         transition: all 0.1s ease;
     }
     
@@ -326,12 +414,31 @@ const PromptButton = styled.button`
         left: -100%;
         width: 100%;
         height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-        transition: left 0.5s;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        transition: left 0.6s ease-out;
     }
     
     &:hover::before {
         left: 100%;
+    }
+    
+    /* Add a subtle glow effect */
+    &::after {
+        content: '';
+        position: absolute;
+        top: -2px;
+        left: -2px;
+        right: -2px;
+        bottom: -2px;
+        background: linear-gradient(135deg, #4f46e5, #10b981);
+        border-radius: 22px;
+        z-index: -1;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    &:hover::after {
+        opacity: 0.3;
     }
 `;
 // -------------------------------------------------------- Card That Holds Loading Spinner & Text.
@@ -342,6 +449,15 @@ const LoadingCard = styled(PromptCard)`
     justify-content: center;
     gap: 1.5rem;
     padding: 2rem;
+    
+    ${props => props.isLoading === false && props.showResults && `
+        animation: pop 0.4s ease;
+        @keyframes pop {
+            0%   { transform: scale(.98); }
+            50%  { transform: scale(1.02); }
+            100% { transform: scale(1);    }
+        }
+    `}
 `;
 const LoadingSpinner = styled.div`
     width: 60px;
@@ -361,30 +477,38 @@ const LoadingText = styled.p`
     color: var(--text-secondary);
     font-weight: 500;
     text-align: center;
+    margin: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    animation: slideFade 0.6s ease;
+    
+    @keyframes slideFade {
+        from { opacity: 0; transform: translateY(6px); }
+        to   { opacity: 1; transform: translateY(0);   }
+    }
 `;
-// -------------------------------------------------------- Loading Progress.
-const LoadingProgress = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-    width: 100%;
-`;
+
+// -------------------------------------------------------- Liquid Progress Bar.
 const ProgressBar = styled.div`
     width: 100%;
-    height: 20px;
-    background: rgba(0, 0, 0, 0.1);
-    border-radius: 10px;
+    height: 16px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.08);
     overflow: hidden;
     position: relative;
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
 `;
-const ProgressFill = styled.div`
+
+const Wave = styled.div`
     height: 100%;
     width: ${props => props.$progress}%;
-    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
-    border-radius: 10px;
-    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(135deg, #4f46e5, #10b981);
+    position: absolute;
+    left: 0;
+    top: 0;
+    will-change: width;
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 8px;
     position: relative;
     overflow: hidden;
     
@@ -399,46 +523,26 @@ const ProgressFill = styled.div`
         animation: shimmer 2s infinite;
     }
     
+    &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+        animation: wave 3s linear infinite;
+    }
+    
     @keyframes shimmer {
         0% { left: -100%; }
         100% { left: 100%; }
     }
-`;
-const ProgressText = styled.div`
-    font-size: 1rem;
-    font-weight: 500;
-    color: var(--text-primary);
-`;
-// -------------------------------------------------------- Loading Steps.
-const LoadingSteps = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    margin-top: 1rem;
-`;
-const LoadingStep = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.25rem;
-    opacity: ${props => props.$active ? 1 : 0.3};
-    transform: ${props => props.$active ? 'scale(1)' : 'scale(0.9)'};
-    transition: all 0.3s ease;
-`;
-const StepIcon = styled.div`
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: ${props => props.$completed ? 'var(--amount-positive)' : props.$active ? 'var(--button-primary)' : 'var(--text-secondary)'};
-    transition: all 0.3s ease;
-`;
-const StepText = styled.div`
-    font-size: 0.8rem;
-    font-weight: 500;
-    color: var(--text-secondary);
-    text-align: center;
-    line-height: 1.2;
+    
+    @keyframes wave {
+        0% { transform: translateX(-100%) skewX(-15deg); }
+        100% { transform: translateX(200%) skewX(-15deg); }
+    }
 `;
 
 // Export Component.

@@ -15,17 +15,16 @@ from plaid.model.transactions_get_request import TransactionsGetRequest
 from plaid.model.link_token_create_request import LinkTokenCreateRequest
 from plaid.model.link_token_create_request_user import LinkTokenCreateRequestUser
 from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
-from plaid.model.item_get_request import ItemGetRequest
-from plaid.model.institutions_get_by_id_request import InstitutionsGetByIdRequest
 
 # Local Imports.
 from app.config import plaid_config
-from app.database import SessionLocal, Transaction, Account, Institution, User
-from app.models import LinkTokenRequest, PublicTokenExchangeRequest, LinkTokenResponse, AccessTokenResponse
 from app.utils.db_utils import get_db
 from app.utils.auth_utils import get_current_user
+from app.database import Transaction, Account, Institution, User
+from app.models import LinkTokenRequest, PublicTokenExchangeRequest, LinkTokenResponse, AccessTokenResponse
 
-router = APIRouter(prefix="/plaid", tags=["plaid"])     # Sets Up Modular Sub-Router For FastAPI.
+# Create Router Instance.
+router = APIRouter(prefix="/plaid", tags=["Plaid"])
 
 # ----------------------------------------------------------------------- Creates Plaid Link Token.
 @router.post("/create_link_token", response_model=LinkTokenResponse)

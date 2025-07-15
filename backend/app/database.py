@@ -1,10 +1,11 @@
 # Note : These Defines Actual Database Schemas.
 
 # Imports.
+import os
+from datetime import datetime
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine, Column, Integer, String, Float, Date, DateTime, Boolean, ForeignKey, Text
-import os
 
 # Create Base Class For ORM Models.
 Base = declarative_base()
@@ -13,19 +14,19 @@ Base = declarative_base()
 class User(Base):
     __tablename__ = "users"
     
-    id = Column(Integer, primary_key=True, index=True)      # User ID in DB. (Auto-Incrementing Primary Key)
-    first_name = Column(String, nullable=False)             # User's First Name.
-    last_name = Column(String, nullable=False)              # User's Last Name.
-    email = Column(String, unique=True, index=True, nullable=False)  # User's Email Address. (Unique, Indexed)
-    hashed_password = Column(String, nullable=False)        # Hashed Password. (Never Store Plain Text)
+    id = Column(Integer, primary_key=True, index=True)                  # User ID in DB. (Auto-Incrementing Primary Key)
+    first_name = Column(String, nullable=False)                         # User's First Name.
+    last_name = Column(String, nullable=False)                          # User's Last Name.
+    email = Column(String, unique=True, index=True, nullable=False)     # User's Email Address. (Unique, Indexed)
+    hashed_password = Column(String, nullable=False)                    # Hashed Password. (Never Store Plain Text)
     
     # Account Status.
     is_active = Column(Boolean, default=True)               # Whether User Account Is Active.
     is_verified = Column(Boolean, default=False)            # Whether Email Has Been Verified.
     
     # Google OAuth Fields.
-    google_id = Column(String, unique=True, index=True, nullable=True)  # Google User ID.
-    picture = Column(String, nullable=True)                 # Google Profile Picture URL.
+    google_id = Column(String, unique=True, index=True, nullable=True)      # Google User ID.
+    picture = Column(String, nullable=True)                                 # Google Profile Picture URL.
     
     # Metadata.
     created_at = Column(DateTime)                           # When User Account Was Created.
@@ -33,10 +34,10 @@ class User(Base):
     last_login = Column(DateTime)                           # When User Last Logged In.
     
     # Relationships.
-    accounts = relationship("Account", back_populates="user")  # One-To-Many Relationship With Accounts.
-    transactions = relationship("Transaction", back_populates="user")  # One-To-Many Relationship With Transactions.
-    institutions = relationship("Institution", back_populates="user")  # One-To-Many Relationship With Institutions.
-    file_uploads = relationship("FileUpload", back_populates="user")  # One-To-Many Relationship With File Uploads.
+    accounts = relationship("Account", back_populates="user")           # One-To-Many Relationship With Accounts.
+    transactions = relationship("Transaction", back_populates="user")   # One-To-Many Relationship With Transactions.
+    institutions = relationship("Institution", back_populates="user")   # One-To-Many Relationship With Institutions.
+    file_uploads = relationship("FileUpload", back_populates="user")    # One-To-Many Relationship With File Uploads.
 
 # -------------------------------------------------------- Account Model
 class Account(Base):
@@ -188,6 +189,57 @@ class FileUpload(Base):
     
     # Relationships.
     user = relationship("User", back_populates="file_uploads")
+
+# -------------------------------------------------------- Monthly Snapshot Model
+class MonthlySnapshot(Base):
+    __tablename__ = "monthly_snapshots"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    snapshot_date = Column(Date, index=True)  # First day of the month
+    
+    # Financial metrics
+    net_worth = Column(Float, default=0.0)
+    total_assets = Column(Float, default=0.0)
+    total_liabilities = Column(Float, default=0.0)
+    monthly_cash_flow = Column(Float, default=0.0)
+    monthly_income = Column(Float, default=0.0)
+    monthly_spending = Column(Float, default=0.0)
+    transaction_count = Column(Integer, default=0)
+    
+    # Metadata
+    created_at = Column(DateTime)
+    
+    # Relationships
+    user = relationship("User")
+
+# -------------------------------------------------------- Weekly Centi Score Model
+class WeeklyCentiScore(Base):
+    __tablename__ = "weekly_centi_scores"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    score_date = Column(Date, index=True)  # Monday of the week
+    
+    # Score components
+    total_score = Column(Integer, default=0)
+    net_worth_score = Column(Integer, default=0)
+    assets_score = Column(Integer, default=0)
+    liabilities_score = Column(Integer, default=0)
+    cash_flow_score = Column(Integer, default=0)
+    
+    # Financial data at time of calculation
+    net_worth = Column(Float, default=0.0)
+    total_assets = Column(Float, default=0.0)
+    total_liabilities = Column(Float, default=0.0)
+    monthly_cash_flow = Column(Float, default=0.0)
+    transaction_count = Column(Integer, default=0)
+    
+    # Metadata
+    created_at = Column(DateTime, default=datetime.now())
+    
+    # Relationships
+    user = relationship("User")
 
 # Database Setup.
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./finance_tracker.db")

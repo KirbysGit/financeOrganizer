@@ -1,15 +1,18 @@
 // Imports.
-import React, { useState } from 'react';
+import React from 'react';
+import { useState } from 'react';
 import { styled } from 'styled-components';
-import { useGoogleLogin, useGoogleOneTapLogin } from '@react-oauth/google';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
+import { useGoogleLogin, useGoogleOneTapLogin } from '@react-oauth/google';
 
 // Local Imports.
-import '../../../styles/colors.css';
-import colorScheme from '../../../images/colorSchemeIcon.png';
-import googleLogo from '../../../images/googleLogo.png';
-import { loginUser, googleAuth, googleAuthCode } from '../../../services/api';
+import '../../../styles/colors.css';                                // Styling 4 JS.
+import googleLogo from '../../../images/googleLogo.png';            // Google Logo Used In Google Button.
+import colorScheme from '../../../images/colorSchemeIcon.png';      // Centi Logo Used In Modal.
+
+// API Imports.
+import { loginUser, googleAuthCode } from '../../../services/api';
 
 // -------------------------------------------------------- LoginModal Component.
 const LoginModal = ({ onLoginSuccess, onShowSignUp }) => {
@@ -20,35 +23,46 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp }) => {
     });
     
     // UI States.
-    const [showPassword, setShowPassword] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
-    const [errors, setErrors] = useState({});
-    const [successStates, setSuccessStates] = useState({});
+    const [errors, setErrors] = useState({});                 // State 4 Errors.
+    const [isLoading, setIsLoading] = useState(false);        // State 4 Loading.
+    const [successStates, setSuccessStates] = useState({});   // State 4 Success States.
+    const [showPassword, setShowPassword] = useState(false);  // State 4 Show Password.
 
     // -------------------------------------------------------- Validation Functions.
     const validateEmail = (value) => {
+        // If Email Is Empty, Return Error.
         if (!value.trim()) return 'Email is required';
+
+        // If Email Is Invalid, Return Error. (Must Be In Format: 'user@example.com')
         const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
         if (!emailRegex.test(value.trim())) {
             return 'Please enter a valid email address (e.g., user@example.com)';
         }
+
+        // If Email Is Valid, Return Empty String.
         return '';
     };
 
     const validatePassword = (value) => {
-        if (!value) return 'Password is required';
+        // If Password Is Empty, Return Error.
+        if (!value) return 'Password is required.';
+
+        // If Password Is Valid, Return Empty String.
         return '';
     };
 
     // -------------------------------------------------------- Handle Input Changes with Validation.
     const handleInputChange = (e) => {
+        // Get Name & Value From Input.
         const { name, value } = e.target;
+
+        // Update Form Data. (Prev State + New Value)
         setFormData(prev => ({
             ...prev,
             [name]: value
         }));
         
-        // Real-time validation
+        // Real-time Validation.
         let errorMessage = '';
         switch (name) {
             case 'email':
@@ -61,12 +75,13 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp }) => {
                 break;
         }
         
+        // Update Errors. (Prev State + New Error)
         setErrors(prev => ({
             ...prev,
             [name]: errorMessage
         }));
         
-        // Update success states
+        // Update Success States. (Prev State + New Success State)
         setSuccessStates(prev => ({
             ...prev,
             [name]: !errorMessage && value.trim() !== ''
@@ -75,9 +90,12 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp }) => {
 
     // -------------------------------------------------------- Handle Form Submission.
     const handleSubmit = async (e) => {
+        // Prevent Default Form Submission.
         e.preventDefault();
+
+        // Set Loading State To True.
         setIsLoading(true);
-        
+
         // Comprehensive Validation.
         const newErrors = {};
         newErrors.email = validateEmail(formData.email);
@@ -88,6 +106,7 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp }) => {
             Object.entries(newErrors).filter(([_, value]) => value !== '')
         );
 
+        // If There Are Errors, Set Errors & Loading State To False.
         if (Object.keys(filteredErrors).length > 0) {
             setErrors(filteredErrors);
             setIsLoading(false);
@@ -96,23 +115,25 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp }) => {
 
         // Call The Login API.
         try {
-            console.log('LoginModal: Form submitted successfully, calling login API...');
-            
+            // Create Credentials Object.
             const credentials = {
                 email: formData.email,
                 password: formData.password
             };
             
+            // Call The Login API.
             const response = await loginUser(credentials);
-            console.log('LoginModal: Login successful:', response.data);
             
-            // Store The Access Token In Local Storage.
-            localStorage.setItem('access_token', response.data.access_token);
+            // Store User Data In Local Storage. (Cookies Handle The Token Automatically)
             localStorage.setItem('user', JSON.stringify(response.data.user));
             
+            // Call OnLoginSuccess Callback.
             onLoginSuccess();
         } catch (error) {
+            // Log Login Failure.
             console.error('Login failed:', error);
+
+            // If There Are Errors, Set Errors.
             if (error.response?.data?.detail) {
                 setErrors({ general: error.response.data.detail });
             } else {
@@ -127,38 +148,36 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp }) => {
     const handleGoogleSuccess = async (response) => {
         try {
             setIsLoading(true);
-            console.log('Google Sign In Success:', response);
             
-            // For auth-code flow, we send the authorization code to the backend
-            // The backend will exchange it for tokens and user info
+            // For Auth-Code Flow, We Send The Authorization Code To The Backend.
+            // The Backend Will Exchange It For Tokens And User Info.
             const authData = {
                 code: response.code,
                 redirect_uri: window.location.origin
             };
             
-            console.log('Sending authorization code to backend:', authData);
-            
-            // Send authorization code to backend for authentication/registration
+            // Send Authorization Code To Backend For Authentication/Registration.
             const authResponse = await googleAuthCode(authData);
             const authResult = authResponse.data;
-            console.log('Backend Google auth response:', authResult);
             
-            // Store the access token and user data
-            localStorage.setItem('access_token', authResult.access_token);
+            // Store User Data In Local Storage. (Cookies Handle The Token Automatically)
             localStorage.setItem('user', JSON.stringify(authResult.user));
             
-            // Call onLoginSuccess callback
+            // Call OnLoginSuccess Callback.
             onLoginSuccess();
             
         } catch (error) {
+            // Log Google Authentication Failure.
             console.error('Google authentication failed:', error);
+
+            // If There Are Errors, Set Errors.
             if (error.response?.status === 409) {
-                // Account already exists with password - show specific message
+                // Account Already Exists With Password - Show Specific Message.
                 setErrors({ 
                     general: 'This email is already registered with a password. Please sign in with your password instead.' 
                 });
             } else if (error.response?.status === 500) {
-                // Server error - likely account conflict
+                // Server Error - Likely Account Conflict.
                 setErrors({ 
                     general: 'This email is already registered. Please sign in with your password instead.'
                 });
@@ -184,7 +203,10 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp }) => {
     const googleLogin = useGoogleLogin({
         onSuccess: handleGoogleSuccess,
         onError: () => {
+            // Log Google Sign In Failure.
             console.error('Google Sign In Failed');
+
+            // Set Errors.
             setErrors({ general: 'Google sign in failed. Please try again.' });
         },
         flow: 'auth-code',
@@ -194,7 +216,7 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp }) => {
 
     // -------------------------------------------------------- Custom Google Login with Centered Popup.
     const handleCustomGoogleLogin = () => {
-        // Add a visual indicator that popup is opening
+        // Add A Visual Indicator That Popup Is Opening.
         const button = document.querySelector('.google-login-button');
         if (button) {
             button.style.transform = 'scale(0.95)';
@@ -203,7 +225,7 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp }) => {
             }, 150);
         }
         
-        // Use the Google login function
+        // Use The Google Login Function.
         googleLogin();
     };
 

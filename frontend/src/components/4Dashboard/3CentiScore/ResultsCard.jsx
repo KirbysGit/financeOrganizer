@@ -5,6 +5,11 @@ import { keyframes } from 'styled-components';
 
 // Local Imports.
 import MeterGauge from './MeterGauge';
+import { 
+    getPersonalizedPositiveInsights, 
+    getPersonalizedGrowthAreas, 
+    getPersonalizedActionSteps 
+} from './PersonalizedInsight';
 
 // ------------------------------------------------------------------------------------------------ Keyframes.
 const fadeInUp = keyframes`
@@ -17,6 +22,7 @@ const fadeInUp = keyframes`
     opacity: 1;
   }
 `;
+
 // ------------------------------------------------------------------------------------------------ Functions.
 // -------------------------------------------------------- Function 4 Formatting Currency.
 const formatCurrency = (amount) => {
@@ -27,108 +33,82 @@ const formatCurrency = (amount) => {
     }).format(amount);
 };
 
+// -------------------------------------------------------- Function 4 Formatting Last Updated Time.
+const formatLastUpdated = (date) => {
+    if (!date) return 'Never';
+    
+    const now = new Date();
+    const diff = now - date;
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    
+    if (days > 0) {
+        return `${days} day${days > 1 ? 's' : ''} ago`;
+    } else if (hours > 0) {
+        return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    } else {
+        return 'Just now';
+    }
+};
+
 // ------------------------------------------------------------------------------------------------ Results Card Component.
-const ResultsCard = ({ score, lastCalculated, onRecalculate, scoreBreakdown }) => {
+const ResultsCard = ({ score, lastCalculated, onRecalculate, scoreBreakdown, userStats = {}, nextUpdate, countdown, growthData }) => {
     const [infoVisible, setInfoVisible] = useState(false); // State 4 Info Panel Visibility.
 
     // Function 4 Toggling Info Panel Visibility.
     const toggleInfoPanel = () => setInfoVisible(v => !v);
 
-    // -------------------------------------------------------- Function 4 Getting Personalized Positive Message.
-    const getPositiveMessage = () => {
-        if (!scoreBreakdown) return "Great job on your financial journey!";
-        
-        const { netWorth, assets, liabilities, cashFlow } = scoreBreakdown;
-        const positives = [];
-        
-        if (netWorth.value > 50000) {
-            positives.push(`Your net worth of ${formatCurrency(netWorth.value)} is much above the average Centi user! 🎉`);
-        } else if (netWorth.value > 0) {
-            positives.push(`You have a positive net worth of ${formatCurrency(netWorth.value)} - that's a great foundation! 💪`);
+    // Get personalized insights using the new utility
+    const positiveInsight = getPersonalizedPositiveInsights(scoreBreakdown, userStats);
+    const growthArea = getPersonalizedGrowthAreas(scoreBreakdown, userStats);
+    const actionStep = getPersonalizedActionSteps(scoreBreakdown, userStats);
+
+    // Growth insights
+    const getGrowthInsight = () => {
+        if (!growthData || !growthData.has_growth_data) {
+            return null;
         }
+
+        const { current_score, previous_score, change, change_percentage } = growthData;
         
-        if (assets.value > 100000) {
-            positives.push(`Your assets of ${formatCurrency(assets.value)} show strong financial growth! 📈`);
-        } else if (assets.value > 0) {
-            positives.push(`You're building assets worth ${formatCurrency(assets.value)} - keep it up! 🏗️`);
+        if (change > 0) {
+            if (change >= 5) {
+                return {
+                    message: `Excellent progress! Your score jumped ${change} points (${change_percentage}% increase). You're building strong financial momentum!`,
+                    type: 'positive'
+                };
+            } else if (change >= 2) {
+                return {
+                    message: `Great improvement! Your score increased by ${change} points. Keep up the good work!`,
+                    type: 'positive'
+                };
+            } else {
+                return {
+                    message: `Small but steady progress! Your score went up ${change} points. Every improvement counts.`,
+                    type: 'positive'
+                };
+            }
+        } else if (change < 0) {
+            if (change <= -5) {
+                return {
+                    message: `Your score dropped ${Math.abs(change)} points. This might be a good time to review your spending habits and financial goals.`,
+                    type: 'negative'
+                };
+            } else {
+                return {
+                    message: `Your score decreased slightly by ${Math.abs(change)} points. Small setbacks are normal - focus on your long-term goals.`,
+                    type: 'negative'
+                };
+            }
+        } else {
+            return {
+                message: "Your score stayed the same. Consistency is key - keep maintaining your good financial habits!",
+                type: 'neutral'
+            };
         }
-        
-        if (liabilities.value === 0) {
-            positives.push(`You're debt-free! That's an incredible achievement! 🎊`);
-        } else if (liabilities.value < 10000) {
-            positives.push(`Your low debt level of ${formatCurrency(liabilities.value)} is manageable! ✅`);
-        }
-        
-        if (cashFlow.value > 2000) {
-            positives.push(`Your positive cash flow of ${formatCurrency(cashFlow.value)} shows great income management! 💰`);
-        } else if (cashFlow.value > 0) {
-            positives.push(`You have positive cash flow of ${formatCurrency(cashFlow.value)} - that's the right direction! ➕`);
-        }
-        
-        return positives.length > 0 ? positives[0] : "You're making progress on your financial goals! 🌱";
     };
 
-    // -------------------------------------------------------- Function 4 Getting Personalized Negative Message.
-    const getNegativeMessage = () => {
-        if (!scoreBreakdown) return "Focus on building your financial foundation.";
-        
-        const { netWorth, assets, liabilities, cashFlow } = scoreBreakdown;
-        const negatives = [];
-        
-        if (netWorth.value < 0) {
-            negatives.push(`Your negative net worth of ${formatCurrency(Math.abs(netWorth.value))} needs attention.`);
-        } else if (netWorth.value < 10000) {
-            negatives.push(`Your net worth of ${formatCurrency(netWorth.value)} is below average.`);
-        }
-        
-        if (liabilities.value > 50000) {
-            negatives.push(`Your high debt of ${formatCurrency(liabilities.value)} is impacting your score significantly.`);
-        } else if (liabilities.value > 10000) {
-            negatives.push(`Your debt of ${formatCurrency(liabilities.value)} is above recommended levels.`);
-        }
-        
-        if (cashFlow.value < 0) {
-            negatives.push(`Your negative cash flow of ${formatCurrency(Math.abs(cashFlow.value))} indicates spending more than you earn.`);
-        } else if (cashFlow.value < 500) {
-            negatives.push(`Your low cash flow of ${formatCurrency(cashFlow.value)} limits your savings potential.`);
-        }
-        
-        if (assets.value < 10000) {
-            negatives.push(`Your low asset base of ${formatCurrency(assets.value)} limits your financial security.`);
-        }
-        
-        return negatives.length > 0 ? negatives[0] : "Consider building an emergency fund and reducing debt.";
-    };
-
-    // -------------------------------------------------------- Function 4 Getting How To Improve Message.
-    const getHowToImprove = () => {
-        if (!scoreBreakdown) return "Focus on building savings and reducing debt.";
-        
-        const { netWorth, assets, liabilities, cashFlow } = scoreBreakdown;
-        const improvements = [];
-        
-        if (netWorth.value < 0) {
-            improvements.push("Prioritize paying off debt to achieve positive net worth.");
-        }
-        
-        if (liabilities.value > 10000) {
-            improvements.push("Focus on debt reduction, starting with high-interest loans.");
-        }
-        
-        if (cashFlow.value < 1000) {
-            improvements.push("Increase income or reduce expenses to improve cash flow.");
-        }
-        
-        if (assets.value < 50000) {
-            improvements.push("Build emergency fund and invest in appreciating assets.");
-        }
-        
-        if (score < 60) {
-            improvements.push("Create a budget and stick to it consistently.");
-        }
-        
-        return improvements.length > 0 ? improvements[0] : "Continue building your emergency fund and investing regularly.";
-    };
+    const growthInsight = getGrowthInsight();
 
     return (
         <ResultsCardContainer>
@@ -158,7 +138,12 @@ const ResultsCard = ({ score, lastCalculated, onRecalculate, scoreBreakdown }) =
                         <ScoreTitle>Your Centi. Score</ScoreTitle>
                         <ScoreSubtitle>A friendly benchmark for your financial health</ScoreSubtitle>
                     </ScoreTitleContainer>
-                    <MeterGauge score={score}/>
+                    <MeterGauge 
+                        score={score}
+                        lastCalculated={lastCalculated}
+                        countdown={countdown}
+                        growthData={growthData}
+                    />
                 
                 </LeftColumn>
                 
@@ -167,22 +152,32 @@ const ResultsCard = ({ score, lastCalculated, onRecalculate, scoreBreakdown }) =
                         <PositiveHeader>
                             You're doing great at these <span className="emoji">👏</span>
                         </PositiveHeader>
-                        <MessageText>{getPositiveMessage()}</MessageText>
+                        <MessageText>{positiveInsight.message}</MessageText>
                     </MessageContainer>
 
                     <MessageContainer>
                         <NegativeHeader>
                             Where there's room to grow <span className="emoji">🌱</span>
                         </NegativeHeader>
-                        <MessageText>{getNegativeMessage()}</MessageText>
+                        <MessageText>{growthArea.message}</MessageText>
                     </MessageContainer>
 
                     <MessageContainer>
                         <HowToImproveHeader>
                             Tips to level up <span className="emoji">📈</span>
                         </HowToImproveHeader>
-                        <MessageText>{getHowToImprove()}</MessageText>
+                        <MessageText>{actionStep.message}</MessageText>
                     </MessageContainer>
+
+                    {/* Growth Insight */}
+                    {growthInsight && (
+                        <MessageContainer>
+                            <GrowthInsightHeader $type={growthInsight.type}>
+                                How you're trending <span className="emoji">📊</span>
+                            </GrowthInsightHeader>
+                            <MessageText>{growthInsight.message}</MessageText>
+                        </MessageContainer>
+                    )}
                     
                 </RightColumn>
             </ResultsGrid>
@@ -400,6 +395,35 @@ const HowToImproveHeader = styled(MessageHeader)`
     
     &::before {
         background: linear-gradient(135deg, rgb(13, 110, 253), rgb(120, 88, 209));
+    }
+`;
+// -------------------------------------------------------- Growth Insight Header.
+const GrowthInsightHeader = styled(MessageHeader)`
+    background: ${props => {
+        switch (props.$type) {
+            case 'positive':
+                return 'linear-gradient(135deg, rgb(25, 135, 84), rgb(40, 167, 69))';
+            case 'negative':
+                return 'linear-gradient(135deg, rgb(220, 53, 69), rgb(220, 53, 69))';
+            default:
+                return 'linear-gradient(135deg, rgb(108, 117, 125), rgb(108, 117, 125))';
+        }
+    }};
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    
+    &::before {
+        background: ${props => {
+            switch (props.$type) {
+                case 'positive':
+                    return 'linear-gradient(135deg, rgb(25, 135, 84), rgb(40, 167, 69))';
+                case 'negative':
+                    return 'linear-gradient(135deg, rgb(220, 53, 69), rgb(220, 53, 69))';
+                default:
+                    return 'linear-gradient(135deg, rgb(108, 117, 125), rgb(108, 117, 125))';
+            }
+        }};
     }
 `;
 // -------------------------------------------------------- Slide-in Info Panel.

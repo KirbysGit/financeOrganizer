@@ -24,11 +24,11 @@ import { fetchTransactions, deleteTransaction } from '../../services/api';
 
 // Loading Steps Configuration.
 const LOADING_STEPS = [
-    { icon: faUser, message: "Grabbing your data...", duration: 1000 },
-    { icon: faDatabase, message: "Connecting to accounts...", duration: 1000 },
-    { icon: faSync, message: "Syncing transactions...", duration: 1000 },
-    { icon: faChartLine, message: "Calculating insights...", duration: 1000 },
-    { icon: faPalette, message: "Making it beautiful...", duration: 1000 },
+    { icon: faUser, message: "Grabbing your data...", duration: 600 },
+    { icon: faDatabase, message: "Connecting to accounts...", duration: 600 },
+    { icon: faSync, message: "Syncing transactions...", duration: 600 },
+    { icon: faChartLine, message: "Calculating insights...", duration: 600 },
+    { icon: faPalette, message: "Making it beautiful...", duration: 600 },
 ];
 
 // Animation keyframes
@@ -74,39 +74,33 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
     // -------------------------------------------------------- Loading Animation Effect.
     useEffect(() => {
         if (loading) {
-            // Reset loading state
+            // Reset Loading State.
             setLoadingStep(0);
             setLoadingProgress(0);
             setIsTransitioning(false);
             setShowDashboard(false);
             
-            const totalDuration = LOADING_STEPS.reduce((sum, step) => sum + step.duration, 0);
-            const minLoadingTime = 5000; // 4 seconds minimum
-            const actualLoadingTime = Math.max(minLoadingTime, totalDuration);
-            
+            // Fixed 3-Second Loading Time.
+            const loadingTime = 3000;
             let currentTime = 0;
             let currentStep = 0;
             
             const interval = setInterval(() => {
                 currentTime += 100;
-                const progress = Math.min(currentTime / actualLoadingTime, 1);
+                const progress = Math.min(currentTime / loadingTime, 1);
                 setLoadingProgress(progress);
                 
-                // Calculate current step based on total duration, not actual loading time
-                let stepTime = 0;
-                for (let i = 0; i < LOADING_STEPS.length; i++) {
-                    stepTime += LOADING_STEPS[i].duration;
-                    if (currentTime <= stepTime) {
-                        if (i !== currentStep) {
-                            currentStep = i;
-                            setIsTransitioning(true);
-                            setTimeout(() => {
-                                setLoadingStep(i);
-                                setIsTransitioning(false);
-                            }, 500); // Half of the transition time
-                        }
-                        break;
-                    }
+                // Calculate current step based on progress
+                const stepDuration = loadingTime / LOADING_STEPS.length;
+                const newStep = Math.min(Math.floor(currentTime / stepDuration), LOADING_STEPS.length - 1);
+                
+                if (newStep !== currentStep) {
+                    currentStep = newStep;
+                    setIsTransitioning(true);
+                    setTimeout(() => {
+                        setLoadingStep(newStep);
+                        setIsTransitioning(false);
+                    }, 250);
                 }
                 
                 if (progress >= 1) {
@@ -157,15 +151,14 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
             loadAccounts()
         ]);
 
-        // Ensure minimum loading time of 4 seconds
-        const minLoadingTime = 5000;
-        const startTime = Date.now();
+        // Fixed 3-second loading time
+        const loadingTime = 3000;
 
         try {
-            // Wait for both the data loading and minimum time
+            // Wait for both the data loading and fixed time
             await Promise.all([
                 loadingPromise,
-                new Promise(resolve => setTimeout(resolve, minLoadingTime))
+                new Promise(resolve => setTimeout(resolve, loadingTime))
             ]);
         } catch (err) {
             // Display Error To Console.
@@ -304,7 +297,7 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
         }
     };
 
-    // UI Component.
+    // -------------------------------------------------------- Return JSX.
     return (
         <DashboardContainer>
             <ExpenseContainer>
@@ -406,6 +399,7 @@ const DashboardContent = styled.div`
 // -------------------------------------------------------- Animated NavBar.
 const AnimatedNavBar = styled.div`
     width: 100%;
+    z-index: 1000;
     animation: ${slideDown} 0.5s ease-out forwards;
 `;
 

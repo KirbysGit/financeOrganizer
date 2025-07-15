@@ -10,7 +10,7 @@ import { faEye, faEyeSlash, faCheck, faX } from '@fortawesome/free-solid-svg-ico
 import '../../../styles/colors.css';
 import colorScheme from '../../../images/colorSchemeIcon.png';
 import googleLogo from '../../../images/googleLogo.png';
-import { registerUser, googleAuth, googleAuthCode } from '../../../services/api';
+import { registerUser, googleAuthCode } from '../../../services/api';
 
 // -------------------------------------------------------- SignUpModal Component.
 const SignUpModal = ({ onSignUpSuccess, onShowLogin }) => {
@@ -189,8 +189,7 @@ const SignUpModal = ({ onSignUpSuccess, onShowLogin }) => {
             const response = await registerUser(userData);
             console.log('SignUpModal: Registration successful:', response.data);
             
-            // Store the Access Token in Local Storage.
-            localStorage.setItem('access_token', response.data.access_token);
+            // Store user data in localStorage (cookies handle the token automatically)
             localStorage.setItem('user', JSON.stringify(response.data.user));
             
             // Call onSignUpSuccess Callback.
@@ -227,8 +226,7 @@ const SignUpModal = ({ onSignUpSuccess, onShowLogin }) => {
             const authResult = authResponse.data;
             console.log('Backend Google auth response:', authResult);
             
-            // Store the access token and user data
-            localStorage.setItem('access_token', authResult.access_token);
+            // Store user data in localStorage (cookies handle the token automatically)
             localStorage.setItem('user', JSON.stringify(authResult.user));
             
             // Call onSignUpSuccess callback

@@ -14,9 +14,10 @@ from app.utils.auth_utils import get_current_user
 from app.database import Transaction, FileUpload, Account, User
 from app.models import UploadResponse
 
-router = APIRouter()    # Sets Up Modular Sub-Router for FastAPI.
+# Create Router Instance.
+router = APIRouter(tags=["Upload"])
 
-# ----------------------------------------------------------------------- Upload CSV File.
+# -------------------------------------------------------- Upload CSV File.
 @router.post("/upload", response_model=UploadResponse)
 async def upload_csv(
     file: UploadFile = File(...), 
@@ -24,7 +25,10 @@ async def upload_csv(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    start_time = time.time()  # Track processing time
+    """Upload A CSV File And Process Transactions."""
+
+    # Track Processing Time.
+    start_time = time.time()
     
     # Check If File Is CSV.
     if not file.filename.endswith('.csv'):

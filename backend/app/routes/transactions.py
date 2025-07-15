@@ -2,7 +2,7 @@
 from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from fastapi import APIRouter, Depends, HTTPException
 
 # Local Imports.
@@ -10,11 +10,13 @@ from app.utils.db_utils import get_db
 from app.utils.auth_utils import get_current_user
 from app.models import TransactionOut, TransactionCreate
 from app.utils.type_label_map import NEGATIVE_TYPES, POSITIVE_TYPES
-from app.database import Transaction, FileUpload, Account, Institution, User
+from app.database import Transaction, FileUpload, Account, Institution, User, MonthlySnapshot
+from app.utils.snapshot_utils import (create_monthly_snapshot, get_previous_month_snapshot, get_growth_context)
 
-router = APIRouter()    # Sets Up Modular Sub-Router for FastAPI.
+# Create Router Instance.
+router = APIRouter(tags=["Transactions"])
 
-# ----------------------------------------------------------------------- Get All Transactions.
+# -------------------------------------------------------- Get All Transactions.
 @router.get("/transactions", response_model=list[TransactionOut])
 def get_transactions(
     db: Session = Depends(get_db),
@@ -446,14 +448,18 @@ def get_stats(
     # Previous Month.
     if now.month == 1:
         prev_month_start = datetime(now.year - 1, 12, 1).date()
+        prev_month_end = datetime(now.year - 1, 12, 31).date()
     else:
         prev_month_start = datetime(now.year, now.month - 1, 1).date()
+        prev_month_end = datetime(now.year, now.month, 1).date() - timedelta(days=1)
     
     # Previous Week.
     prev_week_start = start_of_week - timedelta(days=7)
+    prev_week_end = start_of_week - timedelta(days=1)
     
     # Previous Year.
     prev_year_start = datetime(now.year - 1, 1, 1).date()
+    prev_year_end = datetime(now.year - 1, 12, 31).date()
 
     # Get All Transactions For Current User.
     transactions = db.query(Transaction).filter(Transaction.user_id == current_user.id).all()
@@ -475,7 +481,7 @@ def get_stats(
     prev_monthly_income = db.query(func.sum(Transaction.amount)).filter(
         Transaction.amount > 0,
         Transaction.date >= prev_month_start,
-        Transaction.date < start_of_month,
+        Transaction.date <= prev_month_end,
         Transaction.user_id == current_user.id
     ).scalar() or 0
     
@@ -490,7 +496,7 @@ def get_stats(
     prev_weekly_income = db.query(func.sum(Transaction.amount)).filter(
         Transaction.amount > 0,
         Transaction.date >= prev_week_start,
-        Transaction.date < start_of_week,
+        Transaction.date <= prev_week_end,
         Transaction.user_id == current_user.id
     ).scalar() or 0
     
@@ -505,7 +511,7 @@ def get_stats(
     prev_ytd_income = db.query(func.sum(Transaction.amount)).filter(
         Transaction.amount > 0,
         Transaction.date >= prev_year_start,
-        Transaction.date < start_of_year,
+        Transaction.date <= prev_year_end,
         Transaction.user_id == current_user.id
     ).scalar() or 0
     
@@ -526,7 +532,7 @@ def get_stats(
     prev_monthly_spending = db.query(func.sum(Transaction.amount)).filter(
         Transaction.amount < 0,
         Transaction.date >= prev_month_start,
-        Transaction.date < start_of_month,
+        Transaction.date <= prev_month_end,
         Transaction.user_id == current_user.id
     ).scalar() or 0
     
@@ -541,7 +547,7 @@ def get_stats(
     prev_weekly_spending = db.query(func.sum(Transaction.amount)).filter(
         Transaction.amount < 0,
         Transaction.date >= prev_week_start,
-        Transaction.date < start_of_week,
+        Transaction.date <= prev_week_end,
         Transaction.user_id == current_user.id
     ).scalar() or 0
     
@@ -556,7 +562,7 @@ def get_stats(
     prev_ytd_spending = db.query(func.sum(Transaction.amount)).filter(
         Transaction.amount < 0,
         Transaction.date >= prev_year_start,
-        Transaction.date < start_of_year,
+        Transaction.date <= prev_year_end,
         Transaction.user_id == current_user.id
     ).scalar() or 0
     
@@ -570,32 +576,64 @@ def get_stats(
     prev_weekly_cash_flow = prev_weekly_income + prev_weekly_spending
     prev_ytd_cash_flow = prev_ytd_income + prev_ytd_spending
     
-    # Calculate Growth Percentages.
+
+    # -------------------------------------------------------- Calculate Growth Percentages.
     def calculate_growth_percentage(current, previous):
+        # Handle Edge Cases More Gracefully.
         if previous == 0:
-            return 0.0 if current == 0 else 100.0
-        return ((current - previous) / abs(previous)) * 100
+            if current == 0:
+                return 0.0  # No Change.
+            elif current > 0:
+                return 0.0  # Can't Calculate Meaningful Growth From 0 To Positive.
+            else:
+                return 0.0  # Can't calculate meaningful growth from 0 to negative
+        
+        # Calculate Percentage Change.
+        percentage_change = ((current - previous) / abs(previous)) * 100
+        
+        # Cap The Percentage To Reasonable Limits To Avoid Misleading Numbers.
+        if percentage_change > 1000:  # More than 1000% growth
+            return 100.0  # Cap at 100% to avoid misleading numbers
+        elif percentage_change < -1000:  # More than 1000% decline
+            return -100.0  # Cap at -100% to avoid misleading numbers
+        
+        return percentage_change
     
     # Growth Calculations For Income And Spending.
+    # Only Calculate Growth If We Have Meaningful Data In Both Periods.
+    def get_meaningful_growth(current, previous, min_threshold=10):
+        # If We Don't Have Enough Data In Either Period, Return 0.
+        if abs(current) < min_threshold and abs(previous) < min_threshold:
+            return 0.0
+        return calculate_growth_percentage(current, previous)
+    
     income_growth = {
-        "monthly": calculate_growth_percentage(monthly_income, prev_monthly_income),
-        "weekly": calculate_growth_percentage(weekly_income, prev_weekly_income),
-        "yearly": calculate_growth_percentage(ytd_income, prev_ytd_income)
+        "monthly": get_meaningful_growth(monthly_income, prev_monthly_income),
+        "weekly": get_meaningful_growth(weekly_income, prev_weekly_income),
+        "yearly": get_meaningful_growth(ytd_income, prev_ytd_income)
     }
     
     # Growth Calculations For Spending.
     spending_growth = {
-        "monthly": calculate_growth_percentage(monthly_spending, prev_monthly_spending),
-        "weekly": calculate_growth_percentage(weekly_spending, prev_weekly_spending),
-        "yearly": calculate_growth_percentage(ytd_spending, prev_ytd_spending)
+        "monthly": get_meaningful_growth(monthly_spending, prev_monthly_spending),
+        "weekly": get_meaningful_growth(weekly_spending, prev_weekly_spending),
+        "yearly": get_meaningful_growth(ytd_spending, prev_ytd_spending)
     }
     
     # Growth Calculations For Cash Flow.
     cash_flow_growth = {
-        "monthly": calculate_growth_percentage(monthly_cash_flow, prev_monthly_cash_flow),
-        "weekly": calculate_growth_percentage(weekly_cash_flow, prev_weekly_cash_flow),
-        "yearly": calculate_growth_percentage(ytd_cash_flow, prev_ytd_cash_flow)
+        "monthly": get_meaningful_growth(monthly_cash_flow, prev_monthly_cash_flow),
+        "weekly": get_meaningful_growth(weekly_cash_flow, prev_weekly_cash_flow),
+        "yearly": get_meaningful_growth(ytd_cash_flow, prev_ytd_cash_flow)
     }
+    
+    # Debug Logging For Growth Calculations.
+    print(f"DEBUG - Monthly Cash Flow Growth:")
+    print(f"  Current month: ${monthly_cash_flow}")
+    print(f"  Previous month: ${prev_monthly_cash_flow}")
+    print(f"  Growth percentage: {cash_flow_growth['monthly']}%")
+    print(f"  Date ranges - Current: {start_of_month} to {now.date()}")
+    print(f"  Date ranges - Previous: {prev_month_start} to {prev_month_end}")
     
     # Get Income By Category.
     income_by_category = db.query(
@@ -648,13 +686,13 @@ def get_stats(
     total_assets = sum(acc.current_balance for acc in accounts if acc.type == 'depository')
     total_liabilities = sum(acc.current_balance for acc in accounts if acc.type == 'credit')
     
-    # Calculate Cash Balance From Cash Transactions
+    # Calculate Cash Balance From Cash Transactions.
     cash_balance = db.query(func.sum(Transaction.amount)).filter(
-        Transaction.account_id.is_(None),  # Cash transactions have account_id = None
+        Transaction.account_id.is_(None),  # Cash Transactions Have Account Id = None.
         Transaction.user_id == current_user.id
     ).scalar() or 0
     
-    # Include Cash Balance In Total Assets And Net Worth
+    # Include Cash Balance In Total Assets And Net Worth.
     total_assets_with_cash = total_assets + cash_balance
     net_worth = total_assets_with_cash + total_liabilities
     
@@ -702,7 +740,28 @@ def get_stats(
             'total': sum(t.amount for t in source_transactions)
         }
     
-    # Return Stats.
+    # Create Or Update Monthly Snapshot For Current Month.
+    current_month_start = datetime(now.year, now.month, 1).date()
+    current_snapshot = create_monthly_snapshot(
+        db=db,
+        user_id=current_user.id,
+        snapshot_date=current_month_start,
+        net_worth=net_worth,
+        total_assets=total_assets_with_cash,
+        total_liabilities=total_liabilities,
+        monthly_cash_flow=monthly_cash_flow,
+        monthly_income=monthly_income,
+        monthly_spending=monthly_spending,
+        transaction_count=transaction_count
+    )
+    
+    # Get Previous Month's Snapshot For Comparison.
+    previous_snapshot = get_previous_month_snapshot(db, current_user.id, now.date())
+    
+    # Get Growth Context From Snapshots.
+    growth_context = get_growth_context(current_snapshot, previous_snapshot)
+    
+    # Return Stats With Snapshot-Based Growth.
     return {
         "totals": {
             "transactions": transaction_count,
@@ -714,10 +773,10 @@ def get_stats(
             "average_income": avg_income,
             "average_spending": avg_spending,
             "growth": {
-                "net_worth": net_worth_growth["monthly"] or 0.0,
-                "total_assets": assets_growth["monthly"] or 0.0,
-                "total_liabilities": liabilities_growth["monthly"] or 0.0,
-                "monthly_cash_flow": cash_flow_growth["monthly"] or 0.0
+                "net_worth": growth_context["growth"]["net_worth"],
+                "total_assets": growth_context["growth"]["total_assets"],
+                "total_liabilities": growth_context["growth"]["total_liabilities"],
+                "monthly_cash_flow": growth_context["growth"]["monthly_cash_flow"]
             }
         },
         "income": {
@@ -757,6 +816,11 @@ def get_stats(
             "net_worth": net_worth_growth,
             "assets": assets_growth,
             "liabilities": liabilities_growth
+        },
+        "snapshots": {
+            "current_month": growth_context["current"],
+            "previous_month": growth_context["previous"],
+            "has_historical_data": growth_context["has_historical_data"]
         }
     }
 
@@ -767,20 +831,20 @@ def update_transaction_details(
     current_user: User = Depends(get_current_user)
 ):
     try:
-        # Get all transactions that don't have account_details populated for current user
+        # Get All Transactions That Don't Have Account Details Populated For Current User.
         transactions = db.query(Transaction).filter(Transaction.user_id == current_user.id).all()
         
         updated_count = 0
         
         for tx in transactions:
-            # Get account details (must belong to current user)
+            # Get Account Details (Must Belong To Current User).
             account = db.query(Account).filter(
                 Account.account_id == tx.account_id,
                 Account.user_id == current_user.id
             ).first()
             
             if account:
-                # Get institution details (must belong to current user)
+                # Get Institution Details (Must Belong To Current User).
                 institution = None
                 if account.item_id:
                     institution = db.query(Institution).filter(
@@ -788,9 +852,9 @@ def update_transaction_details(
                         Institution.user_id == current_user.id
                     ).first()
                 
-                # Update transaction with account and institution details
-                # Note: Since these are computed fields in the response, we don't need to store them in the database
-                # They will be populated when the transaction is fetched
+                # Update Transaction With Account And Institution Details.
+                # Note: Since These Are Computed Fields In The Response, We Don't Need To Store Them In The Database.
+                # They Will Be Populated When The Transaction Is Fetched.
                 updated_count += 1
         
         return {
@@ -811,7 +875,7 @@ def debug_cash_flow(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Debug endpoint to check cash flow calculations."""
+    """Debug Endpoint To Check Cash Flow Calculations."""
     
     # Get Current Date & Calculate Time Periods.
     now = datetime.now()

@@ -54,11 +54,8 @@ const NavBar = ({ onLogout }) => {
     const scrollToSection = (sectionId) => {
         const element = document.getElementById(sectionId);
         if (element) {
-            const navbarHeight = 80; // Approximate navbar height
-            const elementPosition = element.offsetTop - navbarHeight;
-            
             window.scrollTo({
-                top: elementPosition,
+                top: element.offsetTop,
                 behavior: 'smooth'
             });
         }
@@ -71,6 +68,7 @@ const NavBar = ({ onLogout }) => {
 
     // -------------------------------------------------------- Handle Logout.
     const handleLogout = () => {
+        console.log('Logout button clicked');
         if (onLogout) {
             onLogout();
         }
@@ -147,8 +145,8 @@ const NavBarWrapper = styled.div`
     padding: 0 2rem;
     box-shadow: 0 2px 20px rgba(0, 0, 0, 0.06);
     position: relative;
-    z-index: 100;
     height: 80px;
+    z-index: 1000;
     width: 100%;
 `
 
@@ -156,6 +154,7 @@ const LeftSection = styled.div`
     display: flex;
     align-items: center;
     gap: 3rem;
+    height: 100%;
 `
 
 const RightSection = styled.div`
@@ -166,30 +165,39 @@ const RightSection = styled.div`
 `
 
 const NavLinks = styled.div`
+    height: 100%;
     display: flex;
-    gap: 2rem;
     align-items: center;
+    justify-content: center;
 `
 
-const NavLink = styled.button`
-    background: none;
-    border: none;
+const NavLink = styled.div`
+    height: 100%;
     font-family: 'DM Sans', serif;
-    font-size: 1rem;
+    font-size: 1.2rem;
     font-weight: 500;
     color: #666;
     cursor: pointer;
-    padding: 0.75rem 1.25rem;
-    border-radius: 12px;
+    padding: 0.75rem 2rem;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
+    border-radius: 0px 0px 4px 4px;
     overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-right: 3px solid rgba(0, 0, 0, 0.1);
+
+    &:first-child {
+        border-left: 3px solid rgba(0, 0, 0, 0.1);
+    }
 
     &:hover {
         background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
         color: white;
         transform: translateY(-2px);
         box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
+        border-color: transparent;
     }
 
     &:active {
@@ -313,32 +321,11 @@ const DropdownMenu = styled.div`
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
     border: 1px solid rgba(0, 0, 0, 0.08);
     min-width: 200px;
-    z-index: 1000;
     animation: ${css`${slideIn} 0.2s cubic-bezier(0.4, 0, 0.2, 1)`};
     overflow: hidden;
 `;
 
-const DropdownHeader = styled.div`
-    padding: 1rem 1.25rem 0.75rem;
-    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
-    color: white;
-`;
-
-const DropdownTitle = styled.h3`
-    font-size: 0.9rem;
-    font-weight: 600;
-    margin: 0;
-    opacity: 0.9;
-`;
-
-const DropdownDivider = styled.div`
-    height: 1px;
-    background: rgba(0, 0, 0, 0.06);
-    margin: 0.5rem 0;
-`;
-
-const DropdownItem = styled.button`
-    font: inherit;
+const DropdownItem = styled.div`
     width: 100%;
     padding: 0.875rem 1.25rem;
     background: none;
@@ -354,15 +341,11 @@ const DropdownItem = styled.button`
     text-align: left;
 
     &:hover {
-        background: rgba(0, 123, 255, 0.05);
+        background: rgba(0, 123, 255, 0.3);
         color: var(--button-primary);
-        transform: translateX(4px);
     }
 
-    svg {
-        font-size: 0.8rem;
-        opacity: 0.8;
-    }
+
 `;
 
 // -------------------------------------------------------- Logo. (Centi.)

@@ -5,21 +5,22 @@ from fastapi import APIRouter, Depends, HTTPException, Body
 # Local Imports.
 from app.utils.db_utils import get_db
 from app.utils.auth_utils import get_current_user
-from app.database import FileUpload, Transaction, User
 from app.models import FileUploadOut, TransactionOut
+from app.database import FileUpload, Transaction, User
 
-router = APIRouter()    # Sets Up Modular Sub-Router For FastAPI.
+# Create Router Instance.
+router = APIRouter(prefix="/files", tags=["Files"])
 
-# ----------------------------------------------------------------------- Get All Files.
+# -------------------------------------------------------- Get All Files.
 @router.get("/files", response_model=list[FileUploadOut])
 def get_files(
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db), 
     current_user: User = Depends(get_current_user)
 ):
     # Query For All FileUpload Items For This User, And Return All.
     return db.query(FileUpload).filter(FileUpload.user_id == current_user.id).all()
 
-# ----------------------------------------------------------------------- Get Transactions From File.
+# -------------------------------------------------------- Get Transactions From File.
 @router.get("/files/{file_id}/transactions", response_model=list[TransactionOut])
 def get_file_transactions(
     file_id: int, 

@@ -1,6 +1,7 @@
 // Imports.
 import axios from 'axios';
 
+console.log("HEY!!!!");
 // Create API Instance.
 const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 console.log('API Base URL:', baseURL);

@@ -22,18 +22,6 @@ origins = [
     "https://finance-organizer-wine.vercel.app",  # Replace with your actual Vercel domain
 ]
 
-# Add environment variable support for CORS
-allowed_origins_env = os.getenv("ALLOWED_ORIGINS")
-print(f"ALLOWED_ORIGINS env var: '{allowed_origins_env}'")
-
-if allowed_origins_env:
-    # Clean up the origins and remove duplicates
-    additional_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
-    origins.extend(additional_origins)
-    # Remove duplicates while preserving order
-    seen = set()
-    origins = [x for x in origins if not (x in seen or seen.add(x))]
-
 print(f"CORS Origins: {origins}")
 
 # Adds The Middleware For CORS.

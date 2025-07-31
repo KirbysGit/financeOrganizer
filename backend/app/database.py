@@ -300,9 +300,67 @@ class TransactionTag(Base):
     tag = relationship("Tag", back_populates="transaction_tags")
 
 # Database Setup.
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./finance_tracker.db")
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {})
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+def get_database_url():
+    """Get database URL with fallback for Railway"""
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url:
+        # Fallback for local development
+        database_url = "sqlite:///./finance_tracker.db"
+    return database_url
 
-# Create Tables.
-Base.metadata.create_all(bind=engine)
+def create_engine_safe():
+    """Create database engine with error handling"""
+    try:
+        database_url = get_database_url()
+        print(f"Connecting to database: {database_url[:20]}...")  # Log partial URL for security
+        
+        if "sqlite" in database_url:
+            engine = create_engine(database_url, connect_args={"check_same_thread": False})
+        else:
+            engine = create_engine(database_url)
+        
+        # Test the connection
+        with engine.connect() as conn:
+            conn.execute("SELECT 1")
+        
+        print("Database connection successful")
+        return engine
+    except Exception as e:
+        print(f"Database connection failed: {e}")
+        # Return None so the app can still start without database
+        return None
+
+# Initialize engine lazily
+engine = None
+SessionLocal = None
+
+def get_engine():
+    """Get or create database engine"""
+    global engine
+    if engine is None:
+        engine = create_engine_safe()
+    return engine
+
+def get_session():
+    """Get database session"""
+    global SessionLocal
+    if SessionLocal is None:
+        engine = get_engine()
+        if engine:
+            SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+        else:
+            return None
+    return SessionLocal()
+
+# Create Tables (only if engine is available)
+def create_tables():
+    """Create database tables if engine is available"""
+    engine = get_engine()
+    if engine:
+        try:
+            Base.metadata.create_all(bind=engine)
+            print("Database tables created successfully")
+        except Exception as e:
+            print(f"Failed to create database tables: {e}")
+    else:
+        print("Skipping table creation - no database connection")

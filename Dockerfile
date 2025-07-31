@@ -9,11 +9,17 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the backend code
 COPY backend/ ./backend/
 
+# Copy the startup script
+COPY start.sh ./start.sh
+
+# Make startup script executable
+RUN chmod +x ./start.sh
+
 # Set working directory to backend
 WORKDIR /app/backend
 
 # Expose the port
 EXPOSE 8000
 
-# Run the application directly from backend
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"] 
+# Run the application using the startup script
+CMD ["./start.sh"] 

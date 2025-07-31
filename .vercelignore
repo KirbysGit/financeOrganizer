@@ -1,0 +1,10 @@
+backend/
+sample_data/
+notes.txt
+*.py
+*.pyc
+__pycache__/
+venv/
+.env
+.git/
+.gitignore 

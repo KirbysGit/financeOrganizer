@@ -52,6 +52,11 @@ async def health_check():
 @app.on_event("startup")
 async def startup_event():
     try:
+        # Initialize database tables
+        from app.database import create_tables
+        create_tables()
+        
+        # Start scheduler
         from app.utils.scheduler import start_scheduler
         start_scheduler()
         print("Scheduler started successfully")

@@ -26,7 +26,16 @@ origins = [
 # Add any Railway-specific origins
 railway_origin = os.getenv('RAILWAY_STATIC_URL')
 if railway_origin:
-    origins.append(railway_origin)
+    print(f"Raw RAILWAY_STATIC_URL: '{railway_origin}'")
+    cleaned = railway_origin.strip().rstrip(';')  # Remove any trailing semicolons or whitespace
+    print(f"Cleaned RAILWAY_STATIC_URL: '{cleaned}'")
+    if cleaned not in origins:
+        origins.append(cleaned)
+        print(f"Added cleaned origin: '{cleaned}'")
+    else:
+        print(f"Origin already exists: '{cleaned}'")
+else:
+    print("RAILWAY_STATIC_URL not set")
 
 print(f"CORS Origins: {origins}")  # Clean origins list - FORCE REDEPLOY
 print(f"PORT environment variable: {os.getenv('PORT', 'Not set')}")

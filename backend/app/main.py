@@ -22,22 +22,32 @@ origins = [
     "https://finance-organizer-wine.vercel.app",  # Replace with your actual Vercel domain
 ]
 
+# Add environment variable support for CORS
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS")
+if allowed_origins_env:
+    origins.extend(allowed_origins_env.split(","))
+
+print(f"CORS Origins: {origins}")
+
 # Adds The Middleware For CORS.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Add request logging middleware
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     print(f"Request: {request.method} {request.url}")
+    print(f"Origin: {request.headers.get('origin', 'No origin')}")
     print(f"Headers: {dict(request.headers)}")
     response = await call_next(request)
     print(f"Response: {response.status_code}")
+    print(f"Response headers: {dict(response.headers)}")
     return response
 
 # Register Modular Route Groups.

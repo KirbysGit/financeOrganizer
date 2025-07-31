@@ -1,6 +1,6 @@
 # Imports.
 import hashlib
-import pandas as pd
+import csv
 from io import StringIO
 from datetime import datetime
 from sqlalchemy.orm import Session
@@ -51,7 +51,8 @@ async def upload_csv(
     
     # Parse CSV.
     try:
-        df = pd.read_csv(StringIO(content_str))
+        csv_reader = csv.DictReader(StringIO(content_str))
+        rows = list(csv_reader)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error parsing CSV: {str(e)}")
     
@@ -65,7 +66,7 @@ async def upload_csv(
         transaction_count=0,
         content_hash=content_hash,
         status="processing",
-        total_rows_processed=len(df)
+        total_rows_processed=len(rows)
     )
     
     # Add, Commit & Refresh In Database.
@@ -120,7 +121,7 @@ async def upload_csv(
     errors = []
     total_amount = 0
     
-    for index, row in df.iterrows():
+    for index, row in enumerate(rows):
         try:
             # Map CSV Columns To Our Enhanced Transaction Model.
             amount = float(row.get('Amount', row.get('amount', 0)))
@@ -128,7 +129,17 @@ async def upload_csv(
             
             # Parse Date With Explicit Format.
             try:
-                date = pd.to_datetime(date_str).date()
+                # Try multiple date formats
+                date_formats = ['%Y-%m-%d', '%m/%d/%Y', '%m/%d/%y', '%Y/%m/%d', '%d/%m/%Y', '%d/%m/%y']
+                date = None
+                for fmt in date_formats:
+                    try:
+                        date = datetime.strptime(date_str, fmt).date()
+                        break
+                    except ValueError:
+                        continue
+                if date is None:
+                    raise ValueError(f"Could not parse date: {date_str}")
             except Exception as e:
                 raise
             

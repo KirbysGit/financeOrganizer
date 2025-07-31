@@ -24,8 +24,15 @@ origins = [
 
 # Add environment variable support for CORS
 allowed_origins_env = os.getenv("ALLOWED_ORIGINS")
+print(f"ALLOWED_ORIGINS env var: '{allowed_origins_env}'")
+
 if allowed_origins_env:
-    origins.extend(allowed_origins_env.split(","))
+    # Clean up the origins and remove duplicates
+    additional_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
+    origins.extend(additional_origins)
+    # Remove duplicates while preserving order
+    seen = set()
+    origins = [x for x in origins if not (x in seen or seen.add(x))]
 
 print(f"CORS Origins: {origins}")
 
@@ -37,6 +44,7 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
     expose_headers=["*"],
+    max_age=86400,  # Cache preflight for 24 hours
 )
 
 # Add request logging middleware

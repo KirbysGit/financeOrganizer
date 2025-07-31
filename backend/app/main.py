@@ -31,7 +31,7 @@ if railway_origin:
 print(f"CORS Origins: {origins}")  # Clean origins list - FORCE REDEPLOY
 print(f"PORT environment variable: {os.getenv('PORT', 'Not set')}")
 print(f"Railway should be using port: {os.getenv('PORT', '8080')}")
-print(f"DATABASE_URL: {os.getenv('DATABASE_URL', 'Not set')[:20]}..." if os.getenv('DATABASE_URL') else "DATABASE_URL: Not set")
+print(f"DATABASE_URL: {os.getenv('DATABASE_URL', 'sqlite:///./finance_organizer.db')[:20]}...")
 
 # Add more detailed environment variable logging
 print(f"ENVIRONMENT: {os.getenv('ENVIRONMENT', 'Not set')}")

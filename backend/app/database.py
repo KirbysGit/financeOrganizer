@@ -305,7 +305,7 @@ def get_database_url():
     database_url = os.getenv("DATABASE_URL")
     if not database_url:
         # Fallback for local development
-        database_url = "sqlite:///./finance_tracker.db"
+        database_url = "sqlite:///./finance_organizer.db"
     return database_url
 
 def create_engine_safe():
@@ -314,10 +314,8 @@ def create_engine_safe():
         database_url = get_database_url()
         print(f"Connecting to database: {database_url[:20]}...")  # Log partial URL for security
         
-        if "sqlite" in database_url:
-            engine = create_engine(database_url, connect_args={"check_same_thread": False})
-        else:
-            engine = create_engine(database_url)
+        # Only handle SQLite for now
+        engine = create_engine(database_url, connect_args={"check_same_thread": False})
         
         # Test the connection
         with engine.connect() as conn:

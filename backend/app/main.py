@@ -31,6 +31,12 @@ if railway_origin:
 print(f"CORS Origins: {origins}")  # Clean origins list - FORCE REDEPLOY
 print(f"PORT environment variable: {os.getenv('PORT', 'Not set')}")
 print(f"Railway should be using port: {os.getenv('PORT', '8080')}")
+print(f"DATABASE_URL: {os.getenv('DATABASE_URL', 'Not set')[:20]}..." if os.getenv('DATABASE_URL') else "DATABASE_URL: Not set")
+
+# Add more detailed environment variable logging
+print(f"ENVIRONMENT: {os.getenv('ENVIRONMENT', 'Not set')}")
+print(f"RAILWAY_PROJECT_NAME: {os.getenv('RAILWAY_PROJECT_NAME', 'Not set')}")
+print(f"RAILWAY_SERVICE_NAME: {os.getenv('RAILWAY_SERVICE_NAME', 'Not set')}")
 
 # Adds The Middleware For CORS.
 app.add_middleware(

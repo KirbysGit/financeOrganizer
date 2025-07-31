@@ -2,8 +2,11 @@
 import axios from 'axios';
 
 // Create API Instance.
+const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+console.log('API Base URL:', baseURL);
+
 const API = axios.create({ 
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+  baseURL: baseURL,
   withCredentials: true  // Important: This allows cookies to be sent with requests
 });
 

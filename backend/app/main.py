@@ -1,5 +1,5 @@
 # Imports.
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 import os
 
@@ -30,6 +30,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add request logging middleware
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    print(f"Request: {request.method} {request.url}")
+    print(f"Headers: {dict(request.headers)}")
+    response = await call_next(request)
+    print(f"Response: {response.status_code}")
+    return response
 
 # Register Modular Route Groups.
 app.include_router(files.router)

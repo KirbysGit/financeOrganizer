@@ -22,7 +22,7 @@ origins = [
     'https://finance-organizer-wine.vercel.app',  # Replace with your actual Vercel domain
 ]
 
-print(f"CORS Origins: {origins}")  # Clean origins list
+print(f"CORS Origins: {origins}")  # Clean origins list - FORCE REDEPLOY
 
 # Adds The Middleware For CORS.
 app.add_middleware(
@@ -60,7 +60,11 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+    return {"status": "healthy", "cors_origins": origins}
+
+@app.get("/ping")
+async def ping():
+    return {"message": "pong", "timestamp": "2024-01-01"}
 
 # Start The Centi Score Scheduler only when app starts
 @app.on_event("startup")

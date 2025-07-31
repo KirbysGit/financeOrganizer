@@ -23,6 +23,8 @@ origins = [
 ]
 
 print(f"CORS Origins: {origins}")  # Clean origins list - FORCE REDEPLOY
+print(f"PORT environment variable: {os.getenv('PORT', 'Not set')}")
+print(f"Railway should be using port: {os.getenv('PORT', '8080')}")
 
 # Adds The Middleware For CORS.
 app.add_middleware(
@@ -53,6 +55,12 @@ app.include_router(transactions.router)
 app.include_router(plaid.router)
 app.include_router(accounts.router)
 app.include_router(centi_score.router)
+
+# Debug: Print all registered routes
+print("Registered routes:")
+for route in app.routes:
+    if hasattr(route, 'path'):
+        print(f"  {route.methods} {route.path}")
 
 @app.get("/")
 async def root():

@@ -22,7 +22,7 @@ origins = [
     "https://finance-organizer-wine.vercel.app",  # Replace with your actual Vercel domain
 ]
 
-print(f"CORS Origins: {origins}")
+print(f"CORS Origins: {origins}")  # Clean origins list
 
 # Adds The Middleware For CORS.
 app.add_middleware(

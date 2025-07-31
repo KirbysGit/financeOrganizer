@@ -49,6 +49,7 @@ class TransactionOut(BaseModel):
     last_updated: Optional[datetime] = None
     account_details: Optional[dict] = None
     institution_details: Optional[dict] = None
+    tags: Optional[list[dict]] = None  # List of tag objects with id, name, emoji, color
 
     class Config:
         from_attributes = True
@@ -258,3 +259,102 @@ class WeeklyCentiScoreCreate(BaseModel):
     total_liabilities: float
     monthly_cash_flow: float
     transaction_count: int
+
+# -------------------------------------------------------- Tag Models.
+
+class TagCreate(BaseModel):
+    name: str
+    emoji: Optional[str] = "🏷️"
+    color: Optional[str] = "#6366f1"
+
+class TagOut(BaseModel):
+    id: int
+    user_id: int
+    name: str
+    emoji: str
+    color: str
+    is_default: bool
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class TransactionTagOut(BaseModel):
+    id: int
+    transaction_id: int
+    tag_id: int
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+# -------------------------------------------------------- Account Balance History Models.
+
+class AccountBalanceHistory(BaseModel):
+    id: int
+    user_id: int
+    account_id: Optional[str]
+    snapshot_date: date
+    current_balance: float
+    available_balance: Optional[float]
+    limit: Optional[float]
+    account_name: str
+    account_type: str
+    account_subtype: str
+    currency: str
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class AccountBalanceHistoryCreate(BaseModel):
+    user_id: int
+    account_id: Optional[str]
+    snapshot_date: date
+    current_balance: float
+    available_balance: Optional[float]
+    limit: Optional[float]
+    account_name: str
+    account_type: str
+    account_subtype: str
+    currency: str
+
+# -------------------------------------------------------- Enhanced Account Models.
+
+class AccountWithGrowth(BaseModel):
+    id: Optional[int]
+    account_id: Optional[str]
+    name: str
+    official_name: Optional[str]
+    type: str
+    subtype: str
+    mask: Optional[str]
+    current_balance: float
+    available_balance: Optional[float]
+    limit: Optional[float]
+    currency: str
+    transaction_count: int
+    updated_at: datetime
+    
+    # Growth and financial impact data
+    balance_change_30d: Optional[float] = None
+    balance_change_90d: Optional[float] = None
+    balance_change_1y: Optional[float] = None
+    growth_percentage_30d: Optional[float] = None
+    growth_percentage_90d: Optional[float] = None
+    growth_percentage_1y: Optional[float] = None
+    
+    # Financial impact
+    net_worth_contribution: float
+    asset_contribution: float
+    liability_contribution: float
+    percentage_of_total_assets: Optional[float] = None
+    percentage_of_total_liabilities: Optional[float] = None
+    
+    # Account health indicators
+    utilization_rate: Optional[float] = None  # For credit cards
+    days_since_last_transaction: Optional[int] = None
+    
+    class Config:
+        from_attributes = True

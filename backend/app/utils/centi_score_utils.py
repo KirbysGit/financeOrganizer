@@ -7,6 +7,7 @@ from datetime import datetime, date, timedelta
 
 # Local Imports.
 from ..database import WeeklyCentiScore, Transaction, Account
+from .account_utils import calculate_account_financial_impact
 
 # -------------------------------------------------------- Calculate Centi Score.
 def calculate_centi_score(
@@ -75,20 +76,11 @@ def get_user_financial_data(db: Session, user_id: int) -> Dict:
     now = datetime.now()
     start_of_month = datetime(now.year, now.month, 1).date()
     
-    # Calculate Net Worth (Assets - Liabilities).
-    total_assets = db.query(func.sum(Account.current_balance)).filter(
-        Account.user_id == user_id,
-        Account.is_active == True,
-        Account.current_balance > 0
-    ).scalar() or 0
-    
-    total_liabilities = abs(db.query(func.sum(Account.current_balance)).filter(
-        Account.user_id == user_id,
-        Account.is_active == True,
-        Account.current_balance < 0
-    ).scalar() or 0)
-    
-    net_worth = total_assets - total_liabilities
+    # Use enhanced account calculation
+    financial_impact = calculate_account_financial_impact(db, user_id)
+    total_assets = financial_impact["total_assets"]
+    total_liabilities = financial_impact["total_liabilities"]
+    net_worth = financial_impact["net_worth"]
     
     # Calculate Monthly Cash Flow.
     monthly_income = db.query(func.sum(Transaction.amount)).filter(

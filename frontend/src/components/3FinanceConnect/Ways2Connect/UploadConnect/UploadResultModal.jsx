@@ -4,6 +4,48 @@ import { styled } from 'styled-components';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes, faCheckCircle, faInfoCircle } from '@fortawesome/free-solid-svg-icons';
 
+// ------------------------------------------------------------------------------------------------ Helper Functions.
+
+// Clean up the upload result message for better display
+const formatUploadMessage = (message) => {
+    if (!message) return '';
+    
+    // Remove timestamp and clean up the message
+    const cleanMessage = message
+        .replace(/File uploaded successfully at \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}!/, 'File uploaded successfully!')
+        .replace(/Added (\d+) new transactions to (.+) from (\d+) total rows\./, 'Added $1 new transactions to $2.')
+        .replace(/Added (\d+) new transactions from (\d+) total rows\./, 'Added $1 new transactions.');
+    
+    return cleanMessage;
+};
+
+// Extract and format timestamp from the original message
+const extractTimestamp = (message) => {
+    if (!message) return null;
+    
+    const timestampMatch = message.match(/File uploaded successfully at (\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})!/);
+    if (!timestampMatch) return null;
+    
+    const [, year, month, dayStr, hour, minute, second] = timestampMatch;
+    const date = new Date(year, month - 1, dayStr, hour, minute, second);
+    
+    // Format as "June 16 at 2:01 PM"
+    const monthNames = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    
+    const monthName = monthNames[date.getMonth()];
+    const dayNum = date.getDate();
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+    const displayMinutes = minutes.toString().padStart(2, '0');
+    
+    return `Uploaded ${monthName} ${dayNum} at ${displayHours}:${displayMinutes} ${ampm}`;
+};
+
 // -------------------------------------------------------- UploadResultModal Component.
 const UploadResultModal = ({ isOpen, onClose, uploadResult }) => {
     if (!isOpen || !uploadResult) return null;
@@ -13,10 +55,10 @@ const UploadResultModal = ({ isOpen, onClose, uploadResult }) => {
             <ModalContent onClick={e => e.stopPropagation()}>
                 <ModalHeader>
                     <ModalTitle>Upload Results</ModalTitle>
+                </ModalHeader>
                     <CloseButton onClick={onClose}>
                         <FontAwesomeIcon icon={faTimes} />
                     </CloseButton>
-                </ModalHeader>
 
                 <ResultsSection>
                     <SuccessHeader>
@@ -24,7 +66,13 @@ const UploadResultModal = ({ isOpen, onClose, uploadResult }) => {
                         <h3>Upload Successful!</h3>
                     </SuccessHeader>
                     
-                    <ResultMessage>{uploadResult.message}</ResultMessage>
+                    <ResultMessage>{formatUploadMessage(uploadResult.message)}</ResultMessage>
+                    
+                    {extractTimestamp(uploadResult.message) && (
+                        <TimestampDisplay>
+                            {extractTimestamp(uploadResult.message)}
+                        </TimestampDisplay>
+                    )}
                     
                     <ResultsGrid>
                         <ResultCard>
@@ -112,7 +160,7 @@ const ModalContent = styled.div`
 
 const ModalHeader = styled.div`
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
     padding: 2rem 2rem 1rem 2rem;
     border-bottom: 1px solid #eee;
@@ -129,15 +177,24 @@ const CloseButton = styled.button`
     background: none;
     border: none;
     font-size: 1.2rem;
-    color: #999;
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: white;
+    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
     cursor: pointer;
-    padding: 0.5rem;
     border-radius: 50%;
     transition: all 0.2s ease;
+    z-index: 1000;
 
     &:hover {
-        background: #f5f5f5;
-        color: #333;
+        opacity: 0.8;
     }
 `;
 
@@ -151,6 +208,7 @@ const ResultsSection = styled.div`
 const SuccessHeader = styled.div`
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
     color: #28a745;
     font-size: 1.5rem;
@@ -168,18 +226,55 @@ const ResultMessage = styled.p`
     line-height: 1.5;
 `;
 
+const TimestampDisplay = styled.div`
+    margin: 0.5rem 0 0 0;
+    font-size: 0.9rem;
+    color: #666;
+    font-weight: 500;
+    text-align: center;
+    padding: 0.5rem;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+`;
+
 const ResultsGrid = styled.div`
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    grid-template-columns: 1fr 1fr;
     gap: 1rem;
 `;
 
 const ResultCard = styled.div`
-    background: #f8f9fa;
+    background: rgba(255, 255, 255, 0.3);
     border-radius: 12px;
     padding: 1rem;
     text-align: center;
-    border: 1px solid #e9ecef;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        background: rgba(255, 255, 255, 0.4);
+    }
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s;
+    }
+    
+    &:hover::before {
+        left: 100%;
+    }
 `;
 
 const ResultLabel = styled.div`
@@ -203,6 +298,7 @@ const ResultValue = styled.div`
 const ProcessingInfo = styled.div`
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
     color: #666;
     font-size: 0.9rem;
@@ -251,20 +347,42 @@ const ActionButton = styled.button`
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
+    position: relative;
+    overflow: hidden;
 
     ${props => props.$primary ? `
-        background: linear-gradient(135deg, #007bff, #0056b3);
+        background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
         color: white;
         box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
 
         &:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+        }
+
+        &:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+        }
+
+        &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        &:hover::before {
+            left: 100%;
         }
     ` : `
         background: #f8f9fa;
@@ -280,6 +398,11 @@ const ActionButton = styled.button`
         opacity: 0.6;
         cursor: not-allowed;
         transform: none !important;
+    }
+
+    /* Add a subtle press effect */
+    &:active:not(:disabled) {
+        transform: scale(0.98);
     }
 `;
 

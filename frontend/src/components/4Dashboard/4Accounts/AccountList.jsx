@@ -1,6 +1,6 @@
 // Imports.
 import React from 'react';
-import styled from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faLink, faRotateRight } from '@fortawesome/free-solid-svg-icons';
@@ -8,6 +8,7 @@ import { faPlus, faLink, faRotateRight } from '@fortawesome/free-solid-svg-icons
 // Local Imports.
 import AccountCard from './AccountCard';
 import PlaidModal from '../../3FinanceConnect/Ways2Connect/PlaidConnect/PlaidModal';
+import { getEnhancedAccounts, getAccountAnalysis } from '../../../services/api';
 
 // ------------------------------------------------------------------------------------------------ Helper Functions.
 
@@ -39,14 +40,24 @@ const AccountList = ({ myStats, myAccounts, onUpload, onRefresh, id }) => {
     const [plaidModal, setPlaidModal] = useState(false);                // State 4 Whether Plaid Modal Is Open.
     const [refreshLoading, setRefreshLoading] = useState(false);        // State 4 Whether Refresh Is Loading.
 
+    // Animation States.
+    const [isAnimating, setIsAnimating] = useState(false);              // State 4 Whether Cards Are Animating.
+
     // -------------------------------------------------------- Handle Data Import
     const importData = async () => {
         try {
             // Set Loading State To True.
             setLoading(true);
 
-            // Set Accounts & Stats.
-            setAccounts(myAccounts);
+            // Try to get enhanced account data first
+            try {
+                const enhancedAccounts = await getEnhancedAccounts();
+                setAccounts(enhancedAccounts.data);
+            } catch (enhancedError) {
+                console.warn('Enhanced accounts not available, using basic accounts:', enhancedError);
+                setAccounts(myAccounts);
+            }
+
             setStats(myStats);
 
             // Set Error To Null.
@@ -103,30 +114,58 @@ const AccountList = ({ myStats, myAccounts, onUpload, onRefresh, id }) => {
     // -------------------------------------------------------- Handle Account Toggle.
     const handleAccountToggle = (accountId) => {
         console.log('Toggle account:', accountId, 'Current expanded:', expandedAccount);
-        // Handle null case properly - if accountId is null, toggle between null and a special value
+        
+        // Handle Cash account (null ID) with a special identifier
         if (accountId === null) {
             setExpandedAccount(expandedAccount === 'CASH_ACCOUNT' ? null : 'CASH_ACCOUNT');
         } else {
-            // Ensure both values are strings for consistent comparison
-            const currentExpanded = String(expandedAccount);
-            const newAccountId = String(accountId);
-            setExpandedAccount(currentExpanded === newAccountId ? null : accountId);
+            // For regular accounts, use the account ID
+            setExpandedAccount(expandedAccount === accountId ? null : accountId);
         }
     };
 
-    // Get Unique Account Types.
+    // -------------------------------------------------------- Handle Type Filter Change.
+    const handleTypeFilterChange = (newType) => {
+        if (newType === selectedType) return;
+        
+        setIsAnimating(true);
+        setSelectedType(newType);
+        
+        // Reset animation after a short delay
+        setTimeout(() => {
+            setIsAnimating(false);
+        }, 200); // Slightly longer than the animation duration
+    };
+
+    // Get Unique Account Types, properly handling Cash account
     const uniqueTypes = [...new Set(accounts.map(acc => acc.type).filter(type => type && type !== ''))];
+    
+    // Helper function to get account type label with special handling for Cash
+    const getAccountTypeLabelWithCount = (type) => {
+        const count = accounts.filter(acc => acc.type === type).length;
+        const label = getAccountTypeLabel(type);
+        return `${label} (${count})`;
+    };
 
     // If Loading, Return Loading Message.
     if (loading) {
-        return <LoadingMessage>Loading your financial data...</LoadingMessage>;
+        return (
+            <AccountListWrapper id={id}>
+                <LoadingMessage>Loading your financial data...</LoadingMessage>
+            </AccountListWrapper>
+        );
     }
 
     // If Error, Return Error Message.
     if (error) {
-        return <ErrorMessage>{error}</ErrorMessage>;
+        return (
+            <AccountListWrapper id={id}>
+                <ErrorMessage>{error}</ErrorMessage>
+            </AccountListWrapper>
+        );
     }
 
+    
     return (
         <AccountListWrapper id={id}>
             {/* Section Header */}
@@ -176,61 +215,81 @@ const AccountList = ({ myStats, myAccounts, onUpload, onRefresh, id }) => {
                 <TypeFilters>
                     <TypeFilter 
                         $active={selectedType === 'all'} 
-                        onClick={() => setSelectedType('all')}
+                        onClick={() => handleTypeFilterChange('all')}
                     >
                     All Accounts ({accounts.length})
                     </TypeFilter>
-                    {uniqueTypes.map(type => (
-                        <TypeFilter 
-                            key={type}
-                            $active={selectedType === type}
-                            onClick={() => setSelectedType(type)}
-                        >
-                        {getAccountTypeLabel(type)} ({accounts.filter(acc => acc.type === type).length})
-                        </TypeFilter>
-                    ))}
+                    {uniqueTypes.map(type => {
+                        const count = accounts.filter(acc => acc.type === type).length;
+                        const label = type === 'cash' ? 'Cash' : getAccountTypeLabel(type);
+                        return (
+                            <TypeFilter 
+                                key={type}
+                                $active={selectedType === type}
+                                onClick={() => handleTypeFilterChange(type)}
+                            >
+                                {label} ({count})
+                            </TypeFilter>
+                        );
+                    })}
                 </TypeFilters>
 
             {/* Account List */}
-            <AccountListContainer>
+            <AccountListContainer $isAnimating={isAnimating}>
                 {accounts
                     .filter(acc => selectedType === 'all' || acc.type === selectedType)
-                    .map((acc) => {
-                        // Handle null ID case for Cash account
-                        let isExpanded;
-                        if (acc.id === null) {
-                            isExpanded = expandedAccount === 'CASH_ACCOUNT';
-                        } else {
-                            // Ensure consistent string comparison
-                            isExpanded = String(expandedAccount) === String(acc.id);
-                        }
+                    .map((acc, index) => {
+                        // Handle Cash account (null ID) with special logic
+                        const isExpanded = acc.id === null 
+                            ? expandedAccount === 'CASH_ACCOUNT'
+                            : expandedAccount === acc.id;
+                        
                         return (
-                        <AccountCard 
+                            <AnimatedAccountCard 
                                 key={acc.id || 'cash-account'}
-                            account={acc}
-                                isExpanded={isExpanded}
-                            onToggle={handleAccountToggle}
-                        />
+                                $index={index}
+                                $isAnimating={isAnimating}
+                            >
+                                <AccountCard 
+                                    account={acc}
+                                    isExpanded={isExpanded}
+                                    onToggle={handleAccountToggle}
+                                />
+                            </AnimatedAccountCard>
                         );
                     })}
             </AccountListContainer>
 
             {/* Plaid Modal */}
             { plaidModal && (
-                <PlaidModal 
-                    isOpen={plaidModal}
-                    onClose={() => setPlaidModal(false)}
-                    onSuccess={() => {
-                        setPlaidModal(false);
-                        // Optionally refresh data or show success message
-                    }}
-                />
+                <PlaidModalWrapper>
+                    <PlaidModal 
+                        isOpen={plaidModal}
+                        onClose={() => setPlaidModal(false)}
+                        onSuccess={() => {
+                            setPlaidModal(false);
+                            // Optionally refresh data or show success message
+                        }}
+                    />
+                </PlaidModalWrapper>
             )}
         </AccountListWrapper>
     );
 };
 
 // ------------------------------------------------------------------------------------------------ Styled Components.
+
+// -------------------------------------------------------- Keyframes for animations.
+const fadeIn = keyframes`
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+`;
 
 // -------------------------------------------------------- Entire Account List Wrapper.
 const AccountListWrapper = styled.div.attrs(props => ({
@@ -548,6 +607,9 @@ const AccountListContainer = styled.div`
     flex-direction: column;
     gap: 1.75rem;
     width: 100%;
+    opacity: ${props => props.$isAnimating ? 0 : 1};
+    transform: ${props => props.$isAnimating ? 'translateY(20px)' : 'translateY(0)'};
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
 `;
 
 // -------------------------------------------------------- Loading Message.
@@ -575,6 +637,22 @@ const ErrorMessage = styled.div`
     padding: 1rem;
     border-radius: 16px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.34);
+`;
+
+const PlaidModalWrapper = styled.div`
+    width: 100%;
+    height: 100%;
+`;
+
+// -------------------------------------------------------- Animated Account Card.
+const AnimatedAccountCard = styled.div`
+    opacity: ${props => props.$isAnimating ? 0 : 1};
+    transform: ${props => props.$isAnimating ? 'translateY(20px)' : 'translateY(0)'};
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+    ${props => !props.$isAnimating && css`
+        animation: ${fadeIn} 0.6s ease-out;
+        animation-delay: ${props.$index * 0.1}s;
+    `}
 `;
 
 export default AccountList;

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Toaster } from 'react-hot-toast';
 
 import Dashboard from './components/4Dashboard/Dashboard';
 import WelcomeScreen from './components/1WelcomePage/WelcomeScreen';
@@ -71,16 +72,37 @@ function App() {
   // Check If User Already Has Connected Data.
   const checkForExistingData = async () => {
     try {
-      // Check localStorage for existing data indicators instead of making API calls
+      // Check localStorage for existing data indicators
       const hasTransactions = localStorage.getItem('hasTransactions') === 'true';
       const hasFiles = localStorage.getItem('hasFiles') === 'true';
       const hasAccounts = localStorage.getItem('hasAccounts') === 'true';
+      const hasConnectedData = localStorage.getItem('hasConnectedData') === 'true';
+      const hasEverHadData = localStorage.getItem('hasEverHadData') === 'true';
       
-      if (hasTransactions || hasFiles || hasAccounts) {
+      // If user has ever had data (hasEverHadData is true), they should go to dashboard
+      // This handles the case where localStorage was cleared but user has existing data
+      if (hasConnectedData || hasTransactions || hasFiles || hasAccounts) {
         localStorage.setItem('hasConnectedData', 'true');
         setHasConnectedData(true);
         return true;
       }
+      
+      // Also check if user has a plaid access token (indicates they've connected a bank)
+      const hasPlaidToken = localStorage.getItem('plaid_access_token');
+      if (hasPlaidToken) {
+        localStorage.setItem('hasConnectedData', 'true');
+        setHasConnectedData(true);
+        return true;
+      }
+      
+      // If user has ever had data but no current data flags, they should still go to dashboard
+      // This handles the case where localStorage was partially cleared
+      if (hasEverHadData) {
+        localStorage.setItem('hasConnectedData', 'true');
+        setHasConnectedData(true);
+        return true;
+      }
+      
       return false;
     } catch (error) {
       console.error('Error checking for existing data:', error);
@@ -208,6 +230,44 @@ function App() {
   // -------------------------------------------------------- Return App.
   return (
     <RootWrapper>
+      {/* Toast Notifications */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: 'rgb(255, 255, 255)',
+            color: 'var(--text-primary)',
+            border: '2px solid rgba(100, 100, 100, 0.2)',
+            borderRadius: '12px',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)',
+            fontSize: '0.9rem',
+            fontWeight: '500',
+            padding: '1rem 1.5rem',
+          },
+          success: {
+            iconTheme: {
+              primary: 'var(--amount-positive)',
+              secondary: 'white',
+            },
+            style: {
+              border: '2px solid var(--amount-positive)',
+              background: 'rgb(255, 255, 255)',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: 'var(--amount-negative)',
+              secondary: 'white',
+            },
+            style: {
+              border: '2px solid var(--amount-negative)',
+              background: 'rgb(255, 255, 255)',
+            },
+          },
+        }}
+      />
+      
       {/* Welcome Screen */}
       {currentPage === 'welcome' && (
         <WelcomeScreen onShowAccountSetUp={handleShowAccountSetUp} />

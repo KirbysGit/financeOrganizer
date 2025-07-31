@@ -55,9 +55,73 @@ export const createTransaction = (data) => API.post('/transactions/', data);
 // ----------------------------------------------------------------- Delete Transaction By ID.
 export const deleteTransaction = (transactionId) => API.delete(`/transactions/${transactionId}`);
 
+// ================================================================= TAG OPERATIONS
+// ----------------------------------------------------------------- Get All Tags
+export const getTags = async () => {
+    const response = await API.get('/tags');
+    return response.data;
+};
+
+// ----------------------------------------------------------------- Create New Tag
+export const createTag = async (tagData) => {
+    const response = await API.post('/tags', tagData);
+    return response.data;
+};
+
+// ----------------------------------------------------------------- Update Tag
+export const updateTag = async (tagId, tagData) => {
+    const response = await API.put(`/tags/${tagId}`, tagData);
+    return response.data;
+};
+
+// ----------------------------------------------------------------- Delete Tag
+export const deleteTag = async (tagId) => {
+    const response = await API.delete(`/tags/${tagId}`);
+    return response.data;
+};
+
+// ----------------------------------------------------------------- Add Tag to Transaction
+export const addTagToTransaction = async (transactionId, tagId) => {
+    const response = await API.post(`/transactions/${transactionId}/tags/${tagId}`);
+    return response.data;
+};
+
+// ----------------------------------------------------------------- Remove Tag from Transaction
+export const removeTagFromTransaction = async (transactionId, tagId) => {
+    const response = await API.delete(`/transactions/${transactionId}/tags/${tagId}`);
+    return response.data;
+};
+
+// ----------------------------------------------------------------- Get Transaction Tags
+export const getTransactionTags = async (transactionId) => {
+    const response = await API.get(`/transactions/${transactionId}/tags`);
+    return response.data;
+};
+
+// ----------------------------------------------------------------- Get Tag Transaction Count
+export const getTagTransactionCount = async (tagId) => {
+    const response = await API.get(`/tags/${tagId}/transaction-count`);
+    return response.data;
+};
+
+// ----------------------------------------------------------------- Initialize Default Tags
+export const initializeDefaultTags = async () => {
+    const response = await API.post('/tags/initialize');
+    return response.data;
+};
+
 // ================================================================= ACCOUNT OPERATIONS
 // ----------------------------------------------------------------- Get All Connected Accounts.
 export const getAccounts = () => API.get('/accounts');
+
+// ----------------------------------------------------------------- Get Enhanced Accounts with Growth Data.
+export const getEnhancedAccounts = () => API.get('/accounts/enhanced');
+
+// ----------------------------------------------------------------- Get Account Portfolio Analysis.
+export const getAccountAnalysis = () => API.get('/accounts/analysis');
+
+// ----------------------------------------------------------------- Create Account Balance Snapshot.
+export const createAccountSnapshot = () => API.post('/accounts/snapshot');
 
 // ================================================================= STATISTICS & ANALYTICS
 // ----------------------------------------------------------------- Get Overview Statistics.

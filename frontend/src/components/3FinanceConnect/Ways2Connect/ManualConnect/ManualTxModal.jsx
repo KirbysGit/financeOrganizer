@@ -1,13 +1,15 @@
 // Imports.
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { styled } from 'styled-components';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes, faSpinner, faExclamationCircle } from '@fortawesome/free-solid-svg-icons';
+import { faTimes, faSpinner, faExclamationCircle, faTags, faPlus } from '@fortawesome/free-solid-svg-icons';
+import toast from 'react-hot-toast';
 
 // Local Imports.
 import '../../../../styles/colors.css';
-import { createTransaction } from '../../../../services/api';
+import { createTransaction, getTags } from '../../../../services/api';
 import AccountSelectionModal from '../AccountSelect/AccountSelectionModal';
+import TagModal from '../../../4Dashboard/5Transactions/TagModal';
 
 // -------------------------------------------------------- ManualTxModal Component.
 const ManualTxModal = ({ isOpen, onClose, onSuccess, existingAccounts = [] }) => {
@@ -19,13 +21,51 @@ const ManualTxModal = ({ isOpen, onClose, onSuccess, existingAccounts = [] }) =>
         amount: '',
         type: ''
     });
+    const [amountDigits, setAmountDigits] = useState(''); // raw cent string
     const [submitting, setSubmitting] = useState(false);
     const [showAccountSelection, setShowAccountSelection] = useState(false);
     const [selectedAccount, setSelectedAccount] = useState(null);
     
+    // Tag States
+    const [selectedTags, setSelectedTags] = useState([]);
+    const [availableTags, setAvailableTags] = useState([]);
+    const [showTagModal, setShowTagModal] = useState(false);
+    
     // Form Validation States.
     const [touchedFields, setTouchedFields] = useState({});
     const [errors, setErrors] = useState({});
+    
+    // -------------------------------------------------------- Load Tags on Modal Open.
+    useEffect(() => {
+        if (isOpen) {
+            loadTags();
+        }
+    }, [isOpen]);
+
+    // -------------------------------------------------------- Helper Functions.
+    
+    /* turn '1234' -> '12.34'  ---------------------------------------------- */
+    const formatFromDigits = centsStr => {
+        const num = parseInt(centsStr || '0', 10);
+        return (num / 100).toFixed(2);                      // returns "0.01", "1.00"...
+    };
+
+    /* main onChange --------------------------------------------------------- */
+    const handleAmountChange = (raw) => {
+        // keep only digits
+        const digits = raw.replace(/\D/g, '').slice(0, 12); // limit to 999 mio for sanity
+        setAmountDigits(digits);
+
+        setTransactionData(prev => ({
+            ...prev,
+            amount: formatFromDigits(digits)                  // store cents → dollars
+        }));
+
+        // clear error while typing
+        if (errors.amount) {
+            setErrors(prev => ({ ...prev, amount: '' }));
+        }
+    };
     
     // -------------------------------------------------------- Validation Functions.
     const validateField = (field, value) => {
@@ -86,6 +126,39 @@ const ManualTxModal = ({ isOpen, onClose, onSuccess, existingAccounts = [] }) =>
         }));
     };
 
+    // -------------------------------------------------------- Load Available Tags.
+    const loadTags = async () => {
+        try {
+            const tags = await getTags();
+            setAvailableTags(Array.isArray(tags) ? tags : []);
+        } catch (error) {
+            console.error('Error loading tags:', error);
+            setAvailableTags([]);
+        }
+    };
+
+    // -------------------------------------------------------- Handle Tag Selection.
+    const handleTagSelect = (tag) => {
+        if (!selectedTags.find(t => t.id === tag.id)) {
+            setSelectedTags([...selectedTags, tag]);
+        }
+    };
+
+    // -------------------------------------------------------- Handle Tag Removal.
+    const handleTagRemove = (tagId) => {
+        setSelectedTags(selectedTags.filter(tag => tag.id !== tagId));
+    };
+
+    // -------------------------------------------------------- Handle Tag Modal Close.
+    const handleTagModalClose = () => {
+        setShowTagModal(false);
+    };
+
+    // -------------------------------------------------------- Handle Tags Updated.
+    const handleTagsUpdated = () => {
+        loadTags(); // Reload tags when they're updated
+    };
+
     // -------------------------------------------------------- Handle Manual Transaction Submission.
     const handleTransactionSubmit = async () => {
         if (!validateForm()) {
@@ -117,22 +190,131 @@ const ManualTxModal = ({ isOpen, onClose, onSuccess, existingAccounts = [] }) =>
             ...transactionData,
             amount: parseFloat(amount),
             file: "manual",
-            account_data: account
+            account_data: account,
+            tag_ids: selectedTags.map(tag => tag.id) // Include selected tag IDs
         };
 
         try {
             setSubmitting(true);
             await createTransaction(newTransaction);
             
-            const timestamp = new Date().toLocaleString();
-            const accountName = account?.name || 'Cash';
-            alert(`Transaction created successfully at ${timestamp}!\n\nVendor: ${vendor}\nAmount: $${parseFloat(amount).toFixed(2)}\nType: ${TRANSACTION_TYPE_OPTIONS[type]}\nAccount: ${accountName}`);
+            // Show success toast with transaction details
+            toast.success(
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ 
+                        fontWeight: '700', 
+                        fontSize: '16px',
+                        color: 'var(--text-primary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                    }}>
+                        Transaction Created Successfully!
+                    </div>
+                    <div style={{ 
+                        fontSize: '14px', 
+                        color: 'var(--text-secondary)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ fontWeight: '600' }}>Vendor:</span>
+                            <span>{vendor}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ fontWeight: '600' }}>Amount:</span>
+                            <span style={{ 
+                                color: 'var(--amount-positive)', 
+                                fontWeight: '700' 
+                            }}>
+                                ${parseFloat(amount).toFixed(2)}
+                            </span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ fontWeight: '600' }}>Type:</span>
+                            <span>{TRANSACTION_TYPE_OPTIONS[type]}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ fontWeight: '600' }}>Account:</span>
+                            <span>{account?.name || 'Cash'}</span>
+                        </div>
+                        {selectedTags.length > 0 && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontWeight: '600' }}>Tags:</span>
+                                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                                    {selectedTags.map(tag => (
+                                        <span key={tag.id} style={{
+                                            background: tag.color,
+                                            color: 'white',
+                                            padding: '2px 6px',
+                                            borderRadius: '8px',
+                                            fontSize: '12px',
+                                            fontWeight: '500'
+                                        }}>
+                                            {tag.emoji} {tag.name}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>,
+                {
+                    duration: 5000,
+                    style: {
+                        background: 'linear-gradient(white, white) padding-box, linear-gradient(135deg, var(--button-primary), var(--amount-positive)) border-box',
+                        border: '2px solid transparent',
+                        borderRadius: '16px',
+                        padding: '20px',
+                        color: 'var(--text-primary)',
+                        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)',
+                        backdropFilter: 'blur(10px)',
+                        minWidth: '380px',
+                        maxWidth: '450px',
+                        fontSize: '14px',
+                        fontWeight: '500'
+                    }
+                }
+            );
             
-            onSuccess();
+            // Close modal first, then call onSuccess to prevent page refresh
             handleClose();
+            // Call onSuccess after a brief delay to ensure modal is closed
+            setTimeout(() => {
+                try {
+                    onSuccess();
+                } catch (error) {
+                    console.error("Error in onSuccess callback:", error);
+                }
+            }, 100);
         } catch (error) {
             console.error("Error creating transaction:", error);
-            alert("Failed to create transaction. Please try again.");
+            toast.error(
+                <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '10px',
+                    fontWeight: '600'
+                }}>
+                    <span style={{ fontSize: '18px' }}>❌</span>
+                    <span>Failed to create transaction. Please try again.</span>
+                </div>,
+                {
+                    duration: 4000,
+                    style: {
+                        background: 'linear-gradient(white, white) padding-box, linear-gradient(135deg, var(--amount-negative), #dc3545) border-box',
+                        border: '2px solid transparent',
+                        borderRadius: '16px',
+                        padding: '20px',
+                        color: 'var(--text-primary)',
+                        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)',
+                        backdropFilter: 'blur(10px)',
+                        fontSize: '14px',
+                        fontWeight: '500'
+                    }
+                }
+            );
         } finally {
             setSubmitting(false);
         }
@@ -149,6 +331,8 @@ const ManualTxModal = ({ isOpen, onClose, onSuccess, existingAccounts = [] }) =>
         });
         setSelectedAccount(null);
         setShowAccountSelection(false);
+        setSelectedTags([]);
+        setShowTagModal(false);
         setTouchedFields({});
         setErrors({});
         onClose();
@@ -170,6 +354,7 @@ const ManualTxModal = ({ isOpen, onClose, onSuccess, existingAccounts = [] }) =>
 
     return (
         <>
+            <GlobalStyles />
             <Modal onClick={handleClose}>
                 <ModalContent onClick={e => e.stopPropagation()}>
                     <ModalHeader>
@@ -236,11 +421,10 @@ const ManualTxModal = ({ isOpen, onClose, onSuccess, existingAccounts = [] }) =>
                                 Amount <RequiredAsterisk>*</RequiredAsterisk>
                             </FormLabel>
                             <FormInput
-                                type="number"
-                                step="0.01"
+                                type="text"
                                 placeholder="0.00"
-                                value={transactionData.amount}
-                                onChange={(e) => handleFieldChange('amount', e.target.value)}
+                                value={amountDigits ? formatFromDigits(amountDigits) : ''}
+                                onChange={(e) => handleAmountChange(e.target.value)}
                                 onBlur={() => handleFieldBlur('amount')}
                                 $hasError={touchedFields.amount && errors.amount}
                                 $isValid={touchedFields.amount && !errors.amount && transactionData.amount}
@@ -279,10 +463,42 @@ const ManualTxModal = ({ isOpen, onClose, onSuccess, existingAccounts = [] }) =>
                             )}
                         </FormGroup>
 
+                        {/* Tags Section */}
+                        <FormGroup>
+                            <FormLabel>Tags (Optional)</FormLabel>
+                            <TagsContainer>
+                                {selectedTags.length === 0 ? (
+                                    <EmptyTagsState>
+                                        <FontAwesomeIcon icon={faTags} />
+                                        <span>No tags selected</span>
+                                    </EmptyTagsState>
+                                ) : (
+                                    selectedTags.map(tag => (
+                                        <TagPill key={tag.id} color={tag.color}>
+                                            <span>{tag.emoji}</span>
+                                            <span>{tag.name}</span>
+                                            <RemoveTagButton onClick={() => handleTagRemove(tag.id)}>
+                                                <FontAwesomeIcon icon={faTimes} />
+                                            </RemoveTagButton>
+                                        </TagPill>
+                                    ))
+                                )}
+                                <AddTagButton onClick={() => setShowTagModal(true)}>
+                                    <FontAwesomeIcon icon={faPlus} />
+                                    Add Tags
+                                </AddTagButton>
+                            </TagsContainer>
+                        </FormGroup>
+
                         <ActionButton 
-                            onClick={handleTransactionSubmit}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleTransactionSubmit();
+                            }}
                             disabled={submitting}
                             $primary
+                            type="button"
                         >
                             {submitting ? (
                                 <>
@@ -303,6 +519,17 @@ const ManualTxModal = ({ isOpen, onClose, onSuccess, existingAccounts = [] }) =>
                 onClose={() => setShowAccountSelection(false)}
                 onAccountSelect={handleAccountSelect}
                 existingAccounts={existingAccounts}
+            />
+
+            {/* Tag Selection Modal */}
+            <TagModal
+                isOpen={showTagModal}
+                onClose={handleTagModalClose}
+                transaction={null} // No specific transaction for manual creation
+                onTagsUpdated={handleTagsUpdated}
+                onTagSelect={handleTagSelect}
+                selectedTags={selectedTags}
+                availableTags={availableTags}
             />
         </>
     );
@@ -580,6 +807,109 @@ const ErrorMessage = styled.span`
 const RequiredAsterisk = styled.span`
     color: #dc3545;
     font-weight: bold;
+`;
+
+// -------------------------------------------------------- Tag Styled Components.
+const TagsContainer = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+    min-height: 48px;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid #eee;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    
+    &:hover {
+        border-color: var(--button-primary);
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    }
+`;
+
+const EmptyTagsState = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    font-style: italic;
+    font-size: 0.9rem;
+`;
+
+const TagPill = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: ${props => props.color || '#6366f1'};
+    color: white;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    user-select: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    border: 2px solid transparent;
+    
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    }
+`;
+
+const RemoveTagButton = styled.button`
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: white;
+    font-size: 0.8rem;
+    transition: all 0.3s ease;
+    
+    &:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: scale(1.1);
+    }
+`;
+
+const AddTagButton = styled.button`
+    font: inherit;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
+    border: none;
+    border-radius: 20px;
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
+    }
+`;
+
+// -------------------------------------------------------- Global CSS to hide spinner arrows.
+const GlobalStyles = styled.div`
+    /* hide ↑↓ spinners everywhere */
+    input[type='number']::-webkit-inner-spin-button,
+    input[type='number']::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    input[type='number'] {
+        -moz-appearance: textfield; /* Firefox */
+    }
 `;
 
 export default ManualTxModal;

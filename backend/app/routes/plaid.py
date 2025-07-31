@@ -17,7 +17,7 @@ from plaid.model.link_token_create_request_user import LinkTokenCreateRequestUse
 from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
 
 # Local Imports.
-from app.config import plaid_config
+from app.config import plaid_config, PLAID_ENV, PLAID_TRANSACTION_DAYS
 from app.utils.db_utils import get_db
 from app.utils.auth_utils import get_current_user
 from app.database import Transaction, Account, Institution, User
@@ -166,7 +166,13 @@ async def fetch_transactions(
         try:
             # Calculate Date Range.
             end_date = datetime.now().date()
-            start_date = end_date - timedelta(days=30)
+            
+            # Plaid Data Limits:
+            # - Sandbox: Usually 30-90 days of transactions
+            # - Development: Up to 2 years of historical data
+            # - Production: Up to 7 years of historical data
+            # For better growth analysis, pull more historical data when available
+            start_date = end_date - timedelta(days=PLAID_TRANSACTION_DAYS)
             
             # Create Transaction Request.
             request = TransactionsGetRequest(
@@ -249,6 +255,10 @@ async def fetch_transactions(
                 
                 # Commit Account Changes To Database.
                 db.commit()
+                
+                # Create balance snapshots for growth tracking
+                from app.utils.account_utils import create_account_balance_snapshot
+                create_account_balance_snapshot(db, current_user.id)
                 
                 # Process Transactions.
                 transactions = response['transactions']
@@ -344,7 +354,17 @@ async def fetch_transactions(
                     "total_fetched": len(transactions),
                     "new_transactions": stored_count,
                     "new_accounts": stored_accounts,
-                    "attempts": attempt + 1
+                    "attempts": attempt + 1,
+                    "date_range": {
+                        "start_date": start_date.isoformat(),
+                        "end_date": end_date.isoformat(),
+                        "days_requested": (end_date - start_date).days
+                    },
+                    "data_quality": {
+                        "accounts_with_balances": len([acc for acc in accounts_data if getattr(acc, 'balances', None)]),
+                        "total_accounts": len(accounts_data),
+                        "transactions_with_dates": len([tx for tx in transactions if getattr(tx, 'date', None)])
+                    }
                 }
                 
             finally:

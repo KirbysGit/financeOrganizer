@@ -13,6 +13,8 @@ import SpendingGrid from './2RecentData/SpendingGrid';
 import TransactionTable from './5Transactions/TransactionTable';
 import StrengthIndicator from './3CentiScore/StrengthIndicator';
 import LoadingScreen from './00LoadingScreen/LoadingScreen';
+import Footer from './6Footer/Footer';
+import MiniSidebar from './7MiniSidebar/MiniSidebar';
 
 // API.
 import { uploadCSV } from '../../services/api';
@@ -51,11 +53,9 @@ const slideDown = keyframes`
 
 const slideUp = keyframes`
     from {
-        transform: translateY(30px);
         opacity: 0;
     }
     to {
-        transform: translateY(0);
         opacity: 1;
     }
 `;
@@ -393,6 +393,7 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
                                     myTransactions={transactions}
                                 />
                                 <StrengthIndicator 
+                                    id="centi-score-section"
                                     myStats={stats} 
                                     myCentiScore={centiScore}
                                     myCentiScoreHistory={centiScoreHistory}
@@ -419,6 +420,12 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
                                     onUpload={handleUploadCSV}
                                 />
                             </DashboardContent>
+                            
+                            {/* Footer */}
+                            <Footer />
+                            
+                            {/* Mini Sidebar */}
+                            <MiniSidebar />
                         </>
                     )}
                 </>
@@ -452,6 +459,7 @@ const ExpenseContainer = styled.div`
     background: linear-gradient(135deg,rgb(231, 240, 250) 0%, #e9ecef 100%);
     min-height: 100vh;
     position: relative;
+    flex: 1;
 `;
 
 // -------------------------------------------------------- Dashboard Content.

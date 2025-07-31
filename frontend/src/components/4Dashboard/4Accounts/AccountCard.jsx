@@ -2,6 +2,10 @@
 import React from 'react';
 import styled from 'styled-components';
 import { FaChevronDown } from 'react-icons/fa';
+import { 
+  Building2, CreditCard, PiggyBank, TrendingUp,
+  Wallet, Shield, Zap, Target
+} from 'lucide-react';
 
 // ------------------------------------------------------------------------------------------------ Helper Functions.
 
@@ -27,12 +31,12 @@ const getAccountTypeColor = (type) => {
 // Gets Account Type Icon Based On The Type Of Account.
 const getAccountTypeIcon = (type) => {
     const icons = {
-        depository: '🏦',
-        credit: '💳',
-        loan: '💰',
-        investment: '📈'
+    depository: <Building2 size={24} />,
+    credit: <CreditCard size={24} />,
+    loan: <PiggyBank size={24} />,
+    investment: <TrendingUp size={24} />
     };
-    return icons[type] || '📊';
+  return icons[type] || <Wallet size={24} />;
 };
 
 // Gets Account Type Label Based On The Type Of Account.
@@ -41,7 +45,8 @@ const getAccountTypeLabel = (type) => {
         depository: 'Bank Account',
         credit: 'Credit Card',
         loan: 'Loan',
-        investment: 'Investment'
+        investment: 'Investment',
+        cash: 'Cash'
     };
     return labels[type] || 'Account';
 };
@@ -59,7 +64,8 @@ const getAccountSubtypeLabel = (subtype) => {
         student: 'Student Loan',
         mortgage: 'Mortgage',
         hsa: 'Health Savings Account',
-        'cash management': 'Cash Management'
+        'cash management': 'Cash Management',
+        cash: 'Cash Balance'
     };
     return labels[subtype] || subtype;
 };
@@ -119,19 +125,18 @@ const formatLastUpdated = (updatedAt) => {
 const AccountCard = ({ account, isExpanded, onToggle }) => {
     return (
         <Card 
-            onClick={() => onToggle(account.id)}
             $type={account.type}
             $expanded={isExpanded}
         >
             {/* Collapsed State - Summary View */}
-            <CardSummary>
+            <CardSummary onClick={() => onToggle(account.id)}>
                 {/* Left Side - Account Info */}
                 <AccountInfoSection>
                     <AccountIcon $type={account.type}>{getAccountTypeIcon(account.type)}</AccountIcon>
                     <AccountDetails>
                         <AccountName>{account.name}</AccountName>
                         <AccountType>{getAccountTypeLabel(account.type)} • {getAccountSubtypeLabel(account.subtype)}</AccountType>
-                        {account.mask && <AccountMask>{formatAccountMask(account.mask)}</AccountMask>}
+                        {account.mask && account.type !== 'cash' && <AccountMask>{formatAccountMask(account.mask)}</AccountMask>}
                     </AccountDetails>
                 </AccountInfoSection>
                 
@@ -164,11 +169,44 @@ const AccountCard = ({ account, isExpanded, onToggle }) => {
             
             {/* Expanded State - Detailed View */}
             {isExpanded && (
-                <CardExpanded>
-                    {/* Left Column - Account Metadata */}
-                    <MetadataColumn>
+                <CardExpanded onClick={(e) => e.stopPropagation()}>
+                    {/* Left Column - Balance Details & Account Info */}
+                    <LeftColumn>
+                        {/* Balance Details Section */}
+                        <BalanceDetailsSection>
+                            <MetadataTitle>Balance Details</MetadataTitle>
+                            <TitleDivider />
+                            <BalanceDetailsGrid>
+                                <BalanceDetailItem>
+                                    <MetadataLabel>Current Balance</MetadataLabel>
+                                    <BalanceDetailValue $positive={true}>
+                                        {formatCurrency(account.current_balance)}
+                                    </BalanceDetailValue>
+                                </BalanceDetailItem>
+                                <BalanceDetailItem>
+                                    <MetadataLabel>Available Balance</MetadataLabel>
+                                    <BalanceDetailValue $positive={account.available_balance !== null}>
+                                        {account.available_balance !== null 
+                                            ? formatCurrency(account.available_balance)
+                                            : 'N/A'
+                                        }
+                                    </BalanceDetailValue>
+                                </BalanceDetailItem>
+                                {account.limit && (
+                                    <BalanceDetailItem>
+                                        <MetadataLabel>Credit Limit</MetadataLabel>
+                                        <BalanceDetailValue $positive={true}>
+                                            {formatCurrency(account.limit)}
+                                        </BalanceDetailValue>
+                                    </BalanceDetailItem>
+                                )}
+                            </BalanceDetailsGrid>
+                        </BalanceDetailsSection>
+                        
+                        {/* Account Information Section */}
                         <MetadataSection>
                             <MetadataTitle>Account Information</MetadataTitle>
+                            <TitleDivider />
                             <MetadataGrid>
                                 {account.official_name && account.official_name !== account.name && (
                                     <MetadataItem>
@@ -178,7 +216,9 @@ const AccountCard = ({ account, isExpanded, onToggle }) => {
                                 )}
                                 <MetadataItem>
                                     <MetadataLabel>Account ID</MetadataLabel>
-                                    <MetadataValue>{account.account_id}</MetadataValue>
+                                    <MetadataValue>
+                                        {account.account_id || (account.type === 'cash' ? 'N/A (Cash Account)' : 'N/A')}
+                                    </MetadataValue>
                                 </MetadataItem>
                                 <MetadataItem>
                                     <MetadataLabel>Type</MetadataLabel>
@@ -188,7 +228,7 @@ const AccountCard = ({ account, isExpanded, onToggle }) => {
                                     <MetadataLabel>Subtype</MetadataLabel>
                                     <MetadataValue>{getAccountSubtypeLabel(account.subtype)}</MetadataValue>
                                 </MetadataItem>
-                                {account.mask && (
+                                {account.mask && account.type !== 'cash' && (
                                     <MetadataItem>
                                         <MetadataLabel>Account Mask</MetadataLabel>
                                         <MetadataValue>{formatAccountMask(account.mask)}</MetadataValue>
@@ -208,39 +248,153 @@ const AccountCard = ({ account, isExpanded, onToggle }) => {
                                 </MetadataItem>
                             </MetadataGrid>
                         </MetadataSection>
-                        
-                        <BalanceDetailsSection>
-                            <MetadataTitle>Balance Details</MetadataTitle>
-                            <BalanceDetailsGrid>
-                                <BalanceDetailItem>
-                                    <BalanceDetailLabel>Current Balance</BalanceDetailLabel>
-                                    <BalanceDetailValue $positive={true}>
-                                        {formatCurrency(account.current_balance)}
-                                    </BalanceDetailValue>
-                                </BalanceDetailItem>
-                                <BalanceDetailItem>
-                                    <BalanceDetailLabel>Available Balance</BalanceDetailLabel>
-                                    <BalanceDetailValue $positive={account.available_balance !== null}>
-                                        {account.available_balance !== null 
-                                            ? formatCurrency(account.available_balance)
-                                            : 'N/A'
-                                        }
-                                    </BalanceDetailValue>
-                                </BalanceDetailItem>
-                            </BalanceDetailsGrid>
-                        </BalanceDetailsSection>
-                    </MetadataColumn>
+                    </LeftColumn>
                     
-                    {/* Right Column - Future Visualizations */}
-                    <VisualizationColumn>
-                        <VisualizationPlaceholder>
-                            <PlaceholderIcon>📊</PlaceholderIcon>
-                            <PlaceholderTitle>Account Analytics</PlaceholderTitle>
-                            <PlaceholderText>
-                                Charts and transaction trends will appear here in future updates.
-                            </PlaceholderText>
-                        </VisualizationPlaceholder>
-                    </VisualizationColumn>
+                    {/* Right Column - Chart & Financial Impact */}
+                    <RightColumn>
+                        {/* Chart Placeholder */}
+                        <ChartSection>
+                            <EmptyChartContainer>
+                                <YAxisTitle>Value ($)</YAxisTitle>
+                                <XAxisTitle>Month / Time</XAxisTitle>
+                                <EmptyChartGrid>
+                                    {/* Y-axis labels */}
+                                    <YAxisLabels>
+                                        <YAxisLabel>100</YAxisLabel>
+                                        <YAxisLabel>80</YAxisLabel>
+                                        <YAxisLabel>60</YAxisLabel>
+                                        <YAxisLabel>40</YAxisLabel>
+                                        <YAxisLabel>20</YAxisLabel>
+                                        <YAxisLabel>0</YAxisLabel>
+                                    </YAxisLabels>
+                                    
+                                    {/* Chart area with grid */}
+                                    <ChartArea>
+                                        <GridLines>
+                                            <GridLine />
+                                            <GridLine />
+                                            <GridLine />
+                                            <GridLine />
+                                            <GridLine />
+                                        </GridLines>
+                                        
+                                        {/* Empty tooltip in center */}
+                                        <EmptyTooltip>
+                                            <TooltipIcon>📊</TooltipIcon>
+                                            <TooltipText>No growth data available from this account</TooltipText>
+                                        </EmptyTooltip>
+                                    </ChartArea>
+                                    
+                                    {/* X-axis labels */}
+                                    <XAxisLabels>
+                                        <XAxisLabel>Jan</XAxisLabel>
+                                        <XAxisLabel>Feb</XAxisLabel>
+                                        <XAxisLabel>Mar</XAxisLabel>
+                                        <XAxisLabel>Apr</XAxisLabel>
+                                        <XAxisLabel>May</XAxisLabel>
+                                    </XAxisLabels>
+                                </EmptyChartGrid>
+                            </EmptyChartContainer>
+                        </ChartSection>
+                        
+                        {/* Enhanced Data Section */}
+                        {(account.balance_change_30d !== null || account.growth_percentage_30d !== null || 
+                          account.net_worth_contribution !== null || account.percentage_of_total_assets !== null) && (
+                            <EnhancedDataSection>
+                                <MetadataTitle>Financial Impact & Growth</MetadataTitle>
+                                <TitleDivider />
+                                {/* Growth Data */}
+                                {(account.balance_change_30d !== null || account.growth_percentage_30d !== null) && (
+                                    <GrowthDataGrid>
+                                        <GrowthDataItem>
+                                            <GrowthDataLabel>30-Day Change</GrowthDataLabel>
+                                            <RightSide>
+                                                <GrowthDataValue $positive={account.balance_change_30d > 0}>
+                                                    {account.balance_change_30d !== null 
+                                                        ? formatCurrency(account.balance_change_30d)
+                                                        : 'N/A'
+                                                    }
+                                                </GrowthDataValue>
+                                                {account.growth_percentage_30d !== null && (
+                                                    <GrowthPercentage $positive={account.growth_percentage_30d > 0}>
+                                                        {account.growth_percentage_30d > 0 ? '+' : ''}{account.growth_percentage_30d.toFixed(1)}%
+                                                    </GrowthPercentage>
+                                                )}
+                                            </RightSide>
+                                        </GrowthDataItem>
+                                        
+                                        <GrowthDataItem>
+                                            <GrowthDataLabel>90-Day Change</GrowthDataLabel>
+                                            <RightSide>
+                                                <GrowthDataValue $positive={account.balance_change_90d > 0}>
+                                                    {account.balance_change_90d !== null 
+                                                        ? formatCurrency(account.balance_change_90d)
+                                                        : 'N/A'
+                                                    }
+                                                </GrowthDataValue>
+                                                {account.growth_percentage_90d !== null && (
+                                                    <GrowthPercentage $positive={account.growth_percentage_90d > 0}>
+                                                        {account.growth_percentage_90d > 0 ? '+' : ''}{account.growth_percentage_90d.toFixed(1)}%
+                                                    </GrowthPercentage>
+                                                )}
+                                            </RightSide>
+                                        </GrowthDataItem>
+                                    </GrowthDataGrid>
+                                )}
+                                
+                                {/* Financial Impact */}
+                                <FinancialImpactGrid>
+                                    <FinancialImpactItem>
+                                        <FinancialImpactLabel>Net Worth Impact</FinancialImpactLabel>
+                                        <FinancialImpactValue $positive={account.net_worth_contribution > 0}>
+                                            {formatCurrency(account.net_worth_contribution)}
+                                        </FinancialImpactValue>
+                                    </FinancialImpactItem>
+                                    
+                                    {account.percentage_of_total_assets !== null && (
+                                        <FinancialImpactItem>
+                                            <FinancialImpactLabel>% of Total Assets</FinancialImpactLabel>
+                                            <FinancialImpactValue $positive={true}>
+                                                {account.percentage_of_total_assets.toFixed(1)}%
+                                            </FinancialImpactValue>
+                                        </FinancialImpactItem>
+                                    )}
+                                    
+                                    {account.percentage_of_total_liabilities !== null && (
+                                        <FinancialImpactItem>
+                                            <FinancialImpactLabel>% of Total Liabilities</FinancialImpactLabel>
+                                            <FinancialImpactValue $positive={false}>
+                                                {account.percentage_of_total_liabilities.toFixed(1)}%
+                                            </FinancialImpactValue>
+                                        </FinancialImpactItem>
+                                    )}
+                                </FinancialImpactGrid>
+                                
+                                {/* Health Indicators */}
+                                {(account.utilization_rate !== null || account.days_since_last_transaction !== null) && (
+                                    <HealthIndicatorsGrid>
+                                        {account.utilization_rate !== null && (
+                                            <HealthIndicatorItem>
+                                                <HealthIndicatorLabel>Credit Utilization</HealthIndicatorLabel>
+                                                <HealthIndicatorValue $warning={account.utilization_rate > 30}>
+                                                    {account.utilization_rate.toFixed(1)}%
+                                                </HealthIndicatorValue>
+                                            </HealthIndicatorItem>
+                                        )}
+                                        
+                                        {account.days_since_last_transaction !== null && (
+                                            <HealthIndicatorItem>
+                                                <HealthIndicatorLabel>Days Since Last Transaction</HealthIndicatorLabel>
+                                                <HealthIndicatorValue $warning={account.days_since_last_transaction > 30}>
+                                                    {account.days_since_last_transaction} days
+                                                </HealthIndicatorValue>
+                                            </HealthIndicatorItem>
+                                        )}
+                                    </HealthIndicatorsGrid>
+                                )}
+                            </EnhancedDataSection>
+                        )}
+                    </RightColumn>
                 </CardExpanded>
             )}
         </Card>
@@ -250,11 +404,50 @@ const AccountCard = ({ account, isExpanded, onToggle }) => {
 // ------------------------------------------------------------------------------------------------ Styled Components.
 
 // -------------------------------------------------------- Account Card.
+
+const AccountIcon = styled.div`
+    font-size: 2.5rem;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    flex-shrink: 0;
+    transition: all 0.3s ease;
+    position: relative;
+
+    &::after {
+        content: '';
+        position: absolute;
+        top: -2px;
+        left: -2px;
+        right: -2px;
+        bottom: -2px;
+        background: linear-gradient(45deg, var(--button-primary), var(--amount-positive));
+        border-radius: 50%;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        z-index: -1;
+    }
+    
+    &:hover::after {
+        opacity: 0.3;
+    }
+`;
+
+const BalanceAmount = styled.div`
+    font-size: clamp(1.8rem, 4vw, 2.2rem);
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1;
+    position: relative;
+    cursor: pointer;
+`;
+
 const Card = styled.div`
     background: rgba(255, 255, 255, 0.4);
     border-radius: 16px;
     padding: 1.5rem;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border: 3px solid transparent;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.34);
     position: relative;
@@ -262,11 +455,16 @@ const Card = styled.div`
     overflow: hidden;
     width: 100%;
     
+    ${props => !props.$expanded && `
     &:hover {
-        transform: translateY(-2px);
-        border-color: ${props => getAccountTypeColor(props.$type)};
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+            
+            ${AccountIcon} {
+              transform: scale(1.3) rotate(5deg);
     }
+        }
+    `}
 `;
 
 // -------------------------------------------------------- Card Summary (Collapsed State).
@@ -286,12 +484,6 @@ const AccountInfoSection = styled.div`
     gap: 1.5rem;
     flex: 1;
     min-width: 0;
-`;
-
-const AccountIcon = styled.span`
-    font-size: 2.5rem;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
-    flex-shrink: 0;
 `;
 
 const AccountDetails = styled.div`
@@ -342,16 +534,6 @@ const BalanceSection = styled.div`
     gap: 0.25rem;
 `;
 
-const BalanceAmount = styled.div`
-    font-size: clamp(1.8rem, 4vw, 2.2rem);
-    font-weight: 700;
-    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    line-height: 1;
-`;
-
 const BalanceCurrency = styled.span`
     font-size: 0.9rem;
     color: var(--text-secondary);
@@ -372,6 +554,8 @@ const StatusBadge = styled.span`
     font-weight: 600;
     border: 1px solid ${props => props.$color}30;
     white-space: nowrap;
+    position: relative;
+    overflow: hidden;
 `;
 
 // -------------------------------------------------------- Expand Toggle.
@@ -408,10 +592,10 @@ const ChevronIcon = styled.span`
 const CardExpanded = styled.div`
     margin-top: 1.5rem;
     padding-top: 1.5rem;
-    border-top: 1px solid rgba(100, 100, 100, 0.2);
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    border-top: 2px solid rgba(100, 100, 100, 0.2);
+    display: flex;
     gap: 2rem;
+    align-items: stretch;
     animation: slideDown 0.3s ease-out;
     
     @keyframes slideDown {
@@ -426,137 +610,480 @@ const CardExpanded = styled.div`
     }
     
     @media (max-width: 768px) {
-        grid-template-columns: 1fr;
+        flex-direction: column;
         gap: 1.5rem;
     }
 `;
 
-// -------------------------------------------------------- Metadata Column.
-const MetadataColumn = styled.div`
+// -------------------------------------------------------- Left Column.
+const LeftColumn = styled.div`
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+    flex: 2;
+    min-height: 100%;
 `;
+
+// -------------------------------------------------------- Right Column.
+const RightColumn = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    flex: 3;
+    min-height: 100%;
+`;
+
+// -------------------------------------------------------- Chart Section.
+const ChartSection = styled.div`
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+`;
+
+// -------------------------------------------------------- Chart Placeholder.
+const EmptyChartContainer = styled.div`
+    position: relative;
+    width: 100%;
+    flex: 1;
+    min-height: 300px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.34);
+`;
+
+const YAxisTitle = styled.div`
+    position: absolute;
+    top: 50%;
+    left: -10px;
+    transform: translateY(-50%) rotate(-90deg);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    z-index: 5;
+`;
+
+const XAxisTitle = styled.div`
+    position: absolute;
+    bottom: 7.5px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    z-index: 5;
+`;
+
+const EmptyChartGrid = styled.div`
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    grid-template-columns: auto 1fr;
+    gap: 0.5rem;
+`;
+
+const YAxisLabels = styled.div`
+    grid-row: 1 / 2;
+    grid-column: 1 / 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding-right: 0.5rem;
+    align-items: flex-end;
+`;
+
+const YAxisLabel = styled.span`
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+`;
+
+const ChartArea = styled.div`
+    grid-row: 1 / 2;
+    grid-column: 2 / 3;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+`;
+
+const GridLines = styled.div`
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+`;
+
+const GridLine = styled.div`
+    height: 1px;
+    background: rgba(100, 100, 100, 0.1);
+    width: 100%;
+`;
+
+const EmptyTooltip = styled.div`
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    z-index: 10;
+    border: 1px solid rgba(100, 100, 100, 0.1);
+`;
+
+const TooltipIcon = styled.div`
+    font-size: 2rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+    opacity: 0.7;
+`;
+
+const TooltipText = styled.p`
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.3;
+    max-width: 150px;
+    font-weight: 500;
+`;
+
+const XAxisLabels = styled.div`
+    grid-row: 2 / 3;
+    grid-column: 2 / 3;
+    display: flex;
+    justify-content: space-between;
+    padding-top: 0.5rem;
+`;
+
+const XAxisLabel = styled.span`
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+`;
+
+// -------------------------------------------------------- Metadata Column.
 
 const MetadataSection = styled.div`
     background: rgba(255, 255, 255, 0.2);
     border-radius: 12px;
-    padding: 0rem 1.25rem 1.25rem 1.25rem;
     border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
 `;
 
 const MetadataTitle = styled.h3`
     font-size: 1.3rem;
     font-weight: 600;
     background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
+    width: max-content;
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    margin: 0 0 1rem 0;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid rgba(100, 100, 100, 0.2);
+    padding-bottom: 0.75rem;
+`;
+
+const TitleDivider = styled.div`
+    width: 100%;
+    height: 2px;
+    border-radius: 50%;
+    background: rgba(100, 100, 100, 0.2);
+    margin: 0 0 0.5rem 0;
 `;
 
 const MetadataGrid = styled.div`
     display: grid;
     gap: 0.75rem;
+    flex: 1;
 `;
 
 const MetadataItem = styled.div`
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.5rem 0;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.1rem 1rem;
+    border-radius: 10px;
+    transition: all 0.2s ease;
 `;
 
 const MetadataLabel = styled.span`
     color: var(--text-secondary);
     font-weight: 500;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.8;
 `;
 
 const MetadataValue = styled.span`
     color: var(--text-primary);
     font-weight: 600;
     font-size: 0.9rem;
-    background: rgba(255, 255, 255, 0.5);
-    padding: 0.25rem 0.75rem;
-    border-radius: 8px;
-    text-align: right;
-    max-width: 60%;
+    background: rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    text-align: left;
+    border: 1px solid rgba(0, 0, 0, 0.1);
     word-break: break-word;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
 `;
 
 // -------------------------------------------------------- Balance Details Section.
-const BalanceDetailsSection = styled(MetadataSection)``;
+const BalanceDetailsSection = styled(MetadataSection)`
+    flex: 1;
+`;
 
 const BalanceDetailsGrid = styled.div`
     display: grid;
-    gap: 1rem;
+    gap: 1.25rem;
+    flex: 1;
 `;
 
-const BalanceDetailItem = styled.div`
+const BalanceDetailItem = styled(MetadataItem)`
+`;
+
+const BalanceDetailValue = styled(MetadataValue)`
+    color: ${props => props.$positive ? 'var(--amount-positive)' : 'var(--text-secondary)'};
+    font-weight: 700;
+    font-size: 1.4rem;
+`;
+
+
+
+// -------------------------------------------------------- Enhanced Data Section.
+const EnhancedDataSection = styled(MetadataSection)`
+    position: relative;
+    flex: 1;
+`;
+
+const GrowthDataGrid = styled.div`
+    display: grid;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+    flex: 1;
+    
+    &::after {
+        content: '';
+        position: absolute;
+        bottom: -0.75rem;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60%;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(100, 100, 100, 0.2), transparent);
+    }
+`;
+
+const GrowthDataItem = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.75rem;
+    padding: 1rem;
     background: rgba(255, 255, 255, 0.3);
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.4);
-`;
-
-const BalanceDetailLabel = styled.span`
-    color: var(--text-secondary);
-    font-weight: 500;
-    font-size: 0.9rem;
-`;
-
-const BalanceDetailValue = styled.span`
-    color: ${props => props.$positive ? 'var(--amount-positive)' : 'var(--text-secondary)'};
-    font-weight: 700;
-    font-size: 1rem;
-`;
-
-// -------------------------------------------------------- Visualization Column.
-const VisualizationColumn = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-`;
-
-const VisualizationPlaceholder = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    background: rgba(255, 255, 255, 0.2);
     border-radius: 12px;
-    padding: 2rem;
-    border: 2px dashed rgba(100, 100, 100, 0.3);
-    width: 100%;
-    height: 200px;
-    gap: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    position: relative;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        background: rgba(255, 255, 255, 0.4);
+    }
+    
+    &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: linear-gradient(180deg, var(--button-primary), var(--amount-positive));
+        border-radius: 12px 0 0 12px;
+    }
 `;
 
-const PlaceholderIcon = styled.div`
-    font-size: 3rem;
-    opacity: 0.6;
+const RightSide = styled.div`
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
 `;
 
-const PlaceholderTitle = styled.h3`
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin: 0;
-`;
-
-const PlaceholderText = styled.p`
-    font-size: 0.9rem;
+const GrowthDataLabel = styled.span`
     color: var(--text-secondary);
-    margin: 0;
-    line-height: 1.4;
-    max-width: 200px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+`;
+
+const GrowthDataValue = styled.span`
+    color: ${props => props.$positive ? 'var(--amount-positive)' : 'var(--amount-negative)'};
+    font-weight: 700;
+    font-size: 1.1rem;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+`;
+
+const GrowthPercentage = styled.span`
+    background: ${props => props.$positive ? 'rgba(40, 167, 69, 0.2)' : 'rgba(220, 53, 69, 0.2)'};
+    color: ${props => props.$positive ? 'rgb(40, 167, 69)' : 'rgb(220, 53, 69)'};
+    padding: 0.35rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border: 1px solid ${props => props.$positive ? 'rgba(40, 167, 69, 0.3)' : 'rgba(220, 53, 69, 0.3)'};
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+`;
+
+const FinancialImpactGrid = styled.div`
+    display: grid;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+    flex: 1;
+    
+    &::after {
+        content: '';
+        position: absolute;
+        bottom: -0.75rem;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60%;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(100, 100, 100, 0.2), transparent);
+    }
+`;
+
+const FinancialImpactItem = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    position: relative;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        background: rgba(255, 255, 255, 0.4);
+    }
+    
+    &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: linear-gradient(180deg, var(--button-primary), var(--amount-positive));
+        border-radius: 12px 0 0 12px;
+    }
+`;
+
+const FinancialImpactLabel = styled.span`
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    
+`;
+
+const FinancialImpactValue = styled.span`
+    color: ${props => props.$positive ? 'var(--amount-positive)' : 'var(--amount-negative)'};
+    font-weight: 700;
+    font-size: 1.1rem;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+`;
+
+const HealthIndicatorsGrid = styled.div`
+    display: grid;
+    gap: 1rem;
+    position: relative;
+    flex: 1;
+`;
+
+const HealthIndicatorItem = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    position: relative;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        background: rgba(255, 255, 255, 0.4);
+    }
+    
+    &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: ${props => props.$warning ? 'linear-gradient(180deg, #ffc107, #dc3545)' : 'linear-gradient(180deg, var(--button-primary), var(--amount-positive))'};
+        border-radius: 12px 0 0 12px;
+    }
+`;
+
+const HealthIndicatorLabel = styled.span`
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+`;
+
+const HealthIndicatorValue = styled.span`
+    color: ${props => props.$warning ? 'var(--amount-negative)' : 'var(--amount-positive)'};
+    font-weight: 700;
+    font-size: 1.1rem;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 `;
 
 export default AccountCard;

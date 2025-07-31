@@ -1,14 +1,19 @@
 // Imports.
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { styled } from 'styled-components';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSort, faSortUp, faSortDown, faSearch, faFilter, faXmark, faPlus, faRotateRight, faUpload } from '@fortawesome/free-solid-svg-icons';
+import { faSort, faSortUp, faSortDown, faTags, faSearch, faFilter, faXmark, faPlus, faRotateRight, faCreditCard, faUpload, faCalendar, faChevronLeft, faChevronRight, faDollarSign } from '@fortawesome/free-solid-svg-icons';
 import CountUp from 'react-countup';
 
 // Local Imports.
 import '../../../styles/colors.css';
 import FileUploadModal from '../../3FinanceConnect/Ways2Connect/UploadConnect/FileUploadModal';
 import UploadResultModal from '../../3FinanceConnect/Ways2Connect/UploadConnect/UploadResultModal';
+import DateFilter from './DateFilter';
+import AmountFilter from './AmountFilter';
+import AccountFilter from './AccountFilter';
+import TypeFilter from './TypeFilter';
+import TagFilter from './TagFilter';
 
 // -------------------------------------------------------- AnimatedNumber Component.
 const AnimatedNumber = ({ value, duration = 1.5 }) => {
@@ -26,6 +31,8 @@ const AnimatedNumber = ({ value, duration = 1.5 }) => {
         />
     );
 };
+
+
 
 // ------------------------------------------------------------------------------------------------ TableHeader Component.
 const TableHeader = ({ 
@@ -52,11 +59,65 @@ const TableHeader = ({
     setManualTxModal,
     onRefresh,
     onUpload,
-    existingAccounts
+    existingAccounts,
+    dateFilter,
+    onDateFilterChange,
+    amountFilter,
+    onAmountFilterChange,
+    accountFilter,
+    onAccountFilterChange,
+    typeFilter,
+    onTypeFilterChange,
+    tagFilter,
+    onTagFilterChange
 }) => {
     // Upload States
     const [uploadModal, setUploadModal] = useState(false);
     const [uploadResult, setUploadResult] = useState(null);
+
+    // Date Filter States
+    const [showDateFilter, setShowDateFilter] = useState(false);
+
+    // Amount Filter States
+    const [showAmountFilter, setShowAmountFilter] = useState(false);
+
+    // Account Filter States
+    const [showAccountFilter, setShowAccountFilter] = useState(false);
+
+    // Type Filter States
+    const [showTypeFilter, setShowTypeFilter] = useState(false);
+
+    // Tag Filter States
+    const [showTagFilter, setShowTagFilter] = useState(false);
+
+    // -------------------------------------------------------- Handle Click Outside Dropdown.
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (showAddMenu && !event.target.closest('.add-menu-wrapper')) {
+                setShowAddMenu(false);
+            }
+            if (showDateFilter && !event.target.closest('.date-filter-wrapper') && !event.target.closest('.date-filter-dropdown')) {
+                setShowDateFilter(false);
+            }
+            if (showAmountFilter && !event.target.closest('.amount-filter-wrapper') && !event.target.closest('.amount-filter-dropdown')) {
+                setShowAmountFilter(false);
+            }
+            if (showAccountFilter && !event.target.closest('.account-filter-wrapper') && !event.target.closest('.account-filter-dropdown')) {
+                setShowAccountFilter(false);
+            }
+            if (showTypeFilter && !event.target.closest('.type-filter-wrapper') && !event.target.closest('.type-filter-dropdown')) {
+                setShowTypeFilter(false);
+            }
+            if (showTagFilter && !event.target.closest('.tag-filter-wrapper') && !event.target.closest('.tag-filter-dropdown')) {
+                setShowTagFilter(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showAddMenu, showDateFilter, showAmountFilter, showAccountFilter, showTypeFilter, showTagFilter]);
 
     // -------------------------------------------------------- Handle Uploading Of CSV.
     const handleUpload = async (formData) => {
@@ -85,6 +146,132 @@ const TableHeader = ({
     const handleResultsClose = () => {
         setUploadResult(null);
         // Optionally refresh data or show success message
+    };
+
+    // -------------------------------------------------------- Handle Date Filter Apply.
+    const handleDateFilterApply = (filterData) => {
+        onDateFilterChange(filterData);
+    };
+
+    // -------------------------------------------------------- Handle Amount Filter Apply.
+    const handleAmountFilterApply = (filterData) => {
+        onAmountFilterChange(filterData);
+    };
+
+    // -------------------------------------------------------- Handle Account Filter Apply.
+    const handleAccountFilterApply = (filterData) => {
+        onAccountFilterChange(filterData);
+    };
+
+    // -------------------------------------------------------- Handle Type Filter Apply.
+    const handleTypeFilterApply = (filterData) => {
+        onTypeFilterChange(filterData);
+    };
+
+    // -------------------------------------------------------- Handle Tag Filter Apply.
+    const handleTagFilterApply = (filterData) => {
+        onTagFilterChange(filterData);
+    };
+
+    // -------------------------------------------------------- Handle Clear All Filters.
+    const handleClearAllFilters = () => {
+        // Clear all filter states
+        setShowDateFilter(false);
+        setShowAmountFilter(false);
+        setShowAccountFilter(false);
+        setShowTypeFilter(false);
+        setShowTagFilter(false);
+        
+        // Clear all filter data
+        onDateFilterChange(null);
+        onAmountFilterChange(null);
+        onAccountFilterChange(null);
+        onTypeFilterChange(null);
+        onTagFilterChange(null);
+        
+        // Reset search term
+        setSearchTerm('');
+    };
+
+    // -------------------------------------------------------- Get Date Filter Display Text.
+    const getDateFilterText = () => {
+        if (!dateFilter) return 'Date';
+        
+        if (dateFilter.mode === 'single') {
+            return dateFilter.date.toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric' 
+            });
+        } else if (dateFilter.mode === 'range') {
+            return `${dateFilter.startDate.toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric' 
+            })} - ${dateFilter.endDate.toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric' 
+            })}`;
+        } else if (dateFilter.mode === 'month') {
+            const month = new Date(2024, dateFilter.month, 1);
+            return month.toLocaleDateString('en-US', { month: 'long' });
+        }
+        
+        return 'Date';
+    };
+
+    // -------------------------------------------------------- Get Amount Filter Display Text.
+    const getAmountFilterText = () => {
+        if (!amountFilter) return 'Amount';
+        
+        const { minAmount, maxAmount } = amountFilter;
+        
+        if (minAmount && maxAmount) {
+            return `$${minAmount} - $${maxAmount}`;
+        } else if (minAmount) {
+            return `$${minAmount}+`;
+        } else if (maxAmount) {
+            return `$${maxAmount}-`;
+        }
+        
+        return 'Amount';
+    };
+
+    // -------------------------------------------------------- Get Account Filter Display Text.
+    const getAccountFilterText = () => {
+        if (!accountFilter || accountFilter.length === 0) return 'Account';
+        
+        if (accountFilter.length === 1) {
+            const account = existingAccounts.find(acc => acc.id === accountFilter[0]);
+            return account ? account.name : 'Account';
+        }
+        
+        return `${accountFilter.length} Accounts`;
+    };
+
+    // -------------------------------------------------------- Get Type Filter Display Text.
+    const getTypeFilterText = () => {
+        if (!typeFilter) return 'Type';
+        
+        if (typeFilter.positiveOnly) return 'Positive Only';
+        if (typeFilter.negativeOnly) return 'Negative Only';
+        if (typeFilter.types && typeFilter.types.length > 0) {
+            if (typeFilter.types.length === 1) {
+                return typeFilter.types[0];
+            }
+            return `${typeFilter.types.length} Types`;
+        }
+        
+        return 'Type';
+    };
+
+    // -------------------------------------------------------- Get Tag Filter Display Text.
+    const getTagFilterText = () => {
+        if (!tagFilter || !tagFilter.tagIds || tagFilter.tagIds.length === 0) return 'Tags';
+        
+        if (tagFilter.tagIds.length === 1) {
+            return '1 Tag';
+        }
+        
+        return `${tagFilter.tagIds.length} Tags`;
     };
 
     return (
@@ -180,27 +367,106 @@ const TableHeader = ({
                     </EntriesSelector>
                     
                     <SortingPills>
-                        <FilterPill>
-                            <span>Date</span>
-                            <FontAwesomeIcon icon={faFilter} />
-                        </FilterPill>
-                        <FilterPill>
-                            <span>Vendor</span>
-                            <FontAwesomeIcon icon={faFilter} />
-                        </FilterPill>
-                        <FilterPill>
-                            <span>Amount</span>
-                            <FontAwesomeIcon icon={faFilter} />
-                        </FilterPill>
-                        <FilterPill>
-                            <span>Category</span>
-                            <FontAwesomeIcon icon={faFilter} />
-                        </FilterPill>
-                        <FilterPill>
-                            <span>Account</span> 
-                            <FontAwesomeIcon icon={faFilter} />
-                        </FilterPill>
-                        <FilterPill>
+                        <PillWrapper className="date-filter-wrapper">
+                            <FilterPill 
+                                $isActive={!!dateFilter}
+                                onClick={() => setShowDateFilter(prev => !prev)}
+                            >
+                                <span>{getDateFilterText()}</span>
+                                <FontAwesomeIcon icon={dateFilter ? faCalendar : faFilter} />
+                            </FilterPill>
+                            {showDateFilter && (
+                                <DateFilterWrapper>
+                                    <DateFilter
+                                        isOpen={showDateFilter}
+                                        onClose={() => setShowDateFilter(false)}
+                                        onApplyFilter={handleDateFilterApply}
+                                        currentFilter={dateFilter}
+                                    />
+                                </DateFilterWrapper>
+                            )}
+                        </PillWrapper>
+                        <PillWrapper className="amount-filter-wrapper">
+                            <FilterPill 
+                                $isActive={!!amountFilter}
+                                onClick={() => setShowAmountFilter(prev => !prev)}
+                            >
+                                <span>{amountFilter ? getAmountFilterText() : 'Amount'}</span>
+                                <FontAwesomeIcon icon={amountFilter ? faDollarSign : faFilter} />
+                            </FilterPill>
+                            {showAmountFilter && (
+                                <AmountFilterWrapper>
+                                    <AmountFilter
+                                        isOpen={showAmountFilter}
+                                        onClose={() => setShowAmountFilter(false)}
+                                        onApplyFilter={handleAmountFilterApply}
+                                        currentFilter={amountFilter}
+                                    />
+                                </AmountFilterWrapper>
+                            )}
+                        </PillWrapper>
+                        <PillWrapper className="account-filter-wrapper">
+                            <FilterPill 
+                                $isActive={!!accountFilter}
+                                onClick={() => setShowAccountFilter(prev => !prev)}
+                            >
+                                <span>{accountFilter ? getAccountFilterText() : 'Account'}</span>
+                                <FontAwesomeIcon icon={accountFilter ? faCreditCard : faFilter} />
+                            </FilterPill>
+                            {showAccountFilter && (
+                                <AccountFilterWrapper>
+                                    <AccountFilter
+                                        isOpen={showAccountFilter}
+                                        onClose={() => setShowAccountFilter(false)}
+                                        onApplyFilter={handleAccountFilterApply}
+                                        currentFilter={accountFilter}
+                                        existingAccounts={existingAccounts}
+                                    />
+                                </AccountFilterWrapper>
+                            )}
+                        </PillWrapper>
+                        <PillWrapper className="type-filter-wrapper">
+                            <FilterPill 
+                                $isActive={!!typeFilter}
+                                onClick={() => setShowTypeFilter(prev => !prev)}
+                            >
+                                <span>{typeFilter ? getTypeFilterText() : 'Type'}</span>
+                                <FontAwesomeIcon icon={typeFilter ? faFilter : faFilter} />
+                            </FilterPill>
+                            {showTypeFilter && (
+                                <TypeFilterWrapper>
+                                    <TypeFilter
+                                        isOpen={showTypeFilter}
+                                        onClose={() => setShowTypeFilter(false)}
+                                        onApplyFilter={handleTypeFilterApply}
+                                        currentFilter={typeFilter}
+                                    />
+                                </TypeFilterWrapper>
+                            )}
+                        </PillWrapper>
+                        <PillWrapper className="tag-filter-wrapper">
+                            <FilterPill 
+                                $isActive={!!tagFilter}
+                                onClick={() => setShowTagFilter(prev => !prev)}
+                            >
+                                <span>{tagFilter ? getTagFilterText() : 'Tags'}</span>
+                                <FontAwesomeIcon icon={tagFilter ? faTags : faFilter} />
+                            </FilterPill>
+                            {showTagFilter && (
+                                <TagFilterWrapper>
+                                    <TagFilter
+                                        isOpen={showTagFilter}
+                                        onClose={() => setShowTagFilter(false)}
+                                        onApplyFilter={handleTagFilterApply}
+                                        currentFilter={tagFilter}
+                                    />
+                                </TagFilterWrapper>
+                            )}
+                        </PillWrapper>
+                        <FilterPill 
+                            onClick={handleClearAllFilters}
+                            $isActive={!!dateFilter || !!amountFilter || !!accountFilter || !!typeFilter || !!tagFilter || searchTerm}
+                        >
                             <span>Clear All Filters</span>
                             <FontAwesomeIcon icon={faXmark} />
                         </FilterPill>
@@ -420,15 +686,17 @@ const SortingPills = styled.div`
     align-items: center;
     gap: 0.75rem;
     position: relative;
-    z-index: 1;
+    z-index: 1000;
     transition: all 0.4s ease;
     flex-wrap: wrap;
     max-width: calc(100% - 4.7rem)
 `;
 // -------------------------------------------------------- FilterPill. (Date, Vendor, Amount, Category, Account, Clear All Filters)
 const FilterPill = styled.button`
-    background: linear-gradient(white, white) padding-box, 
-                linear-gradient(135deg, var(--button-primary), var(--amount-positive)) border-box;
+    background: ${props => props.$isActive 
+        ? 'linear-gradient(135deg, var(--button-primary), var(--amount-positive))' 
+        : 'linear-gradient(white, white) padding-box, linear-gradient(135deg, var(--button-primary), var(--amount-positive)) border-box'
+    };
     border: 2px solid transparent;
     border-radius: 24px;
     padding: 0.75rem 1.5rem;
@@ -437,7 +705,7 @@ const FilterPill = styled.button`
     font-weight: 500;
     cursor: pointer;
     transition: all 0.4s ease-in-out;
-    color: var(--text-primary);
+    color: ${props => props.$isActive ? 'white' : 'var(--text-primary)'};
     position: relative;
     overflow: hidden;
 
@@ -691,6 +959,65 @@ const DropDownIcon = styled.span`
     ${DropDownItem}:hover & {
         opacity: 1;
     }
+`;
+// -------------------------------------------------------- DateFilterWrapper.
+const PillWrapper = styled.div`
+    position: relative;
+    display: inline-block;
+`;
+// -------------------------------------------------------- DateFilterWrapper.
+const DateFilterWrapper = styled.div`
+    position: absolute;
+    top: 100%;
+    left: -100%;
+    z-index: 1000;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+`;
+
+// -------------------------------------------------------- AmountFilterWrapper.
+const AmountFilterWrapper = styled.div`
+    position: absolute;
+    top: 100%;
+    left: -60%;
+    z-index: 1000;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+`;
+
+// -------------------------------------------------------- AccountFilterWrapper.
+const AccountFilterWrapper = styled.div`
+    position: absolute;
+    top: 100%;
+    left: -60%;
+    z-index: 1000;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+`;
+
+// -------------------------------------------------------- TypeFilterWrapper.
+const TypeFilterWrapper = styled.div`
+    position: absolute;
+    top: 100%;
+    left: -100%;
+    z-index: 1000;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+`;
+
+// -------------------------------------------------------- TagFilterWrapper.
+const TagFilterWrapper = styled.div`
+    position: absolute;
+    top: 100%;
+    left: -100%;
+    z-index: 1000;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
 `;
 // -------------------------------------------------------- Export TableHeader Component.
 export default TableHeader;

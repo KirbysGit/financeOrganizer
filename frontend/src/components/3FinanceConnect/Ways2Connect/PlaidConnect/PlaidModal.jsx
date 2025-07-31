@@ -1,6 +1,7 @@
 // Imports.
 import React, { useState } from 'react';
 import { styled } from 'styled-components';
+import { createPortal } from 'react-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBank, faTimes, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
 
@@ -16,13 +17,14 @@ const PlaidModal = ({ isOpen, onClose, onSuccess }) => {
     // -------------------------------------------------------- Handle Plaid Success & Clear Error State.
     const handlePlaidSuccess = (data) => {
         if (data.isProcessing) {
-            // Bank Connected But Transactions Still Processing.
+            // Bank Connected But Data Still Processing.
             setPlaidSuccess(`✅ ${data.institution.name} connected successfully! 
-                           Transaction data is still being processed and will be available shortly.`);
+                           Your account data is still being processed and will be available shortly.`);
         } else {
-            // Normal Success With Transaction Count.
+            // Normal Success With Account Data.
             const attemptText = data.attempts > 1 ? ` (took ${data.attempts} attempts)` : '';
-            setPlaidSuccess(`✅ Successfully connected ${data.institution.name} and imported ${data.transactionCount} transactions!${attemptText}`);
+            const accountText = data.accounts?.length > 1 ? `${data.accounts.length} accounts` : 'account';
+            setPlaidSuccess(`✅ Successfully connected ${data.institution.name} and imported ${accountText}!${attemptText}`);
         }
         
         // Set Plaid Error State To Empty String.
@@ -54,7 +56,7 @@ const PlaidModal = ({ isOpen, onClose, onSuccess }) => {
 
     if (!isOpen) return null;
 
-    return (
+    return createPortal(
         <Modal onClick={handleClose}>
             <PlaidModalContent onClick={e => e.stopPropagation()}>
                 <CloseButton onClick={handleClose}>
@@ -130,7 +132,8 @@ const PlaidModal = ({ isOpen, onClose, onSuccess }) => {
                     )}
                 </PlaidModalBody>
             </PlaidModalContent>
-        </Modal>
+        </Modal>,
+        document.body
     );
 };
 

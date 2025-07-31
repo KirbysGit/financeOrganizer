@@ -8,10 +8,19 @@ from fastapi import APIRouter, Depends, HTTPException
 # Local Imports.
 from app.utils.db_utils import get_db
 from app.utils.auth_utils import get_current_user
-from app.models import TransactionOut, TransactionCreate
+from app.models import TransactionOut, TransactionCreate, AccountWithGrowth, TagCreate, TagOut
 from app.utils.type_label_map import NEGATIVE_TYPES, POSITIVE_TYPES
-from app.database import Transaction, FileUpload, Account, Institution, User, MonthlySnapshot
+from app.database import Transaction, FileUpload, Account, Institution, User, MonthlySnapshot, AccountBalanceHistory, Tag, TransactionTag
 from app.utils.snapshot_utils import (create_monthly_snapshot, get_previous_month_snapshot, get_growth_context)
+from app.utils.account_utils import (
+    create_account_balance_snapshot, 
+    calculate_account_financial_impact,
+    get_account_growth_data,
+    calculate_account_health_indicators,
+    get_account_percentage_contributions,
+    analyze_account_portfolio
+)
+from app.utils.tag_utils import create_default_tags
 
 # Create Router Instance.
 router = APIRouter(tags=["Transactions"])
@@ -87,6 +96,21 @@ def get_transactions(
                     "last_sync": institution.last_sync
                 }
         
+        # Get Tags for this transaction
+        transaction_tags = db.query(Tag).join(TransactionTag).filter(
+            TransactionTag.transaction_id == tx.id,
+            Tag.user_id == current_user.id
+        ).all()
+        
+        tags_list = []
+        for tag in transaction_tags:
+            tags_list.append({
+                "id": tag.id,
+                "name": tag.name,
+                "emoji": tag.emoji,
+                "color": tag.color
+            })
+        
         # Create Transaction Dict With Enhanced Fields.
         tx_dict = {
             "id": tx.id,
@@ -116,7 +140,8 @@ def get_transactions(
             "duplicate_count": tx.duplicate_count if hasattr(tx, 'duplicate_count') else 0,
             "last_updated": tx.last_updated if hasattr(tx, 'last_updated') else None,
             "account_details": account_details,
-            "institution_details": institution_details
+            "institution_details": institution_details,
+            "tags": tags_list
         }
         
         result.append(tx_dict)
@@ -251,6 +276,195 @@ def get_accounts(
     
     # Return Result List.
     return result
+
+# ----------------------------------------------------------------------- Get Enhanced Accounts with Growth Data.
+@router.get("/accounts/enhanced", response_model=list[AccountWithGrowth])
+def get_enhanced_accounts(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get accounts with enhanced data including growth, financial impact, and health indicators."""
+    
+    # Create balance snapshot for today
+    create_account_balance_snapshot(db, current_user.id)
+    
+    # Get all accounts
+    accounts = db.query(Account).filter(
+        Account.user_id == current_user.id,
+        Account.is_active == True
+    ).all()
+    
+    # Calculate financial impact for percentages
+    financial_impact = calculate_account_financial_impact(db, current_user.id)
+    
+    result = []
+    
+    for account in accounts:
+        # Get transaction count
+        tx_count = db.query(Transaction).filter(
+            Transaction.account_id == account.account_id,
+            Transaction.user_id == current_user.id
+        ).count()
+        
+        # Get growth data
+        growth_30d = get_account_growth_data(db, current_user.id, account.account_id, 30)
+        growth_90d = get_account_growth_data(db, current_user.id, account.account_id, 90)
+        growth_1y = get_account_growth_data(db, current_user.id, account.account_id, 365)
+        
+        # Get health indicators
+        health_indicators = calculate_account_health_indicators(db, current_user.id, account)
+        
+        # Calculate financial impact
+        balance = account.current_balance or 0
+        if account.type in ['depository', 'investment']:
+            asset_contribution = balance
+            liability_contribution = 0
+            net_worth_contribution = balance
+        elif account.type in ['credit', 'loan']:
+            asset_contribution = 0
+            liability_contribution = abs(balance)
+            net_worth_contribution = -abs(balance)
+        else:
+            asset_contribution = balance
+            liability_contribution = 0
+            net_worth_contribution = balance
+        
+        # Get percentage contributions
+        percentages = get_account_percentage_contributions(db, current_user.id, balance, account.type)
+        
+        account_dict = {
+            "id": account.id,
+            "account_id": account.account_id,
+            "name": account.name,
+            "official_name": account.official_name,
+            "type": account.type,
+            "subtype": account.subtype,
+            "mask": account.mask,
+            "current_balance": balance,
+            "available_balance": account.available_balance,
+            "limit": account.limit,
+            "currency": account.currency,
+            "transaction_count": tx_count,
+            "updated_at": account.updated_at,
+            
+            # Growth data
+            "balance_change_30d": growth_30d["balance_change"],
+            "balance_change_90d": growth_90d["balance_change"],
+            "balance_change_1y": growth_1y["balance_change"],
+            "growth_percentage_30d": growth_30d["growth_percentage"],
+            "growth_percentage_90d": growth_90d["growth_percentage"],
+            "growth_percentage_1y": growth_1y["growth_percentage"],
+            
+            # Financial impact
+            "net_worth_contribution": net_worth_contribution,
+            "asset_contribution": asset_contribution,
+            "liability_contribution": liability_contribution,
+            "percentage_of_total_assets": percentages.get("percentage_of_total_assets"),
+            "percentage_of_total_liabilities": percentages.get("percentage_of_total_liabilities"),
+            
+            # Health indicators
+            "utilization_rate": health_indicators.get("utilization_rate"),
+            "days_since_last_transaction": health_indicators.get("days_since_last_transaction")
+        }
+        
+        result.append(account_dict)
+    
+    # Add cash account if user has cash transactions
+    cash_balance = db.query(func.sum(Transaction.amount)).filter(
+        Transaction.account_id.is_(None),
+        Transaction.user_id == current_user.id
+    ).scalar() or 0
+    
+    if cash_balance != 0:
+        cash_tx_count = db.query(Transaction).filter(
+            Transaction.account_id.is_(None),
+            Transaction.user_id == current_user.id
+        ).count()
+        
+        # Get cash growth data
+        cash_growth_30d = get_account_growth_data(db, current_user.id, None, 30)
+        cash_growth_90d = get_account_growth_data(db, current_user.id, None, 90)
+        cash_growth_1y = get_account_growth_data(db, current_user.id, None, 365)
+        
+        # Get cash percentages
+        cash_percentages = get_account_percentage_contributions(db, current_user.id, cash_balance, "cash")
+        
+        cash_account = {
+            "id": None,
+            "account_id": None,
+            "name": "Cash",
+            "official_name": "Cash Balance",
+            "type": "cash",
+            "subtype": "cash",
+            "mask": None,
+            "current_balance": cash_balance,
+            "available_balance": cash_balance,
+            "limit": None,
+            "currency": "USD",
+            "transaction_count": cash_tx_count,
+            "updated_at": datetime.now(),
+            
+            # Growth data
+            "balance_change_30d": cash_growth_30d["balance_change"],
+            "balance_change_90d": cash_growth_90d["balance_change"],
+            "balance_change_1y": cash_growth_1y["balance_change"],
+            "growth_percentage_30d": cash_growth_30d["growth_percentage"],
+            "growth_percentage_90d": cash_growth_90d["growth_percentage"],
+            "growth_percentage_1y": cash_growth_1y["growth_percentage"],
+            
+            # Financial impact
+            "net_worth_contribution": cash_balance,
+            "asset_contribution": cash_balance,
+            "liability_contribution": 0,
+            "percentage_of_total_assets": cash_percentages.get("percentage_of_total_assets"),
+            "percentage_of_total_liabilities": None,
+            
+            # Health indicators
+            "utilization_rate": None,
+            "days_since_last_transaction": None
+        }
+        
+        result.append(cash_account)
+    
+    return result
+
+# ----------------------------------------------------------------------- Get Account Portfolio Analysis.
+@router.get("/accounts/analysis")
+def get_account_analysis(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get comprehensive analysis of the user's account portfolio."""
+    
+    # Create balance snapshot
+    create_account_balance_snapshot(db, current_user.id)
+    
+    # Get portfolio analysis
+    portfolio_analysis = analyze_account_portfolio(db, current_user.id)
+    
+    # Get financial impact
+    financial_impact = calculate_account_financial_impact(db, current_user.id)
+    
+    # Add financial summary
+    portfolio_analysis["financial_summary"] = financial_impact
+    
+    return portfolio_analysis
+
+# ----------------------------------------------------------------------- Create Account Balance Snapshot.
+@router.post("/accounts/snapshot")
+def create_snapshot(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Create a balance snapshot for all user accounts."""
+    
+    snapshots = create_account_balance_snapshot(db, current_user.id)
+    
+    return {
+        "message": f"Created {len(snapshots)} account balance snapshots",
+        "snapshot_date": date.today().isoformat(),
+        "snapshots_created": len(snapshots)
+    }
 
 # ----------------------------------------------------------------------- Clears Entire Database For Current User.
 @router.delete("/clear")
@@ -402,6 +616,26 @@ def create_transaction(
     db.add(new_tx)
     db.commit()
     db.refresh(new_tx)
+
+    # Handle Tags if provided
+    tag_ids = tx_data.get("tag_ids", [])
+    if tag_ids:
+        for tag_id in tag_ids:
+            # Verify tag belongs to current user
+            tag = db.query(Tag).filter(
+                Tag.id == tag_id,
+                Tag.user_id == current_user.id
+            ).first()
+            
+            if tag:
+                # Create transaction-tag relationship
+                transaction_tag = TransactionTag(
+                    transaction_id=new_tx.id,
+                    tag_id=tag_id
+                )
+                db.add(transaction_tag)
+        
+        db.commit()
 
     # Return New Transaction.
     return new_tx
@@ -683,8 +917,22 @@ def get_stats(
     
     # Get Account Statistics For Current User.
     accounts = db.query(Account).filter(Account.user_id == current_user.id).all()
-    total_assets = sum(acc.current_balance for acc in accounts if acc.type == 'depository')
-    total_liabilities = sum(acc.current_balance for acc in accounts if acc.type == 'credit')
+    
+    # Calculate assets and liabilities properly
+    total_assets = 0
+    total_liabilities = 0
+    
+    for acc in accounts:
+        balance = acc.current_balance or 0
+        if acc.type in ['depository', 'investment']:
+            # Assets: checking, savings, investment accounts
+            total_assets += balance
+        elif acc.type in ['credit', 'loan']:
+            # Liabilities: credit cards, loans, mortgages
+            total_liabilities += abs(balance)  # Ensure positive for liability calculation
+        else:
+            # Default to assets for unknown types
+            total_assets += balance
     
     # Calculate Cash Balance From Cash Transactions.
     cash_balance = db.query(func.sum(Transaction.amount)).filter(
@@ -694,7 +942,7 @@ def get_stats(
     
     # Include Cash Balance In Total Assets And Net Worth.
     total_assets_with_cash = total_assets + cash_balance
-    net_worth = total_assets_with_cash + total_liabilities
+    net_worth = total_assets_with_cash - total_liabilities
     
     # Helper Function To Get Account Totals By Type.
     def get_account_total_by_type(account_type):
@@ -954,4 +1202,293 @@ def debug_cash_flow(
             ]
         }
     }
+
+# ================================================================= TAG OPERATIONS
+
+# ----------------------------------------------------------------------- Get All Tags for User
+@router.get("/tags", response_model=list[TagOut])
+def get_tags(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get all tags for the current user."""
+    tags = db.query(Tag).filter(Tag.user_id == current_user.id).all()
+    return tags
+
+# ----------------------------------------------------------------------- Create New Tag
+@router.post("/tags", response_model=TagOut, status_code=201)
+def create_tag(
+    tag_data: TagCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new tag for the current user."""
+    
+    # Check if tag name already exists for this user
+    existing_tag = db.query(Tag).filter(
+        Tag.user_id == current_user.id,
+        Tag.name == tag_data.name
+    ).first()
+    
+    if existing_tag:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Tag '{tag_data.name}' already exists"
+        )
+    
+    # Create new tag
+    new_tag = Tag(
+        user_id=current_user.id,
+        name=tag_data.name,
+        emoji=tag_data.emoji,
+        color=tag_data.color,
+        is_default=False
+    )
+    
+    db.add(new_tag)
+    db.commit()
+    db.refresh(new_tag)
+    
+    return new_tag
+
+# ----------------------------------------------------------------------- Update Tag
+@router.put("/tags/{tag_id}", response_model=TagOut)
+def update_tag(
+    tag_id: int,
+    tag_data: TagCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Update an existing tag."""
+    
+    # Find tag (must belong to current user)
+    tag = db.query(Tag).filter(
+        Tag.id == tag_id,
+        Tag.user_id == current_user.id
+    ).first()
+    
+    if not tag:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    
+    # Check if new name conflicts with existing tag
+    if tag_data.name != tag.name:
+        existing_tag = db.query(Tag).filter(
+            Tag.user_id == current_user.id,
+            Tag.name == tag_data.name,
+            Tag.id != tag_id
+        ).first()
+        
+        if existing_tag:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Tag '{tag_data.name}' already exists"
+            )
+    
+    # Update tag
+    tag.name = tag_data.name
+    tag.emoji = tag_data.emoji
+    tag.color = tag_data.color
+    tag.updated_at = datetime.now()
+    
+    db.commit()
+    db.refresh(tag)
+    
+    return tag
+
+# ----------------------------------------------------------------------- Delete Tag
+@router.delete("/tags/{tag_id}")
+def delete_tag(
+    tag_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a tag and remove all associations."""
+    
+    # Find tag (must belong to current user)
+    tag = db.query(Tag).filter(
+        Tag.id == tag_id,
+        Tag.user_id == current_user.id
+    ).first()
+    
+    if not tag:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    
+    # Count transactions associated with this tag
+    transaction_count = db.query(TransactionTag).filter(
+        TransactionTag.tag_id == tag_id
+    ).count()
+    
+    # Delete all transaction associations first
+    db.query(TransactionTag).filter(TransactionTag.tag_id == tag_id).delete()
+    
+    # Delete the tag
+    db.delete(tag)
+    db.commit()
+    
+    return {
+        "message": f"Tag '{tag.name}' deleted successfully",
+        "transactions_affected": transaction_count
+    }
+
+# ----------------------------------------------------------------------- Add Tag to Transaction
+@router.post("/transactions/{transaction_id}/tags/{tag_id}")
+def add_tag_to_transaction(
+    transaction_id: int,
+    tag_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Add a tag to a transaction."""
+    
+    # Verify transaction belongs to current user
+    transaction = db.query(Transaction).filter(
+        Transaction.id == transaction_id,
+        Transaction.user_id == current_user.id
+    ).first()
+    
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    
+    # Verify tag belongs to current user
+    tag = db.query(Tag).filter(
+        Tag.id == tag_id,
+        Tag.user_id == current_user.id
+    ).first()
+    
+    if not tag:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    
+    # Check if association already exists
+    existing_association = db.query(TransactionTag).filter(
+        TransactionTag.transaction_id == transaction_id,
+        TransactionTag.tag_id == tag_id
+    ).first()
+    
+    if existing_association:
+        raise HTTPException(
+            status_code=400,
+            detail="Tag is already associated with this transaction"
+        )
+    
+    # Create association
+    transaction_tag = TransactionTag(
+        transaction_id=transaction_id,
+        tag_id=tag_id
+    )
+    
+    db.add(transaction_tag)
+    db.commit()
+    
+    return {"message": f"Tag '{tag.name}' added to transaction"}
+
+# ----------------------------------------------------------------------- Remove Tag from Transaction
+@router.delete("/transactions/{transaction_id}/tags/{tag_id}")
+def remove_tag_from_transaction(
+    transaction_id: int,
+    tag_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Remove a tag from a transaction."""
+    
+    # Verify transaction belongs to current user
+    transaction = db.query(Transaction).filter(
+        Transaction.id == transaction_id,
+        Transaction.user_id == current_user.id
+    ).first()
+    
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    
+    # Find and delete association
+    association = db.query(TransactionTag).filter(
+        TransactionTag.transaction_id == transaction_id,
+        TransactionTag.tag_id == tag_id
+    ).first()
+    
+    if not association:
+        raise HTTPException(
+            status_code=404,
+            detail="Tag is not associated with this transaction"
+        )
+    
+    db.delete(association)
+    db.commit()
+    
+    return {"message": "Tag removed from transaction"}
+
+# ----------------------------------------------------------------------- Get Transaction Tags
+@router.get("/transactions/{transaction_id}/tags")
+def get_transaction_tags(
+    transaction_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get all tags for a specific transaction."""
+    
+    # Verify transaction belongs to current user
+    transaction = db.query(Transaction).filter(
+        Transaction.id == transaction_id,
+        Transaction.user_id == current_user.id
+    ).first()
+    
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    
+    # Get tags for this transaction
+    tags = db.query(Tag).join(TransactionTag).filter(
+        TransactionTag.transaction_id == transaction_id,
+        Tag.user_id == current_user.id
+    ).all()
+    
+    return tags
+
+# ----------------------------------------------------------------------- Get Tag Transaction Count
+@router.get("/tags/{tag_id}/transaction-count")
+def get_tag_transaction_count(
+    tag_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get the number of transactions associated with a tag."""
+    
+    # Verify tag belongs to current user
+    tag = db.query(Tag).filter(
+        Tag.id == tag_id,
+        Tag.user_id == current_user.id
+    ).first()
+    
+    if not tag:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    
+    # Count transactions associated with this tag
+    transaction_count = db.query(TransactionTag).filter(
+        TransactionTag.tag_id == tag_id
+    ).count()
+    
+    return {
+        "tag_id": tag_id,
+        "tag_name": tag.name,
+        "transaction_count": transaction_count
+    }
+
+# ----------------------------------------------------------------------- Initialize Default Tags
+@router.post("/tags/initialize")
+def initialize_default_tags(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Initialize default tags for the current user."""
+    
+    try:
+        created_tags = create_default_tags(db, current_user.id)
+        return {
+            "message": f"Created {len(created_tags)} default tags",
+            "tags_created": len(created_tags)
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error initializing default tags: {str(e)}"
+        )
 

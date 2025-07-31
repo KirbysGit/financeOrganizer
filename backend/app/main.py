@@ -1,12 +1,17 @@
 # Imports.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import os
 
 # Local Imports.
 from app.routes import upload, transactions, files, plaid, accounts, centi_score
 
 # Create Instance Of FastAPI Application.
-app = FastAPI()
+app = FastAPI(
+    title="Centi API",
+    description="Backend API for Centi App",
+    version="1.0.0"
+)
 
 # Configure CORS.
 origins = [
@@ -14,6 +19,8 @@ origins = [
     "http://localhost:8000",
     "http://127.0.0.1:5173",
     "http://127.0.0.1:8000",
+    "https://your-frontend-domain.vercel.app",  # Replace with your actual domain
+    "https://finance-organizer.vercel.app",     # Example domain
 ]
 
 # Adds The Middleware For CORS.
@@ -37,3 +44,11 @@ app.include_router(centi_score.router)
 from app.utils.scheduler import start_scheduler
 
 start_scheduler()
+
+@app.get("/")
+async def root():
+    return {"message": "Finance Organizer API is running!"}
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy"}

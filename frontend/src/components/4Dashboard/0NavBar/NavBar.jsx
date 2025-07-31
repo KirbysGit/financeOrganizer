@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { styled, keyframes, css } from 'styled-components';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCog, faSignOutAlt, faChevronDown, faUser } from '@fortawesome/free-solid-svg-icons';
+import { faCog, faSignOutAlt, faChevronDown, faUser, faSpinner } from '@fortawesome/free-solid-svg-icons';
 
 // Local Imports.
 import '../../../styles/colors.css';
@@ -30,10 +30,17 @@ const slideIn = keyframes`
     }
 `;
 
+const shake = keyframes`
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+`;
+
 // -------------------------------------------------------- NavBar Component.
 const NavBar = ({ onLogout }) => {
     // State for dropdown menu.
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
     const dropdownRef = useRef(null);
 
     // -------------------------------------------------------- Close Dropdown When Clicking Outside.
@@ -54,10 +61,26 @@ const NavBar = ({ onLogout }) => {
     const scrollToSection = (sectionId) => {
         const element = document.getElementById(sectionId);
         if (element) {
+            // Special handling for Centi Score to center it on screen
+            if (sectionId === 'centi-score-section') {
+                const elementRect = element.getBoundingClientRect();
+                const elementHeight = elementRect.height;
+                const windowHeight = window.innerHeight;
+                const offset = (windowHeight - elementHeight) / 2;
+                const elementPosition = element.offsetTop - offset;
+                window.scrollTo({
+                    top: elementPosition,
+                    behavior: 'smooth'
+                });
+            } else {
+                // Standard offset for other sections
+                const offset = 30;
+                const elementPosition = element.offsetTop - offset;
             window.scrollTo({
-                top: element.offsetTop,
+                    top: elementPosition,
                 behavior: 'smooth'
             });
+            }
         }
     };
 
@@ -67,12 +90,23 @@ const NavBar = ({ onLogout }) => {
     };
 
     // -------------------------------------------------------- Handle Logout.
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        if (isLoggingOut) return; // Prevent multiple clicks
+        
         console.log('Logout button clicked');
-        if (onLogout) {
-            onLogout();
+        setIsLoggingOut(true);
+        
+        try {
+            if (onLogout) {
+                await onLogout();
+            }
+        } catch (error) {
+            console.error('Logout error:', error);
+            // Reset loading state on error
+            setIsLoggingOut(false);
+        } finally {
+            setIsDropdownOpen(false);
         }
-        setIsDropdownOpen(false);
     };
 
     // Get user info from localStorage
@@ -80,12 +114,15 @@ const NavBar = ({ onLogout }) => {
     const userInitials = user.first_name ? user.first_name.charAt(0).toUpperCase() : 'U';
 
     return (
-        <NavBarWrapper>
+        <NavBarWrapper data-navbar>
             <LeftSection>
             <Logo src={centiLogo} alt="Centi Logo" />
                 <NavLinks>
                     <NavLink onClick={() => scrollToSection('recent-section')}>
                         Recent
+                    </NavLink>
+                    <NavLink onClick={() => scrollToSection('centi-score-section')}>
+                        Centi Score
                     </NavLink>
                     <NavLink onClick={() => scrollToSection('accounts-section')}>
                         Accounts
@@ -122,9 +159,22 @@ const NavBar = ({ onLogout }) => {
                 
                 {isDropdownOpen && (
                     <DropdownMenu>
-                        <DropdownItem onClick={handleLogout}>
-                            <FontAwesomeIcon icon={faSignOutAlt} />
-                            <span>Sign Out</span>
+                        <DropdownItem 
+                            onClick={handleLogout}
+                            $isLoggingOut={isLoggingOut}
+                            disabled={isLoggingOut}
+                        >
+                            {isLoggingOut ? (
+                                <>
+                                    <FontAwesomeIcon icon={faSpinner} spin />
+                                    <span>Signing Out...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <FontAwesomeIcon icon={faSignOutAlt} />
+                                    <span>Sign Out</span>
+                                </>
+                            )}
                         </DropdownItem>
                     </DropdownMenu>
                 )}
@@ -339,13 +389,40 @@ const DropdownItem = styled.div`
     cursor: pointer;
     transition: all 0.2s ease;
     text-align: left;
+    position: relative;
+    overflow: hidden;
 
-    &:hover {
-        background: rgba(0, 123, 255, 0.3);
-        color: var(--button-primary);
+    &:hover:not(:disabled) {
+        background: linear-gradient(135deg, #ffe6e6, #ffebeb);
+        color: #dc3545;
+        border-left: 3px solid #dc3545;
+        transform: translateX(2px);
+        box-shadow: 0 2px 8px rgba(220, 53, 69, 0.15);
     }
 
+    &:active:not(:disabled) {
+        transform: translateX(1px);
+        background: linear-gradient(135deg, #ffd6d6, #ffe1e1);
+    }
 
+    ${props => props.$isLoggingOut && css`
+        color: #dc3545;
+        font-weight: 600;
+        background: linear-gradient(135deg, #fff5f5, #ffe6e6);
+        border-left: 3px solid #dc3545;
+        animation: ${shake} 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+        
+        &:hover {
+            background: linear-gradient(135deg, #ffe6e6, #ffd6d6);
+            transform: none;
+        }
+    `}
+
+    &:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        color: #666;
+    }
 `;
 
 // -------------------------------------------------------- Logo. (Centi.)

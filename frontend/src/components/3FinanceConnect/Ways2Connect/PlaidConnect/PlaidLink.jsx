@@ -103,7 +103,8 @@ const PlaidLink = ({ onSuccess, onError }) => {
                     accounts: metadata.accounts,
                     transactionCount: transactionsResponse.data.new_transactions,
                     totalFetched: transactionsResponse.data.total_fetched,
-                    attempts: transactionsResponse.data.attempts
+                    attempts: transactionsResponse.data.attempts,
+                    accountCount: metadata.accounts?.length || 0
                 };
                 
                 console.log('🎯 Calling onSuccess with data:', successData);
@@ -144,7 +145,8 @@ const PlaidLink = ({ onSuccess, onError }) => {
                             institution: metadata.institution,
                             accounts: metadata.accounts,
                             transactionCount: 0,
-                            message: "Bank connected successfully! Transaction data is still processing and will be available shortly.",
+                        accountCount: metadata.accounts?.length || 0,
+                        message: "Bank connected successfully! Your account data is still processing and will be available shortly.",
                             isProcessing: true
                         };
                         

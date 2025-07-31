@@ -38,6 +38,7 @@ class User(Base):
     transactions = relationship("Transaction", back_populates="user")   # One-To-Many Relationship With Transactions.
     institutions = relationship("Institution", back_populates="user")   # One-To-Many Relationship With Institutions.
     file_uploads = relationship("FileUpload", back_populates="user")    # One-To-Many Relationship With File Uploads.
+    tags = relationship("Tag", back_populates="user")                  # One-To-Many Relationship With Tags.
 
 # -------------------------------------------------------- Account Model
 class Account(Base):
@@ -120,6 +121,7 @@ class Transaction(Base):
     # Relationships.
     user = relationship("User", back_populates="transactions")  # Many-To-One Relationship With User.
     account = relationship("Account", back_populates="transactions")  # Many-To-One Relationship With Account.
+    tags = relationship("TransactionTag", back_populates="transaction")  # Many-To-Many Relationship With Tags.
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)  # Call Parent Class Constructor.
@@ -240,6 +242,62 @@ class WeeklyCentiScore(Base):
     
     # Relationships
     user = relationship("User")
+
+# -------------------------------------------------------- Account Balance History Model
+class AccountBalanceHistory(Base):
+    __tablename__ = "account_balance_history"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    account_id = Column(String, index=True)  # Plaid account_id or null for cash
+    snapshot_date = Column(Date, index=True)  # Date of the balance snapshot
+    
+    # Balance information
+    current_balance = Column(Float, default=0.0)
+    available_balance = Column(Float, default=0.0)
+    limit = Column(Float, default=0.0)  # Credit limit if applicable
+    
+    # Account metadata at time of snapshot
+    account_name = Column(String)
+    account_type = Column(String)
+    account_subtype = Column(String)
+    currency = Column(String, default="USD")
+    
+    # Metadata
+    created_at = Column(DateTime, default=datetime.now())
+    
+    # Relationships
+    user = relationship("User")
+
+# -------------------------------------------------------- Tag Model
+class Tag(Base):
+    __tablename__ = "tags"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    name = Column(String, nullable=False)
+    emoji = Column(String, default="🏷️")  # Default emoji
+    color = Column(String, default="#6366f1")  # Default color
+    is_default = Column(Boolean, default=False)  # Whether it's a system default tag
+    created_at = Column(DateTime, default=datetime.now())
+    updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now())
+    
+    # Relationships
+    user = relationship("User")
+    transaction_tags = relationship("TransactionTag", back_populates="tag")
+
+# -------------------------------------------------------- Transaction Tag Association Model
+class TransactionTag(Base):
+    __tablename__ = "transaction_tags"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    transaction_id = Column(Integer, ForeignKey("transactions.id"), nullable=False)
+    tag_id = Column(Integer, ForeignKey("tags.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.now())
+    
+    # Relationships
+    transaction = relationship("Transaction", back_populates="tags")
+    tag = relationship("Tag", back_populates="transaction_tags")
 
 # Database Setup.
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./finance_tracker.db")

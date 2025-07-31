@@ -4,6 +4,7 @@ import styled from 'styled-components';
 
 // Local Imports.
 import CentiChart from './CentiChart';
+import { Grid } from 'lucide-react';
 
 // ------------------------------------------------------------------------------------------------ Functions.
 // -------------------------------------------------------- Function 4 Formatting Date.
@@ -19,6 +20,7 @@ const formatDate = (dateString) => {
 // ------------------------------------------------------------------------------------------------ Progress Panel Component.
 const ProgressPanel = ({ isVisible, onToggle, scoreHistory }) => {
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+    const hasGrowthData = !!scoreHistory?.growth?.has_growth_data;
 
 
     return (
@@ -36,127 +38,138 @@ const ProgressPanel = ({ isVisible, onToggle, scoreHistory }) => {
                     
                     <ProgressGrid>
                         <ChartSection>
-                            <SectionTitle>Score Progress</SectionTitle>
+                            <SectionTitle>Your Score Progress</SectionTitle>
                             <ChartContainer>
                                 <CentiChart scoreHistory={scoreHistory} />
                             </ChartContainer>
                         </ChartSection>
                         
                         <ProgressInsightsSection>
-                            <SectionTitle>Progress Insights</SectionTitle>
-                            <InsightsGrid>
-                                {scoreHistory.growth?.has_growth_data && (
-                                    <>
-                                        <InsightCard>
-                                            <InsightHeader>
-                                                <InsightIcon>🔥</InsightIcon>
-                                                <InsightLabel>Current Streak</InsightLabel>
-                                            </InsightHeader>
-                                            <InsightValue>
-                                                {scoreHistory.growth.streaks?.current_growth_streak > 0 
-                                                    ? `${scoreHistory.growth.streaks.current_growth_streak} weeks improving`
-                                                    : scoreHistory.growth.streaks?.current_decline_streak > 0
-                                                    ? `${scoreHistory.growth.streaks.current_decline_streak} weeks declining`
-                                                    : 'Stable'
-                                                }
-                                            </InsightValue>
-                                            <InsightSubtext>
-                                                {scoreHistory.growth.streaks?.current_growth_streak > 0 
-                                                    ? "Keep up the momentum!"
-                                                    : scoreHistory.growth.streaks?.current_decline_streak > 0
-                                                    ? "Time to turn things around"
-                                                    : 'Consistency is key'
-                                                }
-                                            </InsightSubtext>
-                                        </InsightCard>
-                                        
-                                        <InsightCard>
-                                            <InsightHeader>
-                                                <InsightIcon>🏆</InsightIcon>
-                                                <InsightLabel>Best Score</InsightLabel>
-                                            </InsightHeader>
-                                            <InsightValue>{scoreHistory.growth.stats?.best_score || 'N/A'}</InsightValue>
-                                            <InsightSubtext>
-                                                {scoreHistory.growth.stats?.best_score_date 
-                                                    ? `Achieved on ${formatDate(scoreHistory.growth.stats.best_score_date)}`
-                                                    : 'Your highest achievement'
-                                                }
-                                            </InsightSubtext>
-                                        </InsightCard>
-                                        
-                                        <InsightCard>
-                                            <InsightHeader>
-                                                <InsightIcon>📊</InsightIcon>
-                                                <InsightLabel>Average Score</InsightLabel>
-                                            </InsightHeader>
-                                            <InsightValue>{scoreHistory.growth.stats?.average_score || 'N/A'}</InsightValue>
-                                            <InsightSubtext>
-                                                {scoreHistory.growth.stats?.average_score 
-                                                    ? `Your consistent performance level`
-                                                    : 'Your typical performance'
-                                                }
-                                            </InsightSubtext>
-                                        </InsightCard>
-                                        
-                                        <InsightCard>
-                                            <InsightHeader>
-                                                <InsightIcon>📅</InsightIcon>
-                                                <InsightLabel>Weeks Tracked</InsightLabel>
-                                            </InsightHeader>
-                                            <InsightValue>{scoreHistory.growth.stats?.total_scores || 'N/A'}</InsightValue>
-                                            <InsightSubtext>
-                                                {scoreHistory.growth.stats?.total_scores 
-                                                    ? `${scoreHistory.growth.stats.total_scores} week${scoreHistory.growth.stats.total_scores > 1 ? 's' : ''} of data`
-                                                    : 'Building your history'
-                                                }
-                                            </InsightSubtext>
-                                        </InsightCard>
-                                        
-                                        <InsightCard>
-                                            <InsightHeader>
-                                                <InsightIcon>📈</InsightIcon>
-                                                <InsightLabel>Score Range</InsightLabel>
-                                            </InsightHeader>
-                                            <InsightValue>
-                                                {scoreHistory.growth.stats?.best_score && scoreHistory.growth.stats?.worst_score
-                                                    ? `${scoreHistory.growth.stats.best_score - scoreHistory.growth.stats.worst_score} pts`
-                                                    : 'N/A'
-                                                }
-                                            </InsightValue>
-                                            <InsightSubtext>
-                                                {scoreHistory.growth.stats?.best_score && scoreHistory.growth.stats?.worst_score
-                                                    ? `From ${scoreHistory.growth.stats.worst_score} to ${scoreHistory.growth.stats.best_score}`
-                                                    : 'Your score variation'
-                                                }
-                                            </InsightSubtext>
-                                        </InsightCard>
-                                        
-                                        <InsightCard>
-                                            <InsightHeader>
-                                                <InsightIcon>🎯</InsightIcon>
-                                                <InsightLabel>Current Trend</InsightLabel>
-                                            </InsightHeader>
-                                            <InsightValue>
-                                                {scoreHistory.trend?.trend === 'improving' ? '↗ Improving' :
-                                                 scoreHistory.trend?.trend === 'declining' ? '↘ Declining' :
-                                                 scoreHistory.trend?.trend === 'stable' ? 'Stable' : 'N/A'}
-                                            </InsightValue>
-                                            <InsightSubtext>
-                                                {scoreHistory.trend?.change !== undefined 
-                                                    ? `${Math.abs(scoreHistory.trend.change)} point${Math.abs(scoreHistory.trend.change) !== 1 ? 's' : ''} ${scoreHistory.trend.change > 0 ? 'gain' : 'loss'}`
-                                                    : 'Your recent direction'
-                                                }
-                                            </InsightSubtext>
-                                        </InsightCard>
-                                    </>
+                            <SectionTitle style={{ marginBottom: '1rem' }}>Progress Insights</SectionTitle>
+                                <InsightsGrid>
+                                    {scoreHistory.growth?.has_growth_data && (
+                                        <>
+                                            <InsightCard>
+                                                <InsightHeader>
+                                                    <InsightIcon>🔥</InsightIcon>
+                                                    <InsightLabel>Current Streak</InsightLabel>
+                                                </InsightHeader>
+                                                <InsightValue>
+                                                    {scoreHistory.growth.streaks?.current_growth_streak > 0 
+                                                        ? `${scoreHistory.growth.streaks.current_growth_streak} weeks improving`
+                                                        : scoreHistory.growth.streaks?.current_decline_streak > 0
+                                                        ? `${scoreHistory.growth.streaks.current_decline_streak} weeks declining`
+                                                        : 'Stable'
+                                                    }
+                                                </InsightValue>
+                                                <InsightSubtext>
+                                                    {scoreHistory.growth.streaks?.current_growth_streak > 0 
+                                                        ? "Keep up the momentum!"
+                                                        : scoreHistory.growth.streaks?.current_decline_streak > 0
+                                                        ? "Time to turn things around"
+                                                        : 'Consistency is key'
+                                                    }
+                                                </InsightSubtext>
+                                            </InsightCard>
+                                            
+                                            <InsightCard>
+                                                <InsightHeader>
+                                                    <InsightIcon>🏆</InsightIcon>
+                                                    <InsightLabel>Best Score</InsightLabel>
+                                                </InsightHeader>
+                                                <InsightValue>{scoreHistory.growth.stats?.best_score || 'N/A'}</InsightValue>
+                                                <InsightSubtext>
+                                                    {scoreHistory.growth.stats?.best_score_date 
+                                                        ? `Achieved on ${formatDate(scoreHistory.growth.stats.best_score_date)}`
+                                                        : 'Your highest achievement'
+                                                    }
+                                                </InsightSubtext>
+                                            </InsightCard>
+                                            
+                                            <InsightCard>
+                                                <InsightHeader>
+                                                    <InsightIcon>📊</InsightIcon>
+                                                    <InsightLabel>Average Score</InsightLabel>
+                                                </InsightHeader>
+                                                <InsightValue>{scoreHistory.growth.stats?.average_score || 'N/A'}</InsightValue>
+                                                <InsightSubtext>
+                                                    {scoreHistory.growth.stats?.average_score 
+                                                        ? `Your consistent performance level`
+                                                        : 'Your typical performance'
+                                                    }
+                                                </InsightSubtext>
+                                            </InsightCard>
+                                            
+                                            <InsightCard>
+                                                <InsightHeader>
+                                                    <InsightIcon>📅</InsightIcon>
+                                                    <InsightLabel>Weeks Tracked</InsightLabel>
+                                                </InsightHeader>
+                                                <InsightValue>{scoreHistory.growth.stats?.total_scores || 'N/A'}</InsightValue>
+                                                <InsightSubtext>
+                                                    {scoreHistory.growth.stats?.total_scores 
+                                                        ? `${scoreHistory.growth.stats.total_scores} week${scoreHistory.growth.stats.total_scores > 1 ? 's' : ''} of data`
+                                                        : 'Building your history'
+                                                    }
+                                                </InsightSubtext>
+                                            </InsightCard>
+                                            
+                                            <InsightCard>
+                                                <InsightHeader>
+                                                    <InsightIcon>📈</InsightIcon>
+                                                    <InsightLabel>Score Range</InsightLabel>
+                                                </InsightHeader>
+                                                <InsightValue>
+                                                    {scoreHistory.growth.stats?.best_score && scoreHistory.growth.stats?.worst_score
+                                                        ? `${scoreHistory.growth.stats.best_score - scoreHistory.growth.stats.worst_score} pts`
+                                                        : 'N/A'
+                                                    }
+                                                </InsightValue>
+                                                <InsightSubtext>
+                                                    {scoreHistory.growth.stats?.best_score && scoreHistory.growth.stats?.worst_score
+                                                        ? `From ${scoreHistory.growth.stats.worst_score} to ${scoreHistory.growth.stats.best_score}`
+                                                        : 'Your score variation'
+                                                    }
+                                                </InsightSubtext>
+                                            </InsightCard>
+                                            
+                                            <InsightCard>
+                                                <InsightHeader>
+                                                    <InsightIcon>🎯</InsightIcon>
+                                                    <InsightLabel>Current Trend</InsightLabel>
+                                                </InsightHeader>
+                                                <InsightValue>
+                                                    {scoreHistory.trend?.trend === 'improving' ? '↗ Improving' :
+                                                    scoreHistory.trend?.trend === 'declining' ? '↘ Declining' :
+                                                    scoreHistory.trend?.trend === 'stable' ? 'Stable' : 'N/A'}
+                                                </InsightValue>
+                                                <InsightSubtext>
+                                                    {scoreHistory.trend?.change !== undefined 
+                                                        ? `${Math.abs(scoreHistory.trend.change)} point${Math.abs(scoreHistory.trend.change) !== 1 ? 's' : ''} ${scoreHistory.trend.change > 0 ? 'gain' : 'loss'}`
+                                                        : 'Your recent direction'
+                                                    }
+                                                </InsightSubtext>
+                                            </InsightCard>
+                                        </>
                                 )}
-                                {!scoreHistory.growth?.has_growth_data && (
-                                    <InsightCard>
-                                        <InsightLabel>Status</InsightLabel>
-                                        <InsightValue>No growth data available</InsightValue>
-                                    </InsightCard>
-                                )}
-                            </InsightsGrid>
+                                    {!scoreHistory.growth?.has_growth_data && (
+                                        <InsightCard>
+                                            <InsightLabel>Status</InsightLabel>
+                                            <InsightValue>No growth data available</InsightValue>
+                                        </InsightCard>
+                                    )}
+                                </InsightsGrid>
+                                
+                                {/* Motivational Quote Card */}
+                                <MotivationalCard>
+                                    <QuoteIcon>✨</QuoteIcon>
+                                    <QuoteText>
+                                        Small steps today, big results tomorrow
+                                    </QuoteText>
+                                    <QuoteSubtext>
+                                        Every financial decision shapes your future
+                                    </QuoteSubtext>
+                                </MotivationalCard>
                         </ProgressInsightsSection>
                     </ProgressGrid>
                 </ProgressContent>
@@ -196,7 +209,7 @@ const ProgressPanelContainer = styled.div`
 const ProgressContent = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 0.5rem;
     height: 100%;
 `;
 
@@ -222,7 +235,7 @@ const ProgressTitle = styled.h3`
 const ProgressGrid = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
+    gap: 3rem;
     width: 100%;
     align-items: start;
     
@@ -244,11 +257,10 @@ const SectionTitle = styled.h4`
     font-size: 1.75rem;
     font-weight: 600;
     color: var(--text-primary);
-    margin: 0 0 0.75rem 0;
-    padding-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
     background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
     background-clip: text;
-    border-bottom: 3px solid rgba(0, 0, 0, 0.1);
+    border-bottom: 3px solid rgba(0, 0, 0, 0.05);
     width: 80%;
     align-self: center;
     -webkit-background-clip: text;
@@ -309,8 +321,9 @@ const LineChartContainer = styled.div`
 // -------------------------------------------------------- Progress Insights Section.
 const ProgressInsightsSection = styled.div`
     display: flex;
+    justify-content: center;
+    align-items: center;
     flex-direction: column;
-    gap: 1rem;
 `;
 
 // -------------------------------------------------------- Insights Grid.
@@ -320,6 +333,8 @@ const InsightsGrid = styled.div`
     gap: 1rem;
     width: 100%;
     align-items: start;
+    align-self: center;
+    justify-self: center;
     
     @media (max-width: 768px) {
         grid-template-columns: repeat(2, 1fr);
@@ -346,8 +361,10 @@ const InsightCard = styled.div`
     border-color: transparent;
     background: linear-gradient(white, white) padding-box, 
                 linear-gradient(135deg, var(--button-primary), var(--amount-positive)) border-box;
-    min-height: 120px;
+    height: 10rem;
+    width: auto;
     justify-content: space-between;
+    flex-shrink: 0;
 
     transition: all 0.3s ease-in-out;
     position: relative;
@@ -451,6 +468,103 @@ const LoadingSpinner = styled.div`
 const LoadingText = styled.span`
     margin-top: 1rem;
     font-size: 1.1rem;
+`;
+
+// -------------------------------------------------------- Motivational Card.
+const MotivationalCard = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    padding: 1.5rem 2rem;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+    border-radius: 16px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+    margin-top: 1rem;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease-in-out;
+    overflow: hidden;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
+        opacity: 0.1;
+        border-radius: 16px;
+        z-index: -1;
+    }
+
+    &::after {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+        animation: shimmer 3s infinite;
+        pointer-events: none;
+    }
+
+    @keyframes shimmer {
+        0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+        100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+    }
+
+    &:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        
+        &::after {
+            animation-duration: 1.5s;
+        }
+    }
+`;
+
+// -------------------------------------------------------- Quote Icon.
+const QuoteIcon = styled.span`
+    font-size: 2.5rem;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+    flex-shrink: 0;
+    animation: float 3s ease-in-out infinite;
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-5px); }
+    }
+`;
+
+// -------------------------------------------------------- Quote Text.
+const QuoteText = styled.div`
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: center;
+    line-height: 1.4;
+    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+`;
+
+// -------------------------------------------------------- Quote Subtext.
+const QuoteSubtext = styled.div`
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    text-align: center;
+    font-style: italic;
+    margin-top: 0.5rem;
+    opacity: 0.8;
 `;
 
 // Export Component.

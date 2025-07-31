@@ -82,6 +82,54 @@ Overall Notes :
             - attached to a python attribute, so that when accessed, sqlalchemy should pull respective row that belongs to the user
             - back_populates - and inside the respective row their is a mirror attribute based on the parent, keep both sides in sync
 
+- chart.js lib -
+
+    - label : 
+    - data : data for the chart
+    - tension : 
+    - borderWidth : border of the lines connecting points 
+    - pointRadius : radius of the points representing data
+    - pointHoverRadius : on hover of points what should radius grow / shrink to
+    - pointBackgroundColor : the color of the points
+    - pointBorderColor : color of border of point
+    - pointBorderWidth : width of border of point
+    - pointHover'x' : the color or bg color or width of border / point
+    - fill : fill of the data below point (for line chart)
+    - borderColor : color of line between points
+    - backgroundColor : color of space below line
+
+    - options ->
+        - response : 
+        - maintainAspectRatio : 
+        - animation : customizing animation of point / line / tooltips
+        - plugins : how to customize overall chart with legend, tooltips, etc.
+
+    - tooltip -> 
+        - mode :
+        - intersect : 
+        - backgroundColor : bg color of tool tooltip
+        - titleColor : color of the header of the tooltip
+        - bodyColor : color of the body text of the tooltip
+        - borderColor : color of the border of the tooltip 
+        - borderWidth : width of border of tooltip
+        - padding: padding like a div for tooltip
+        - boxPadding : ?
+        - usePointStyle : ?
+        - cornerRadius : radius of the corners for the tooltip
+        - displayColors : i think not black and white
+        - titleFont : font style for title
+        - bodyFont : font style for body
+        - callbacks : specific set up of the labels within tooltip
+
+    - scales -> 
+        - grid -
+            - color : color of lines of grid
+            - drawBorder : 
+            - lineWidth : width of lines of grid
+
+        - ticks - 
+            - maxRotation: 
+            - font 
 - salt - 
     - "a unique seasonging you add to every password before you cook it."
 - cost - 

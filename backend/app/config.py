@@ -9,6 +9,37 @@ from plaid.configuration import Configuration
 # Load .env Variables.
 load_dotenv()
 
+class Settings:
+    # Database
+    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./finance_organizer.db")
+    
+    # JWT
+    SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
+    ALGORITHM = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES = 30
+    
+    # Plaid
+    PLAID_CLIENT_ID = os.getenv("PLAID_CLIENT_ID")
+    PLAID_SECRET = os.getenv("PLAID_SECRET")
+    PLAID_ENV = os.getenv("PLAID_ENV", "sandbox")
+    
+    # Environment
+    ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+    DEBUG = os.getenv("DEBUG", "True").lower() == "true"
+    
+    # CORS
+    ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+
+settings = Settings()
+
+# Plaid Configuration.
+PLAID_CLIENT_ID = os.getenv("PLAID_CLIENT_ID")
+PLAID_SECRET = os.getenv("PLAID_SECRET")
+PLAID_ENV = os.getenv("PLAID_ENV", "sandbox")  # sandbox, development, production
+
+# Plaid Data Retrieval Settings
+PLAID_TRANSACTION_DAYS = int(os.getenv("PLAID_TRANSACTION_DAYS", "30"))  # Default 30 days for sandbox
+
 # Plaid Config Set Up.
 class PlaidConfig:
     def __init__(self):

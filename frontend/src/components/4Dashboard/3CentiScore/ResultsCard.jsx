@@ -43,6 +43,7 @@ const ResultsCard = ({
     const [infoVisible, setInfoVisible] = useState(false); // State 4 Info Panel Visibility.
     const [progressVisible, setProgressVisible] = useState(false); // State 4 Progress Panel Visibility.
     const [scoreHistory, setScoreHistory] = useState(null); // State 4 Score History Data.
+    const [hasGrowthData, setHasGrowthData] = useState(false);
 
     // Function 4 Toggling Info Panel Visibility.
     const toggleInfoPanel = () => setInfoVisible(v => !v);
@@ -71,6 +72,10 @@ const ResultsCard = ({
             });
         }
     }, [myCentiScoreHistory, myCentiScoreGrowth, myCentiScoreTrend]);
+
+    useEffect(() => {
+        setHasGrowthData(!!scoreHistory?.growth?.has_growth_data);
+    }, [scoreHistory]);
 
     return (
         <ResultsCardContainer>
@@ -140,13 +145,19 @@ const ResultsCard = ({
                     Want to see how your Centi Score has changed?
                 </ProgressPrompt>
                 <ProgressButton 
-                    onClick={toggleProgressPanel}
+                    onClick={hasGrowthData ? toggleProgressPanel : undefined}
                     $isExpanded={progressVisible}
-                    role="button"
-                    aria-expanded={progressVisible}
+                    $disabled={!hasGrowthData}
+                    aria-label={hasGrowthData ? undefined : 'You need at least two weeks of Centi Score data to view progress.'}
+                    title={hasGrowthData ? undefined : 'You need at least two weeks of Centi Score data to view progress.'}
                 >
                     <ButtonText>
-                        {progressVisible ? 'Hide Progress' : 'Show me my progress! 🚀'}
+                        {!hasGrowthData 
+                            ? 'Not Enough Centi Data Available to Display Your Growth' 
+                            : progressVisible 
+                                ? 'Hide Progress' 
+                                : 'Show me my progress! 🚀'
+                        }
                     </ButtonText>
                 </ProgressButton>
             </ProgressSection>
@@ -165,6 +176,7 @@ const ResultsCardContainer = styled.div`
     align-items: center;
     justify-content: center;
     position: relative;
+    overflow: hidden;
 
     padding: 2rem 2rem 0rem 2rem;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
@@ -378,11 +390,12 @@ const InfoPanel = styled.div`
     top: 0;
     right: 0;
     width: 50%;
-    z-index: 1000;
+    z-index: 2;
     background: rgba(255,255,255,0.97);
     box-shadow: 0 8px 32px rgba(0,0,0,0.18);
     border-bottom-left-radius: 18px;
     border-bottom-right-radius: 18px;
+    border-top-right-radius: 18px;
     padding: 1.5rem 1.5rem;
     transform: translateY(${props => props.$visible ? '0%' : '-120%'});
     opacity: ${props => props.$visible ? 1 : 0};
@@ -480,26 +493,36 @@ const ProgressButton = styled.button`
     align-items: center;    
     justify-content: center;
     gap: 0.5rem;
-    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
+    background: ${props => props.$disabled 
+        ? 'linear-gradient(135deg, #6c757d, #495057)' 
+        : 'linear-gradient(135deg, var(--button-primary), var(--amount-positive))'
+    };
     color: white;
     border: none;
     border-radius: 12px;
     padding: 0.75rem 1.5rem;
     font-size: 1rem;
     font-weight: 600;
-    cursor: pointer;
+    cursor: ${props => props.$disabled ? 'not-allowed' : 'pointer'};
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.2);
+    box-shadow: ${props => props.$disabled 
+        ? '0 2px 8px rgba(108, 117, 125, 0.2)' 
+        : '0 4px 15px rgba(0, 123, 255, 0.2)'
+    };
     width: 100%;
     align-self: center;
+    opacity: ${props => props.$disabled ? 0.6 : 1};
 
     &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
+        transform: ${props => props.$disabled ? 'none' : 'translateY(-2px)'};
+        box-shadow: ${props => props.$disabled 
+            ? '0 2px 8px rgba(108, 117, 125, 0.2)' 
+            : '0 8px 25px rgba(0, 123, 255, 0.3)'
+        };
     }
 
     &:active {
-        transform: translateY(0);
+        transform: ${props => props.$disabled ? 'none' : 'translateY(0)'};
     }
     
     @keyframes shimmer {
@@ -507,7 +530,7 @@ const ProgressButton = styled.button`
         100% { background-position: 100% 0; }
     }
 
-    ${props => props.$isExpanded && `
+    ${props => props.$isExpanded && !props.$disabled && `
         background: linear-gradient(135deg, #6366f1, #059669);
         box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
     `}

@@ -6,7 +6,7 @@ import ResultsCard from './ResultsCard';
 import { calculateWeeklyScore } from '../../../services/api';
 
 // ------------------------------------------------------------------------------------------------ Strength Indicator Component.
-const StrengthIndicator = ({ myStats, myCentiScore, myCentiScoreHistory, myCentiScoreGrowth, myCentiScoreTrend }) => {
+const StrengthIndicator = ({ id, myStats, myCentiScore, myCentiScoreHistory, myCentiScoreGrowth, myCentiScoreTrend }) => {
     // State Management.
     const [score, setScore] = useState(null);                       // State 4 Storing Score.
     const [isLoading, setIsLoading] = useState(false);              // State 4 If Loading.
@@ -191,7 +191,7 @@ const StrengthIndicator = ({ myStats, myCentiScore, myCentiScoreHistory, myCenti
 
     // -------------------------------------------------------- Return.
     return (
-        <StrengthIndicatorContainer>
+        <StrengthIndicatorContainer id={id}>
             {showPrompt && !showResults && (
                 <PromptCard>
                     <LeftSide>

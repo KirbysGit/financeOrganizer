@@ -40,11 +40,6 @@ app.include_router(plaid.router)
 app.include_router(accounts.router)
 app.include_router(centi_score.router)
 
-# Start The Centi Score Scheduler.
-from app.utils.scheduler import start_scheduler
-
-start_scheduler()
-
 @app.get("/")
 async def root():
     return {"message": "Finance Organizer API is running!"}
@@ -52,3 +47,14 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+# Start The Centi Score Scheduler only when app starts
+@app.on_event("startup")
+async def startup_event():
+    try:
+        from app.utils.scheduler import start_scheduler
+        start_scheduler()
+        print("Scheduler started successfully")
+    except Exception as e:
+        print(f"Failed to start scheduler: {e}")
+        # Don't fail the app if scheduler fails

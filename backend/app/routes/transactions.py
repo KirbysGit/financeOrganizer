@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, date
 from fastapi import APIRouter, Depends, HTTPException
 
 # Local Imports.
-from app.utils.db_utils import get_db
+from app.utils.db_utils import get_db, check_db_connection
 from app.utils.auth_utils import get_current_user
 from app.models import TransactionOut, TransactionCreate, AccountWithGrowth, TagCreate, TagOut
 from app.utils.type_label_map import NEGATIVE_TYPES, POSITIVE_TYPES
@@ -31,6 +31,9 @@ def get_transactions(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    # Check database connection
+    db = check_db_connection(db)
+    
     # Query For All Transactions With Account And Institution Details For This User.
     transactions = db.query(Transaction).filter(
         Transaction.user_id == current_user.id
@@ -211,6 +214,9 @@ def get_accounts(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    # Check database connection
+    db = check_db_connection(db)
+    
     # Query For All Accounts For This User, And Filter For Only Active Accounts.
     accounts = db.query(Account).filter(
         Account.user_id == current_user.id,
@@ -284,6 +290,9 @@ def get_enhanced_accounts(
     current_user: User = Depends(get_current_user)
 ):
     """Get accounts with enhanced data including growth, financial impact, and health indicators."""
+    
+    # Check database connection
+    db = check_db_connection(db)
     
     # Create balance snapshot for today
     create_account_balance_snapshot(db, current_user.id)
@@ -671,6 +680,9 @@ def get_stats(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    # Check database connection
+    db = check_db_connection(db)
+    
     # Get Current Date & Calculate Time Periods.
     now = datetime.now()
     start_of_month = datetime(now.year, now.month, 1).date()

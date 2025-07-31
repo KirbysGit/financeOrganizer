@@ -113,6 +113,16 @@ for route in app.routes:
     if hasattr(route, 'path'):
         print(f"  {route.methods} {route.path}")
 
+@app.get("/test-simple")
+async def test_simple():
+    """Simple test endpoint with no dependencies"""
+    return {
+        "message": "Simple test successful",
+        "timestamp": "2024-01-01",
+        "port": os.getenv('PORT', 'Not set'),
+        "environment": os.getenv('ENVIRONMENT', 'development')
+    }
+
 @app.get("/")
 async def root():
     return {"message": "Finance Organizer API is running!", "status": "healthy"}
@@ -156,8 +166,11 @@ async def startup_event():
     try:
         print("Starting application...")
         print(f"Environment: {os.getenv('ENVIRONMENT', 'development')}")
-        print(f"Port: {os.getenv('PORT', '8080')}")
-        print(f"CORS Origins: {origins}")
+        print(f"PORT environment variable: {os.getenv('PORT', 'Not set')}")
+        print(f"Expected binding: 0.0.0.0:{os.getenv('PORT', '8080')}")
+        print("CORS Origins:")
+        for i, origin in enumerate(origins, 1):
+            print(f"  {i}. '{origin}'")
         
         # Initialize database tables
         from app.database import create_tables

@@ -19,8 +19,7 @@ origins = [
     "http://localhost:8000",
     "http://127.0.0.1:5173",
     "http://127.0.0.1:8000",
-    "https://your-frontend-domain.vercel.app",  # Replace with your actual domain
-    "https://finance-organizer.vercel.app",     # Example domain
+    "https://finance-organizer-wine.vercel.app/",  # Replace with your actual Vercel domain
 ]
 
 # Adds The Middleware For CORS.

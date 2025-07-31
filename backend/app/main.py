@@ -64,20 +64,31 @@ async def health_check():
 
 @app.get("/ping")
 async def ping():
-    return {"message": "pong", "timestamp": "2024-01-01"}
+    return {"message": "pong", "timestamp": "2024-01-01", "status": "running"}
+
+@app.get("/test")
+async def test():
+    return {"message": "FastAPI is running!", "routes": ["/", "/health", "/ping", "/test", "/auth/register"]}
 
 # Start The Centi Score Scheduler only when app starts
 @app.on_event("startup")
 async def startup_event():
     try:
+        print("Starting application...")
+        
         # Initialize database tables
         from app.database import create_tables
         create_tables()
+        print("Database tables created successfully")
         
         # Start scheduler
         from app.utils.scheduler import start_scheduler
         start_scheduler()
         print("Scheduler started successfully")
+        
+        print("Application startup complete!")
     except Exception as e:
-        print(f"Failed to start scheduler: {e}")
-        # Don't fail the app if scheduler fails
+        print(f"Failed to start application: {e}")
+        import traceback
+        traceback.print_exc()
+        # Don't fail the app if startup fails

@@ -68,14 +68,24 @@ async def log_requests(request: Request, call_next):
     
     # Special handling for OPTIONS requests (CORS preflight)
     if request.method == "OPTIONS":
-        print("Handling OPTIONS preflight request")
+        print("=== CORS PREFLIGHT REQUEST ===")
         print(f"Request origin: {request.headers.get('origin')}")
         print(f"Request method: {request.headers.get('access-control-request-method')}")
         print(f"Request headers: {request.headers.get('access-control-request-headers')}")
+        print(f"Requested URL: {request.url}")
     
     response = await call_next(request)
     print(f"Response: {response.status_code}")
     print(f"Response headers: {dict(response.headers)}")
+    
+    # Special logging for CORS responses
+    if request.method == "OPTIONS":
+        print("=== CORS PREFLIGHT RESPONSE ===")
+        print(f"Access-Control-Allow-Origin: {response.headers.get('access-control-allow-origin', 'NOT SET')}")
+        print(f"Access-Control-Allow-Methods: {response.headers.get('access-control-allow-methods', 'NOT SET')}")
+        print(f"Access-Control-Allow-Headers: {response.headers.get('access-control-allow-headers', 'NOT SET')}")
+        print(f"Access-Control-Allow-Credentials: {response.headers.get('access-control-allow-credentials', 'NOT SET')}")
+    
     return response
 
 # Register Modular Route Groups.
@@ -120,6 +130,14 @@ async def cors_test():
 @app.options("/cors-test")
 async def cors_test_options():
     return {"message": "CORS preflight test successful"}
+
+@app.get("/auth/cors-test")
+async def auth_cors_test():
+    return {"message": "Auth CORS test successful", "timestamp": "2024-01-01"}
+
+@app.options("/auth/cors-test")
+async def auth_cors_test_options():
+    return {"message": "Auth CORS preflight test successful"}
 
 # Start The Centi Score Scheduler only when app starts
 @app.on_event("startup")

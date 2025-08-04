@@ -21,6 +21,8 @@ origins = [
     'http://127.0.0.1:8000',
     'https://finance-organizer-wine.vercel.app',  # Vercel frontend
     'https://financeorganizer-production.up.railway.app',  # Railway domain
+    'https://financeorganizer.vercel.app',  # Alternative Vercel domain
+    'https://centi-dev.vercel.app',  # Another possible domain
 ]
 
 # Add any Railway-specific origins
@@ -72,6 +74,17 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "cors_origins": origins}
+
+@app.get("/debug-auth")
+async def debug_auth(request: Request):
+    """Debug endpoint to check authentication and CORS"""
+    return {
+        "status": "debug",
+        "cookies": dict(request.cookies),
+        "headers": dict(request.headers),
+        "origin": request.headers.get("origin"),
+        "cors_origins": origins
+    }
 
 @app.get("/ping")
 async def ping():

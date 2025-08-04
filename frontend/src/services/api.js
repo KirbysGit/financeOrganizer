@@ -5,6 +5,8 @@ console.log("HEY!!!!");
 // Create API Instance.
 const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 console.log('API Base URL:', baseURL);
+console.log('Environment:', import.meta.env.MODE);
+console.log('VITE_API_URL:', import.meta.env.VITE_API_URL);
 
 // Add a refresh lock to prevent multiple simultaneous refresh attempts
 let isRefreshing = false;

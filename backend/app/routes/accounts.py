@@ -130,8 +130,8 @@ def create_auth_tokens_and_cookies(
         value=access_token,
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         httponly=True,
-        secure=False,
-        samesite="lax",
+        secure=True,  # Set to True for HTTPS
+        samesite="none",  # Allow cross-origin requests
         path="/"
     )
     
@@ -140,8 +140,8 @@ def create_auth_tokens_and_cookies(
         value=refresh_token,
         max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
         httponly=True,
-        secure=False,
-        samesite="lax",
+        secure=True,  # Set to True for HTTPS
+        samesite="none",  # Allow cross-origin requests
         path="/"
     )
     

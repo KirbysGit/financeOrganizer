@@ -147,6 +147,15 @@ const AccountList = ({ myStats, myAccounts, onUpload, onRefresh, id }) => {
         return `${label} (${count})`;
     };
 
+    const getUserName = () => {
+        try {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            return user.first_name || 'there';
+        } catch (error) {
+            return 'there';
+        }
+    };
+
     // If Loading, Return Loading Message.
     if (loading) {
         return (
@@ -236,28 +245,55 @@ const AccountList = ({ myStats, myAccounts, onUpload, onRefresh, id }) => {
 
             {/* Account List */}
             <AccountListContainer $isAnimating={isAnimating}>
-                {accounts
-                    .filter(acc => selectedType === 'all' || acc.type === selectedType)
-                    .map((acc, index) => {
-                        // Handle Cash account (null ID) with special logic
-                        const isExpanded = acc.id === null 
-                            ? expandedAccount === 'CASH_ACCOUNT'
-                            : expandedAccount === acc.id;
-                        
-                        return (
-                            <AnimatedAccountCard 
-                                key={acc.id || 'cash-account'}
-                                $index={index}
-                                $isAnimating={isAnimating}
-                            >
-                                <AccountCard 
-                                    account={acc}
-                                    isExpanded={isExpanded}
-                                    onToggle={handleAccountToggle}
-                                />
-                            </AnimatedAccountCard>
-                        );
-                    })}
+                {accounts.length > 0 ? (
+                    accounts
+                        .filter(acc => selectedType === 'all' || acc.type === selectedType)
+                        .map((acc, index) => {
+                            // Handle Cash account (null ID) with special logic
+                            const isExpanded = acc.id === null 
+                                ? expandedAccount === 'CASH_ACCOUNT'
+                                : expandedAccount === acc.id;
+                            
+                            return (
+                                <AnimatedAccountCard 
+                                    key={acc.id || 'cash-account'}
+                                    $index={index}
+                                    $isAnimating={isAnimating}
+                                >
+                                    <AccountCard 
+                                        account={acc}
+                                        isExpanded={isExpanded}
+                                        onToggle={handleAccountToggle}
+                                    />
+                                </AnimatedAccountCard>
+                            );
+                        })
+                ) : (
+                    <EmptyAccountsContainer>
+                        <EmptyAccountsIcon>🏦</EmptyAccountsIcon>
+                        <EmptyAccountsTitle>
+                            We don't see any accounts yet...
+                        </EmptyAccountsTitle>
+                        <EmptyAccountsSubtitle>
+                            Thats okay! To add an account you can either
+                        </EmptyAccountsSubtitle>
+                        <OptionsGrid>
+                            <RefreshSection>
+                                <SectionLabel>Refresh Your Page</SectionLabel>
+                                <RefreshButton onClick={() => window.location.reload()} aria-label="Refresh Page" title="Refresh Page">
+                                    <FontAwesomeIcon icon={faRotateRight} />
+                                </RefreshButton>
+                            </RefreshSection>
+                            <Split>OR</Split>
+                            <AddSection>
+                                <SectionLabel>Add An Account</SectionLabel>
+                                <AddButton onClick={() => setPlaidModal(true)} aria-label="Add New Content." title="Add New File Or Connect Bank.">
+                                    <FontAwesomeIcon icon={faPlus} />
+                                </AddButton>
+                            </AddSection>
+                        </OptionsGrid>
+                    </EmptyAccountsContainer>
+                )}
             </AccountListContainer>
 
             {/* Plaid Modal */}
@@ -341,6 +377,7 @@ const AddMenuWrapper = styled.div`
     position: relative;
     display: flex;
     align-items: center;
+    gap: 1rem;
     justify-content: center;
 `;
 const RefreshButton = styled.button`
@@ -355,7 +392,6 @@ const RefreshButton = styled.button`
     align-items: center;
     font-size: 1.5rem;
     border: none;
-    margin-right: 1rem;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.34);
     position: relative;
@@ -409,7 +445,6 @@ const AddButton = styled.button`
     align-items: center;
     font-size: 1.5rem;
     border: none;
-    margin-right: 1rem;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.34);
     position: relative;
@@ -644,6 +679,57 @@ const PlaidModalWrapper = styled.div`
     height: 100%;
 `;
 
+// -------------------------------------------------------- Empty Accounts Container.
+const EmptyAccountsContainer = styled.div`
+    max-width: 650px;
+    align-self: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 2rem;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    border: 2px solid rgba(100, 100, 100, 0.1);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    margin: 1rem 0;
+    
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    }
+`;
+
+// -------------------------------------------------------- Empty Accounts Icon.
+const EmptyAccountsIcon = styled.div`
+    font-size: 3.5rem;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+    transition: transform 0.3s ease;
+`;
+
+// -------------------------------------------------------- Empty Accounts Title.
+const EmptyAccountsTitle = styled.h3`
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    line-height: 1.2;
+    margin-top: 0.25rem;
+    margin-bottom: 0.5rem;
+`;
+
+// -------------------------------------------------------- Empty Accounts Subtitle.
+const EmptyAccountsSubtitle = styled.p`
+    font-size: 1rem;
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.4;
+    font-weight: 500;
+`;
+
 // -------------------------------------------------------- Animated Account Card.
 const AnimatedAccountCard = styled.div`
     opacity: ${props => props.$isAnimating ? 0 : 1};
@@ -653,6 +739,61 @@ const AnimatedAccountCard = styled.div`
         animation: ${fadeIn} 0.6s ease-out;
         animation-delay: ${props.$index * 0.1}s;
     `}
+`;
+
+const OptionsGrid = styled.div`
+    display: grid;
+    grid-template-columns: 2fr 1fr 2fr;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.9);
+`
+
+const RefreshSection = styled.div`
+    border-radius: 16px;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+`;
+
+const AddSection = styled.div`
+    border-radius: 16px;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+`;
+
+const SectionLabel = styled.div`
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    text-align: center;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.8;
+`;
+
+const Split = styled.div`
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.7;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    position: relative;
 `;
 
 export default AccountList;

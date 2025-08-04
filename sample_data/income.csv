@@ -1,323 +1,354 @@
 Date,Amount,Vendor,Description,Category,Type
-2025-04-01,1200.00,Freelance Client A,Web Development Project,income,freelance
+2025-04-01,1200.00,Freelance Client A,Web Development Project,income,other
 2025-04-03,180.00,Online Platform,Content Creation Revenue,income,other
-2025-04-05,250.00,Investment Fund,Dividend Payment,income,investment
-2025-04-06,-60.00,Publix,Groceries,food,expense
-2025-04-07,-120.00,Shell,Gasoline,transportation,expense
-2025-04-09,-95.00,Netflix,Streaming Service,entertainment,expense
-2025-04-10,850.00,Freelance Client B,Consulting Services,income,freelance
+2025-04-05,250.00,Investment Fund,Dividend Payment,income,other
+2025-04-06,-60.00,Publix,Groceries,food,sale
+2025-04-07,-120.00,Shell,Gasoline,transportation,sale
+2025-04-09,-95.00,Netflix,Streaming Service,entertainment,sale
+2025-04-10,850.00,Freelance Client B,Consulting Services,income,other
 2025-04-12,150.00,Online Platform,Content Creation Revenue,income,other
-2025-04-13,-140.00,AT&T,Mobile Bill,utilities,expense
-2025-04-15,4500.00,Employer Inc,Monthly Salary - April 2025,income,salary
-2025-04-17,-80.00,Amazon,Office Supplies,shopping,expense
-2025-04-18,-100.00,Online Platform,Refund for Overpayment,income,refund
-2025-04-20,950.00,Freelance Client A,Web Development Project,income,freelance
-2025-04-21,-55.00,Chick-fil-A,Lunch,food,expense
-2025-04-22,-105.00,GymCo,Monthly Membership,health,expense
-2025-04-23,-1350.00,Chase,Monthly Rent,rent,expense
-2025-04-25,-200.00,Freelance Client B,Chargeback for Dispute,income,chargeback
-2025-04-26,-40.00,Local Market,Groceries,food,expense
+2025-04-13,-140.00,AT&T,Mobile Bill,utilities,sale
+2025-04-15,4500.00,Employer Inc,Monthly Salary - April 2025,income,other
+2025-04-17,-80.00,Amazon,Office Supplies,shopping,sale
+2025-04-18,100.00,Online Platform,Refund for Overpayment,income,refund
+2025-04-20,950.00,Freelance Client A,Web Development Project,income,other
+2025-04-21,-55.00,Chick-fil-A,Lunch,food,sale
+2025-04-22,-105.00,GymCo,Monthly Membership,health,sale
+2025-04-23,-1350.00,Chase,Monthly Rent,rent,sale
+2025-04-25,-200.00,Freelance Client B,Chargeback for Dispute,income,adjustment
+2025-04-26,-40.00,Local Market,Groceries,food,sale
 2025-04-28,170.00,Online Platform,Content Creation Revenue,income,other
-2025-04-29,-90.00,Power Utility Co.,Electric Bill,utilities,expense
+2025-04-29,-90.00,Power Utility Co.,Electric Bill,utilities,sale
 
-2025-05-01,1100.00,Freelance Client A,Web Development Project,income,freelance
+2025-05-01,1100.00,Freelance Client A,Web Development Project,income,other
 2025-05-01,320.00,Online Course Platform,Course Sales Revenue,income,other
-2025-05-01,-45.00,Starbucks,Coffee & Breakfast,food,expense
-2025-05-01,-85.00,Amazon,Office Supplies,shopping,expense
-2025-05-02,-120.00,Shell,Gasoline,transportation,expense
-2025-05-02,-65.00,Whole Foods,Groceries,food,expense
-2025-05-02,-35.00,Panera Bread,Lunch,food,expense
+2025-05-01,-45.00,Starbucks,Coffee & Breakfast,food,sale
+2025-05-01,-85.00,Amazon,Office Supplies,shopping,sale
+2025-05-02,-120.00,Shell,Gasoline,transportation,sale
+2025-05-02,-65.00,Whole Foods,Groceries,food,sale
+2025-05-02,-35.00,Panera Bread,Lunch,food,sale
 2025-05-03,180.00,Online Platform,Content Creation Revenue,income,other
-2025-05-03,290.00,Consulting Client B,Technical Consulting,income,freelance
-2025-05-03,-42.00,CVS,Pharmacy Items,health,expense
-2025-05-03,-28.00,Chipotle,Lunch,food,expense
-2025-05-04,-95.00,Trader Joe's,Groceries,food,expense
-2025-05-04,-55.00,Target,Household Items,shopping,expense
-2025-05-04,-18.00,Netflix,Streaming Service,entertainment,expense
-2025-05-05,250.00,Investment Fund,Dividend Payment,income,investment
+2025-05-03,290.00,Consulting Client B,Technical Consulting,income,other
+2025-05-03,-42.00,CVS,Pharmacy Items,health,sale
+2025-05-03,-28.00,Chipotle,Lunch,food,sale
+2025-05-04,-95.00,Trader Joe's,Groceries,food,sale
+2025-05-04,-55.00,Target,Household Items,shopping,sale
+2025-05-04,-18.00,Netflix,Streaming Service,entertainment,sale
+2025-05-05,250.00,Investment Fund,Dividend Payment,income,other
 2025-05-05,380.00,Digital Product Sales,Template Sales,income,other
-2025-05-05,-45.00,CVS,Pharmacy Items,health,expense
-2025-05-05,-75.00,Best Buy,Electronics Accessories,shopping,expense
-2025-05-06,-70.00,Trader Joe's,Groceries,food,expense
-2025-05-06,-120.00,Shell,Gasoline,transportation,expense
-2025-05-06,-35.00,Starbucks,Coffee & Snacks,food,expense
-2025-05-07,-85.00,Hulu,Streaming Service,entertainment,expense
-2025-05-07,-110.00,Wawa,Gas,transportation,expense
-2025-05-07,-45.00,Chipotle,Lunch,food,expense
-2025-05-08,-140.00,AT&T,Mobile Bill,utilities,expense
-2025-05-08,-65.00,Whole Foods,Groceries,food,expense
-2025-05-08,-28.00,Spotify,Music Subscription,entertainment,expense
-2025-05-09,-85.00,Hulu,Streaming Service,entertainment,expense
-2025-05-09,-85.00,Amazon,Home Decor,shopping,expense
-2025-05-09,-45.00,Starbucks,Coffee & Breakfast,food,expense
-2025-05-10,800.00,Freelance Client B,Consulting Services,income,freelance
-2025-05-10,270.00,Investment Fund,Interest Payment,income,investment
-2025-05-10,-95.00,Shell,Gasoline,transportation,expense
-2025-05-10,-65.00,Whole Foods,Groceries,food,expense
-2025-05-11,-140.00,AT&T,Mobile Bill,utilities,expense
-2025-05-11,-60.00,Apple Music,Streaming Subscription,entertainment,expense
-2025-05-11,-45.00,Chipotle,Lunch,food,expense
+2025-05-05,-45.00,CVS,Pharmacy Items,health,sale
+2025-05-05,-75.00,Best Buy,Electronics Accessories,shopping,sale
+2025-05-06,-70.00,Trader Joe's,Groceries,food,sale
+2025-05-06,-120.00,Shell,Gasoline,transportation,sale
+2025-05-06,-35.00,Starbucks,Coffee & Snacks,food,sale
+2025-05-07,-85.00,Hulu,Streaming Service,entertainment,sale
+2025-05-07,-110.00,Wawa,Gas,transportation,sale
+2025-05-07,-45.00,Chipotle,Lunch,food,sale
+2025-05-08,-140.00,AT&T,Mobile Bill,utilities,sale
+2025-05-08,-65.00,Whole Foods,Groceries,food,sale
+2025-05-08,-28.00,Spotify,Music Subscription,entertainment,sale
+2025-05-09,-85.00,Hulu,Streaming Service,entertainment,sale
+2025-05-09,-85.00,Amazon,Home Decor,shopping,sale
+2025-05-09,-45.00,Starbucks,Coffee & Breakfast,food,sale
+2025-05-10,800.00,Freelance Client B,Consulting Services,income,other
+2025-05-10,270.00,Investment Fund,Interest Payment,income,other
+2025-05-10,-95.00,Shell,Gasoline,transportation,sale
+2025-05-10,-65.00,Whole Foods,Groceries,food,sale
+2025-05-11,-140.00,AT&T,Mobile Bill,utilities,sale
+2025-05-11,-60.00,Apple Music,Streaming Subscription,entertainment,sale
+2025-05-11,-45.00,Chipotle,Lunch,food,sale
 2025-05-12,150.00,Online Platform,Content Creation Revenue,income,other
 2025-05-12,420.00,Digital Product Sales,Plugin License,income,other
-2025-05-12,-85.00,Trader Joe's,Groceries,food,expense
-2025-05-12,-35.00,Starbucks,Coffee & Snacks,food,expense
-2025-05-13,-95.00,Shell,Gasoline,transportation,expense
-2025-05-13,-65.00,CVS,Pharmacy Items,health,expense
-2025-05-13,-45.00,Panera Bread,Lunch,food,expense
-2025-05-14,-95.00,Amazon,Home Decor,shopping,expense
-2025-05-14,-120.00,Shell,Gasoline,transportation,expense
-2025-05-14,-55.00,Chipotle,Lunch,food,expense
-2025-05-15,4500.00,Employer Inc,Monthly Salary - May 2025,income,salary
+2025-05-12,-85.00,Trader Joe's,Groceries,food,sale
+2025-05-12,-35.00,Starbucks,Coffee & Snacks,food,sale
+2025-05-13,-95.00,Shell,Gasoline,transportation,sale
+2025-05-13,-65.00,CVS,Pharmacy Items,health,sale
+2025-05-13,-45.00,Panera Bread,Lunch,food,sale
+2025-05-14,-95.00,Amazon,Home Decor,shopping,sale
+2025-05-14,-120.00,Shell,Gasoline,transportation,sale
+2025-05-14,-55.00,Chipotle,Lunch,food,sale
+2025-05-15,4500.00,Employer Inc,Monthly Salary - May 2025,income,other
 2025-05-15,170.00,Online Course Platform,Course Sales Revenue,income,other
-2025-05-15,-25.00,Spotify,Subscription Renewal,entertainment,expense
-2025-05-15,-85.00,Amazon,Office Supplies,shopping,expense
-2025-05-16,-1350.00,Chase,Monthly Rent,rent,expense
-2025-05-16,-95.00,Shell,Gasoline,transportation,expense
-2025-05-16,-45.00,Starbucks,Coffee & Breakfast,food,expense
-2025-05-17,-50.00,Starbucks,Coffee & Snacks,food,expense
-2025-05-17,-65.00,CVS,Pharmacy Items,health,expense
-2025-05-17,-35.00,Panera Bread,Lunch,food,expense
-2025-05-18,-120.00,Freelance Client A,Refund for Project Cancellation,income,refund
-2025-05-18,310.00,Consulting Client D,Project Planning,income,freelance
-2025-05-18,-70.00,Whole Foods,Grocery Run,food,expense
-2025-05-18,-45.00,Target,Household Items,shopping,expense
-2025-05-19,-110.00,GymCo,Monthly Membership,health,expense
-2025-05-19,-120.00,Shell,Gasoline,transportation,expense
-2025-05-19,-55.00,Chipotle,Lunch,food,expense
-2025-05-20,950.00,Freelance Client A,Web Development Project,income,freelance
-2025-05-20,260.00,Investment Fund,Dividend Payment,income,investment
-2025-05-20,-85.00,Trader Joe's,Groceries,food,expense
-2025-05-21,-95.00,Shell,Gasoline,transportation,expense
-2025-05-21,-65.00,CVS,Pharmacy Items,health,expense
-2025-05-21,-45.00,Starbucks,Coffee & Snacks,food,expense
-2025-05-22,-1350.00,Chase,Monthly Rent,rent,expense
-2025-05-22,-85.00,Whole Foods,Groceries,food,expense
-2025-05-22,-55.00,Chipotle,Lunch,food,expense
-2025-05-23,-88.00,Power Utility Co.,Electric Bill,utilities,expense
-2025-05-23,-120.00,Shell,Gasoline,transportation,expense
-2025-05-23,-45.00,Panera Bread,Lunch,food,expense
-2025-05-24,-32.00,City Water,Water Bill,utilities,expense
-2025-05-24,-95.00,Trader Joe's,Groceries,food,expense
-2025-05-24,-45.00,Starbucks,Coffee & Breakfast,food,expense
-2025-05-25,-50.00,Investment Fund,Dividend Reversal,income,chargeback
+2025-05-15,-25.00,Spotify,Subscription Renewal,entertainment,sale
+2025-05-15,-85.00,Amazon,Office Supplies,shopping,sale
+2025-05-16,-1350.00,Chase,Monthly Rent,rent,sale
+2025-05-16,-95.00,Shell,Gasoline,transportation,sale
+2025-05-16,-45.00,Starbucks,Coffee & Breakfast,food,sale
+2025-05-17,-50.00,Starbucks,Coffee & Snacks,food,sale
+2025-05-17,-65.00,CVS,Pharmacy Items,health,sale
+2025-05-17,-35.00,Panera Bread,Lunch,food,sale
+2025-05-18,120.00,Freelance Client A,Refund for Project Cancellation,income,refund
+2025-05-18,310.00,Consulting Client D,Project Planning,income,other
+2025-05-18,-70.00,Whole Foods,Grocery Run,food,sale
+2025-05-18,-45.00,Target,Household Items,shopping,sale
+2025-05-19,-110.00,GymCo,Monthly Membership,health,sale
+2025-05-19,-120.00,Shell,Gasoline,transportation,sale
+2025-05-19,-55.00,Chipotle,Lunch,food,sale
+2025-05-20,950.00,Freelance Client A,Web Development Project,income,other
+2025-05-20,260.00,Investment Fund,Dividend Payment,income,other
+2025-05-20,-85.00,Trader Joe's,Groceries,food,sale
+2025-05-21,-95.00,Shell,Gasoline,transportation,sale
+2025-05-21,-65.00,CVS,Pharmacy Items,health,sale
+2025-05-21,-45.00,Starbucks,Coffee & Snacks,food,sale
+2025-05-22,-1350.00,Chase,Monthly Rent,rent,sale
+2025-05-22,-85.00,Whole Foods,Groceries,food,sale
+2025-05-22,-55.00,Chipotle,Lunch,food,sale
+2025-05-23,-88.00,Power Utility Co.,Electric Bill,utilities,sale
+2025-05-23,-120.00,Shell,Gasoline,transportation,sale
+2025-05-23,-45.00,Panera Bread,Lunch,food,sale
+2025-05-24,-32.00,City Water,Water Bill,utilities,sale
+2025-05-24,-95.00,Trader Joe's,Groceries,food,sale
+2025-05-24,-45.00,Starbucks,Coffee & Breakfast,food,sale
+2025-05-25,-50.00,Investment Fund,Dividend Reversal,income,adjustment
 2025-05-25,340.00,Digital Product Sales,Theme License,income,other
-2025-05-25,-65.00,Whole Foods,Groceries,food,expense
-2025-05-26,-60.00,Publix,Groceries,food,expense
-2025-05-26,-120.00,Shell,Gasoline,transportation,expense
-2025-05-26,-55.00,Chipotle,Lunch,food,expense
-2025-05-27,-150.00,Apple,App Store Purchases,shopping,expense
-2025-05-27,-85.00,Amazon,Home Decor,shopping,expense
-2025-05-27,-45.00,Starbucks,Coffee & Snacks,food,expense
+2025-05-25,-65.00,Whole Foods,Groceries,food,sale
+2025-05-26,-60.00,Publix,Groceries,food,sale
+2025-05-26,-120.00,Shell,Gasoline,transportation,sale
+2025-05-26,-55.00,Chipotle,Lunch,food,sale
+2025-05-27,-150.00,Apple,App Store Purchases,shopping,sale
+2025-05-27,-85.00,Amazon,Home Decor,shopping,sale
+2025-05-27,-45.00,Starbucks,Coffee & Snacks,food,sale
 2025-05-28,170.00,Online Platform,Content Creation Revenue,income,other
-2025-05-28,285.00,Consulting Client E,Code Review,income,freelance
-2025-05-28,-95.00,Shell,Gasoline,transportation,expense
-2025-05-28,-65.00,CVS,Pharmacy Items,health,expense
-2025-05-29,-100.00,City Water,Water Bill,utilities,expense
-2025-05-29,-85.00,Whole Foods,Groceries,food,expense
-2025-05-29,-45.00,Starbucks,Coffee & Snacks,food,expense
-2025-05-30,-200.00,Travel Agency,Flight Booking,travel,expense
-2025-05-30,-95.00,Uber,Airport Ride,transportation,expense
-2025-05-30,-120.00,Shell,Gasoline,transportation,expense
-2025-05-31,-85.00,Trader Joe's,Groceries,food,expense
-2025-05-31,-65.00,CVS,Pharmacy Items,health,expense
-2025-05-31,-45.00,Chipotle,Lunch,food,expense
+2025-05-28,285.00,Consulting Client E,Code Review,income,other
+2025-05-28,-95.00,Shell,Gasoline,transportation,sale
+2025-05-28,-65.00,CVS,Pharmacy Items,health,sale
+2025-05-29,-100.00,City Water,Water Bill,utilities,sale
+2025-05-29,-85.00,Whole Foods,Groceries,food,sale
+2025-05-29,-45.00,Starbucks,Coffee & Snacks,food,sale
+2025-05-30,-200.00,Travel Agency,Flight Booking,travel,sale
+2025-05-30,-95.00,Uber,Airport Ride,transportation,sale
+2025-05-30,-120.00,Shell,Gasoline,transportation,sale
+2025-05-31,-85.00,Trader Joe's,Groceries,food,sale
+2025-05-31,-65.00,CVS,Pharmacy Items,health,sale
+2025-05-31,-45.00,Chipotle,Lunch,food,sale
 
-2025-06-01,1200.00,Freelance Client A,Web Development Project,income,freelance
+2025-06-01,1200.00,Freelance Client A,Web Development Project,income,other
 2025-06-01,350.00,Online Course Platform,Course Sales Revenue,income,other
-2025-06-01,-35.00,Starbucks,Coffee & Breakfast,food,expense
-2025-06-02,-45.00,Spotify,Monthly Subscription,entertainment,expense
-2025-06-02,-120.00,Shell,Gasoline,transportation,expense
-2025-06-02,-65.00,Whole Foods,Groceries,food,expense
+2025-06-01,-35.00,Starbucks,Coffee & Breakfast,food,sale
+2025-06-02,-45.00,Spotify,Monthly Subscription,entertainment,sale
+2025-06-02,-120.00,Shell,Gasoline,transportation,sale
+2025-06-02,-65.00,Whole Foods,Groceries,food,sale
 2025-06-03,180.00,Online Platform,Content Creation Revenue,income,other
-2025-06-03,275.00,Consulting Client C,Technical Consulting,income,freelance
-2025-06-03,-42.00,CVS,Pharmacy Items,health,expense
-2025-06-03,-28.00,Panera Bread,Lunch,food,expense
-2025-06-04,-120.00,Publix,Groceries,food,expense
-2025-06-04,-55.00,Target,Household Items,shopping,expense
-2025-06-04,-18.00,Netflix,Streaming Service,entertainment,expense
-2025-06-05,250.00,Investment Fund,Dividend Payment,income,investment
+2025-06-03,275.00,Consulting Client C,Technical Consulting,income,other
+2025-06-03,-42.00,CVS,Pharmacy Items,health,sale
+2025-06-03,-28.00,Panera Bread,Lunch,food,sale
+2025-06-04,-120.00,Publix,Groceries,food,sale
+2025-06-04,-55.00,Target,Household Items,shopping,sale
+2025-06-04,-18.00,Netflix,Streaming Service,entertainment,sale
+2025-06-05,250.00,Investment Fund,Dividend Payment,income,other
 2025-06-05,420.00,Digital Product Sales,Template Sales,income,other
-2025-06-05,-45.00,CVS,Pharmacy Items,health,expense
-2025-06-05,-75.00,Best Buy,Electronics Accessories,shopping,expense
-2025-06-06,-60.00,Shell,Gasoline,transportation,expense
-2025-06-06,-95.00,Trader Joe's,Groceries,food,expense
-2025-06-06,-35.00,Starbucks,Coffee & Snacks,food,expense
-2025-06-07,-18.00,Netflix,Streaming Service,entertainment,expense
-2025-06-07,-110.00,Wawa,Gas,transportation,expense
-2025-06-07,-45.00,Chipotle,Lunch,food,expense
-2025-06-08,-75.00,AT&T,Mobile Bill,utilities,expense
-2025-06-08,-65.00,Whole Foods,Groceries,food,expense
-2025-06-08,-28.00,Spotify,Music Subscription,entertainment,expense
-2025-06-09,-140.00,Target,Household Items,shopping,expense
-2025-06-09,-85.00,Amazon,Home Decor,shopping,expense
-2025-06-09,-45.00,Starbucks,Coffee & Breakfast,food,expense
-2025-06-10,850.00,Freelance Client B,Consulting Services,income,freelance
-2025-06-10,290.00,Investment Fund,Interest Payment,income,investment
-2025-06-10,-95.00,Shell,Gasoline,transportation,expense
-2025-06-10,-65.00,Whole Foods,Groceries,food,expense
-2025-06-11,-200.00,Best Buy,Electronics Purchase,shopping,expense
-2025-06-11,-60.00,Apple Music,Streaming Subscription,entertainment,expense
-2025-06-11,-45.00,Chipotle,Lunch,food,expense
+2025-06-05,-45.00,CVS,Pharmacy Items,health,sale
+2025-06-05,-75.00,Best Buy,Electronics Accessories,shopping,sale
+2025-06-06,-60.00,Shell,Gasoline,transportation,sale
+2025-06-06,-95.00,Trader Joe's,Groceries,food,sale
+2025-06-06,-35.00,Starbucks,Coffee & Snacks,food,sale
+2025-06-07,-18.00,Netflix,Streaming Service,entertainment,sale
+2025-06-07,-110.00,Wawa,Gas,transportation,sale
+2025-06-07,-45.00,Chipotle,Lunch,food,sale
+2025-06-08,-75.00,AT&T,Mobile Bill,utilities,sale
+2025-06-08,-65.00,Whole Foods,Groceries,food,sale
+2025-06-08,-28.00,Spotify,Music Subscription,entertainment,sale
+2025-06-09,-140.00,Target,Household Items,shopping,sale
+2025-06-09,-85.00,Amazon,Home Decor,shopping,sale
+2025-06-09,-45.00,Starbucks,Coffee & Breakfast,food,sale
+2025-06-10,850.00,Freelance Client B,Consulting Services,income,other
+2025-06-10,290.00,Investment Fund,Interest Payment,income,other
+2025-06-10,-95.00,Shell,Gasoline,transportation,sale
+2025-06-10,-65.00,Whole Foods,Groceries,food,sale
+2025-06-11,-200.00,Best Buy,Electronics Purchase,shopping,sale
+2025-06-11,-60.00,Apple Music,Streaming Subscription,entertainment,sale
+2025-06-11,-45.00,Chipotle,Lunch,food,sale
 2025-06-12,150.00,Online Platform,Content Creation Revenue,income,other
 2025-06-12,450.00,Digital Product Sales,Plugin License,income,other
-2025-06-12,-85.00,Trader Joe's,Groceries,food,expense
-2025-06-12,-35.00,Starbucks,Coffee & Snacks,food,expense
-2025-06-13,-55.00,Coffee House,Coffee & Snacks,food,expense
-2025-06-13,-120.00,Shell,Gasoline,transportation,expense
-2025-06-13,-45.00,CVS,Pharmacy Items,health,expense
-2025-06-14,-95.00,Uber,Transportation,transportation,expense
-2025-06-14,-75.00,Chipotle,Lunch,food,expense
-2025-06-14,-65.00,Whole Foods,Groceries,food,expense
-2025-06-15,450.00,Employer Inc,Monthly Salary - June 2025,income,salary
+2025-06-12,-85.00,Trader Joe's,Groceries,food,sale
+2025-06-12,-35.00,Starbucks,Coffee & Snacks,food,sale
+2025-06-13,-55.00,Coffee House,Coffee & Snacks,food,sale
+2025-06-13,-120.00,Shell,Gasoline,transportation,sale
+2025-06-13,-45.00,CVS,Pharmacy Items,health,sale
+2025-06-14,-95.00,Uber,Transportation,transportation,sale
+2025-06-14,-75.00,Chipotle,Lunch,food,sale
+2025-06-14,-65.00,Whole Foods,Groceries,food,sale
+2025-06-15,450.00,Employer Inc,Monthly Salary - June 2025,income,other
 2025-06-15,180.00,Online Course Platform,Course Sales Revenue,income,other
-2025-06-15,-25.00,Spotify,Subscription Renewal,entertainment,expense
-2025-06-15,-85.00,Amazon,Office Supplies,shopping,expense
-2025-06-16,-1350.00,Chase,Monthly Rent,rent,expense
-2025-06-16,-95.00,Shell,Gasoline,transportation,expense
-2025-06-16,-45.00,Starbucks,Coffee & Breakfast,food,expense
-2025-06-17,-90.00,Walmart,Groceries & Essentials,food,expense
-2025-06-17,-65.00,CVS,Pharmacy Items,health,expense
-2025-06-17,-35.00,Panera Bread,Lunch,food,expense
-2025-06-18,-80.00,Online Platform,Refund for Overpayment,income,refund
-2025-06-18,320.00,Consulting Client E,Project Planning,income,freelance
-2025-06-18,-70.00,Whole Foods,Grocery Run,food,expense
-2025-06-18,-45.00,Target,Household Items,shopping,expense
-2025-06-19,-65.00,GymCo,Monthly Membership,health,expense
-2025-06-19,-120.00,Shell,Gasoline,transportation,expense
-2025-06-19,-55.00,Chipotle,Lunch,food,expense
-2025-06-20,950.00,Freelance Client A,Web Development Project,income,freelance
-2025-06-20,280.00,Investment Fund,Dividend Payment,income,investment
-2025-06-20,-100.00,GymCo,Personal Training,health,expense
-2025-06-21,-25.00,Amazon,Office Supplies,shopping,expense
-2025-06-21,-95.00,Shell,Gasoline,transportation,expense
-2025-06-21,-45.00,Starbucks,Coffee & Snacks,food,expense
-2025-06-22,-42.00,Chick-fil-A,Lunch,food,expense
-2025-06-22,-65.00,CVS,Pharmacy Items,health,expense
-2025-06-22,-85.00,Whole Foods,Groceries,food,expense
-2025-06-23,-88.00,Power Utility Co.,Electric Bill,utilities,expense
-2025-06-23,-120.00,Shell,Gasoline,transportation,expense
-2025-06-23,-55.00,Chipotle,Lunch,food,expense
-2025-06-24,-32.00,City Water,Water Bill,utilities,expense
-2025-06-24,-95.00,Trader Joe's,Groceries,food,expense
-2025-06-24,-45.00,Starbucks,Coffee & Breakfast,food,expense
-2025-06-25,-60.00,Freelance Client B,Chargeback for Dispute,income,chargeback
+2025-06-15,-25.00,Spotify,Subscription Renewal,entertainment,sale
+2025-06-15,-85.00,Amazon,Office Supplies,shopping,sale
+2025-06-16,-1350.00,Chase,Monthly Rent,rent,sale
+2025-06-16,-95.00,Shell,Gasoline,transportation,sale
+2025-06-16,-45.00,Starbucks,Coffee & Breakfast,food,sale
+2025-06-17,-90.00,Walmart,Groceries & Essentials,food,sale
+2025-06-17,-65.00,CVS,Pharmacy Items,health,sale
+2025-06-17,-35.00,Panera Bread,Lunch,food,sale
+2025-06-18,80.00,Online Platform,Refund for Overpayment,income,refund
+2025-06-18,320.00,Consulting Client E,Project Planning,income,other
+2025-06-18,-70.00,Whole Foods,Grocery Run,food,sale
+2025-06-18,-45.00,Target,Household Items,shopping,sale
+2025-06-19,-65.00,GymCo,Monthly Membership,health,sale
+2025-06-19,-120.00,Shell,Gasoline,transportation,sale
+2025-06-19,-55.00,Chipotle,Lunch,food,sale
+2025-06-20,950.00,Freelance Client A,Web Development Project,income,other
+2025-06-20,280.00,Investment Fund,Dividend Payment,income,other
+2025-06-20,-100.00,GymCo,Personal Training,health,sale
+2025-06-21,-25.00,Amazon,Office Supplies,shopping,sale
+2025-06-21,-95.00,Shell,Gasoline,transportation,sale
+2025-06-21,-45.00,Starbucks,Coffee & Snacks,food,sale
+2025-06-22,-42.00,Chick-fil-A,Lunch,food,sale
+2025-06-22,-65.00,CVS,Pharmacy Items,health,sale
+2025-06-22,-85.00,Whole Foods,Groceries,food,sale
+2025-06-23,-88.00,Power Utility Co.,Electric Bill,utilities,sale
+2025-06-23,-120.00,Shell,Gasoline,transportation,sale
+2025-06-23,-55.00,Chipotle,Lunch,food,sale
+2025-06-24,-32.00,City Water,Water Bill,utilities,sale
+2025-06-24,-95.00,Trader Joe's,Groceries,food,sale
+2025-06-24,-45.00,Starbucks,Coffee & Breakfast,food,sale
+2025-06-25,-60.00,Freelance Client B,Chargeback for Dispute,income,adjustment
 2025-06-25,360.00,Digital Product Sales,Theme License,income,other
-2025-06-25,-65.00,Whole Foods,Groceries,food,expense
-2025-06-26,-150.00,Apple,App Store Purchases,shopping,expense
-2025-06-26,-120.00,Shell,Gasoline,transportation,expense
-2025-06-26,-55.00,Chipotle,Lunch,food,expense
-2025-06-27,-100.00,Local Market,Farmer's Market,food,expense
-2025-06-27,-45.00,Lowe's,Hardware,shopping,expense
-2025-06-27,-85.00,Trader Joe's,Groceries,food,expense
+2025-06-25,-65.00,Whole Foods,Groceries,food,sale
+2025-06-26,-150.00,Apple,App Store Purchases,shopping,sale
+2025-06-26,-120.00,Shell,Gasoline,transportation,sale
+2025-06-26,-55.00,Chipotle,Lunch,food,sale
+2025-06-27,-100.00,Local Market,Farmer's Market,food,sale
+2025-06-27,-45.00,Lowe's,Hardware,shopping,sale
+2025-06-27,-85.00,Trader Joe's,Groceries,food,sale
 2025-06-28,170.00,Online Platform,Content Creation Revenue,income,other
-2025-06-28,295.00,Consulting Client G,Code Review,income,freelance
-2025-06-28,-95.00,Shell,Gasoline,transportation,expense
-2025-06-28,-65.00,CVS,Pharmacy Items,health,expense
-2025-06-29,-30.00,Gas Station,Gas,transportation,expense
-2025-06-29,-85.00,Whole Foods,Groceries,food,expense
-2025-06-29,-45.00,Starbucks,Coffee & Snacks,food,expense
-2025-06-30,-200.00,Travel Agency,Flight Booking,travel,expense
-2025-06-30,-95.00,Uber,Airport Ride,transportation,expense
-2025-06-30,-120.00,Shell,Gasoline,transportation,expense
+2025-06-28,295.00,Consulting Client G,Code Review,income,other
+2025-06-28,-95.00,Shell,Gasoline,transportation,sale
+2025-06-28,-65.00,CVS,Pharmacy Items,health,sale
+2025-06-29,-30.00,Gas Station,Gas,transportation,sale
+2025-06-29,-85.00,Whole Foods,Groceries,food,sale
+2025-06-29,-45.00,Starbucks,Coffee & Snacks,food,sale
+2025-06-30,-200.00,Travel Agency,Flight Booking,travel,sale
+2025-06-30,-95.00,Uber,Airport Ride,transportation,sale
+2025-06-30,-120.00,Shell,Gasoline,transportation,sale
 
-2025-07-01,1250.00,Freelance Client A,Web Development Project,income,freelance
+2025-07-01,1250.00,Freelance Client A,Web Development Project,income,other
 2025-07-01,380.00,Online Course Platform,Course Sales Revenue,income,other
-2025-07-01,-35.00,Starbucks,Coffee & Breakfast,food,expense
-2025-07-02,-45.00,Spotify,Monthly Subscription,entertainment,expense
-2025-07-02,-120.00,Shell,Gasoline,transportation,expense
-2025-07-02,-65.00,Whole Foods,Groceries,food,expense
+2025-07-01,-35.00,Starbucks,Coffee & Breakfast,food,sale
+2025-07-02,-45.00,Spotify,Monthly Subscription,entertainment,sale
+2025-07-02,-120.00,Shell,Gasoline,transportation,sale
+2025-07-02,-65.00,Whole Foods,Groceries,food,sale
 2025-07-03,190.00,Online Platform,Content Creation Revenue,income,other
-2025-07-03,300.00,Consulting Client F,Technical Consulting,income,freelance
-2025-07-03,-42.00,CVS,Pharmacy Items,health,expense
-2025-07-03,-28.00,Panera Bread,Lunch,food,expense
-2025-07-04,-120.00,Publix,Groceries,food,expense
-2025-07-04,-55.00,Target,Household Items,shopping,expense
-2025-07-04,-18.00,Netflix,Streaming Service,entertainment,expense
-2025-07-05,260.00,Investment Fund,Dividend Payment,income,investment
+2025-07-03,300.00,Consulting Client F,Technical Consulting,income,other
+2025-07-03,-42.00,CVS,Pharmacy Items,health,sale
+2025-07-03,-28.00,Panera Bread,Lunch,food,sale
+2025-07-04,-120.00,Publix,Groceries,food,sale
+2025-07-04,-55.00,Target,Household Items,shopping,sale
+2025-07-04,-18.00,Netflix,Streaming Service,entertainment,sale
+2025-07-05,260.00,Investment Fund,Dividend Payment,income,other
 2025-07-05,450.00,Digital Product Sales,Template Sales,income,other
-2025-07-05,-45.00,CVS,Pharmacy Items,health,expense
-2025-07-05,-75.00,Best Buy,Electronics Accessories,shopping,expense
-2025-07-06,-60.00,Shell,Gasoline,transportation,expense
-2025-07-06,-95.00,Trader Joe's,Groceries,food,expense
-2025-07-06,-35.00,Starbucks,Coffee & Snacks,food,expense
-2025-07-07,-18.00,Netflix,Streaming Service,entertainment,expense
-2025-07-07,-110.00,Wawa,Gas,transportation,expense
-2025-07-07,-45.00,Chipotle,Lunch,food,expense
-2025-07-08,-75.00,AT&T,Mobile Bill,utilities,expense
-2025-07-08,-65.00,Whole Foods,Groceries,food,expense
-2025-07-08,-28.00,Spotify,Music Subscription,entertainment,expense
-2025-07-09,-140.00,Target,Household Items,shopping,expense
-2025-07-09,-85.00,Amazon,Home Decor,shopping,expense
-2025-07-09,-45.00,Starbucks,Coffee & Breakfast,food,expense
-2025-07-10,900.00,Freelance Client B,Consulting Services,income,freelance
-2025-07-10,300.00,Investment Fund,Interest Payment,income,investment
-2025-07-10,-95.00,Shell,Gasoline,transportation,expense
-2025-07-10,-65.00,Whole Foods,Groceries,food,expense
-2025-07-11,-200.00,Best Buy,Electronics Purchase,shopping,expense
-2025-07-11,-60.00,Apple Music,Streaming Subscription,entertainment,expense
-2025-07-11,-45.00,Chipotle,Lunch,food,expense
+2025-07-05,-45.00,CVS,Pharmacy Items,health,sale
+2025-07-05,-75.00,Best Buy,Electronics Accessories,shopping,sale
+2025-07-06,-60.00,Shell,Gasoline,transportation,sale
+2025-07-06,-95.00,Trader Joe's,Groceries,food,sale
+2025-07-06,-35.00,Starbucks,Coffee & Snacks,food,sale
+2025-07-07,-18.00,Netflix,Streaming Service,entertainment,sale
+2025-07-07,-110.00,Wawa,Gas,transportation,sale
+2025-07-07,-45.00,Chipotle,Lunch,food,sale
+2025-07-08,-75.00,AT&T,Mobile Bill,utilities,sale
+2025-07-08,-65.00,Whole Foods,Groceries,food,sale
+2025-07-08,-28.00,Spotify,Music Subscription,entertainment,sale
+2025-07-09,-140.00,Target,Household Items,shopping,sale
+2025-07-09,-85.00,Amazon,Home Decor,shopping,sale
+2025-07-09,-45.00,Starbucks,Coffee & Breakfast,food,sale
+2025-07-10,900.00,Freelance Client B,Consulting Services,income,other
+2025-07-10,300.00,Investment Fund,Interest Payment,income,other
+2025-07-10,-95.00,Shell,Gasoline,transportation,sale
+2025-07-10,-65.00,Whole Foods,Groceries,food,sale
+2025-07-11,-200.00,Best Buy,Electronics Purchase,shopping,sale
+2025-07-11,-60.00,Apple Music,Streaming Subscription,entertainment,sale
+2025-07-11,-45.00,Chipotle,Lunch,food,sale
 2025-07-12,160.00,Online Platform,Content Creation Revenue,income,other
 2025-07-12,480.00,Digital Product Sales,Plugin License,income,other
-2025-07-12,-85.00,Trader Joe's,Groceries,food,expense
-2025-07-12,-35.00,Starbucks,Coffee & Snacks,food,expense
-2025-07-13,-55.00,Coffee House,Coffee & Snacks,food,expense
-2025-07-13,-120.00,Shell,Gasoline,transportation,expense
-2025-07-13,-45.00,CVS,Pharmacy Items,health,expense
-2025-07-14,-95.00,Uber,Transportation,transportation,expense
-2025-07-14,-75.00,Chipotle,Lunch,food,expense
-2025-07-14,-65.00,Whole Foods,Groceries,food,expense
-2025-07-15,4500.00,Employer Inc,Monthly Salary - July 2025,income,salary
+2025-07-12,-85.00,Trader Joe's,Groceries,food,sale
+2025-07-12,-35.00,Starbucks,Coffee & Snacks,food,sale
+2025-07-13,-55.00,Coffee House,Coffee & Snacks,food,sale
+2025-07-13,-120.00,Shell,Gasoline,transportation,sale
+2025-07-13,-45.00,CVS,Pharmacy Items,health,sale
+2025-07-14,-95.00,Uber,Transportation,transportation,sale
+2025-07-14,-75.00,Chipotle,Lunch,food,sale
+2025-07-14,-65.00,Whole Foods,Groceries,food,sale
+2025-07-15,4500.00,Employer Inc,Monthly Salary - July 2025,income,other
 2025-07-15,190.00,Online Course Platform,Course Sales Revenue,income,other
-2025-07-15,-25.00,Spotify,Subscription Renewal,entertainment,expense
-2025-07-15,-85.00,Amazon,Office Supplies,shopping,expense
-2025-07-16,-1350.00,Chase,Monthly Rent,rent,expense
-2025-07-16,-95.00,Shell,Gasoline,transportation,expense
-2025-07-16,-45.00,Starbucks,Coffee & Breakfast,food,expense
-2025-07-17,-90.00,Walmart,Groceries & Essentials,food,expense
-2025-07-17,-65.00,CVS,Pharmacy Items,health,expense
-2025-07-17,-35.00,Panera Bread,Lunch,food,expense
-2025-07-18,-90.00,Online Platform,Refund for Overpayment,income,refund
-2025-07-18,330.00,Consulting Client G,Project Planning,income,freelance
-2025-07-18,-70.00,Whole Foods,Grocery Run,food,expense
-2025-07-18,-45.00,Target,Household Items,shopping,expense
-2025-07-19,-65.00,GymCo,Monthly Membership,health,expense
-2025-07-19,-120.00,Shell,Gasoline,transportation,expense
-2025-07-19,-55.00,Chipotle,Lunch,food,expense
-2025-07-20,1000.00,Freelance Client A,Web Development Project,income,freelance
-2025-07-20,290.00,Investment Fund,Dividend Payment,income,investment
-2025-07-20,-100.00,GymCo,Personal Training,health,expense
-2025-07-21,-25.00,Amazon,Office Supplies,shopping,expense
-2025-07-21,-95.00,Shell,Gasoline,transportation,expense
-2025-07-21,-45.00,Starbucks,Coffee & Snacks,food,expense
-2025-07-22,-42.00,Chick-fil-A,Lunch,food,expense
-2025-07-22,-65.00,CVS,Pharmacy Items,health,expense
-2025-07-22,-85.00,Whole Foods,Groceries,food,expense
-2025-07-23,-88.00,Power Utility Co.,Electric Bill,utilities,expense
-2025-07-23,-120.00,Shell,Gasoline,transportation,expense
-2025-07-23,-55.00,Chipotle,Lunch,food,expense
-2025-07-24,-32.00,City Water,Water Bill,utilities,expense
-2025-07-24,-95.00,Trader Joe's,Groceries,food,expense
-2025-07-24,-45.00,Starbucks,Coffee & Breakfast,food,expense
-2025-07-25,-70.00,Freelance Client B,Chargeback for Dispute,income,chargeback
+2025-07-15,-25.00,Spotify,Subscription Renewal,entertainment,sale
+2025-07-15,-85.00,Amazon,Office Supplies,shopping,sale
+2025-07-16,-1350.00,Chase,Monthly Rent,rent,sale
+2025-07-16,-95.00,Shell,Gasoline,transportation,sale
+2025-07-16,-45.00,Starbucks,Coffee & Breakfast,food,sale
+2025-07-17,-90.00,Walmart,Groceries & Essentials,food,sale
+2025-07-17,-65.00,CVS,Pharmacy Items,health,sale
+2025-07-17,-35.00,Panera Bread,Lunch,food,sale
+2025-07-18,90.00,Online Platform,Refund for Overpayment,income,refund
+2025-07-18,330.00,Consulting Client G,Project Planning,income,other
+2025-07-18,-70.00,Whole Foods,Grocery Run,food,sale
+2025-07-18,-45.00,Target,Household Items,shopping,sale
+2025-07-19,-65.00,GymCo,Monthly Membership,health,sale
+2025-07-19,-120.00,Shell,Gasoline,transportation,sale
+2025-07-19,-55.00,Chipotle,Lunch,food,sale
+2025-07-20,1000.00,Freelance Client A,Web Development Project,income,other
+2025-07-20,290.00,Investment Fund,Dividend Payment,income,other
+2025-07-20,-100.00,GymCo,Personal Training,health,sale
+2025-07-21,-25.00,Amazon,Office Supplies,shopping,sale
+2025-07-21,-95.00,Shell,Gasoline,transportation,sale
+2025-07-21,-45.00,Starbucks,Coffee & Snacks,food,sale
+2025-07-22,-42.00,Chick-fil-A,Lunch,food,sale
+2025-07-22,-65.00,CVS,Pharmacy Items,health,sale
+2025-07-22,-85.00,Whole Foods,Groceries,food,sale
+2025-07-23,-88.00,Power Utility Co.,Electric Bill,utilities,sale
+2025-07-23,-120.00,Shell,Gasoline,transportation,sale
+2025-07-23,-55.00,Chipotle,Lunch,food,sale
+2025-07-24,-32.00,City Water,Water Bill,utilities,sale
+2025-07-24,-95.00,Trader Joe's,Groceries,food,sale
+2025-07-24,-45.00,Starbucks,Coffee & Breakfast,food,sale
+2025-07-25,-70.00,Freelance Client B,Chargeback for Dispute,income,adjustment
 2025-07-25,370.00,Digital Product Sales,Theme License,income,other
-2025-07-25,-65.00,Whole Foods,Groceries,food,expense
-2025-07-26,-150.00,Apple,App Store Purchases,shopping,expense
-2025-07-26,-120.00,Shell,Gasoline,transportation,expense
-2025-07-26,-55.00,Chipotle,Lunch,food,expense
-2025-07-27,-100.00,Local Market,Farmer's Market,food,expense
-2025-07-27,-45.00,Lowe's,Hardware,shopping,expense
-2025-07-27,-85.00,Trader Joe's,Groceries,food,expense
+2025-07-25,-65.00,Whole Foods,Groceries,food,sale
+2025-07-26,-150.00,Apple,App Store Purchases,shopping,sale
+2025-07-26,-120.00,Shell,Gasoline,transportation,sale
+2025-07-26,-55.00,Chipotle,Lunch,food,sale
+2025-07-27,-100.00,Local Market,Farmer's Market,food,sale
+2025-07-27,-45.00,Lowe's,Hardware,shopping,sale
+2025-07-27,-85.00,Trader Joe's,Groceries,food,sale
 2025-07-28,180.00,Online Platform,Content Creation Revenue,income,other
-2025-07-28,305.00,Consulting Client H,Code Review,income,freelance
-2025-07-28,-95.00,Shell,Gasoline,transportation,expense
-2025-07-28,-65.00,CVS,Pharmacy Items,health,expense
-2025-07-29,-30.00,Gas Station,Gas,transportation,expense
-2025-07-29,-85.00,Whole Foods,Groceries,food,expense
-2025-07-29,-45.00,Starbucks,Coffee & Snacks,food,expense
-2025-07-30,-250.00,Travel Agency,Flight Booking,travel,expense
-2025-07-30,-95.00,Uber,Airport Ride,transportation,expense
-2025-07-30,-120.00,Shell,Gasoline,transportation,expense
-2025-07-31,-85.00,Trader Joe's,Groceries,food,expense
-2025-07-31,-65.00,CVS,Pharmacy Items,health,expense
-2025-07-31,-45.00,Chipotle,Lunch,food,expense
+2025-07-28,305.00,Consulting Client H,Code Review,income,other
+2025-07-28,-95.00,Shell,Gasoline,transportation,sale
+2025-07-28,-65.00,CVS,Pharmacy Items,health,sale
+2025-07-29,-30.00,Gas Station,Gas,transportation,sale
+2025-07-29,-85.00,Whole Foods,Groceries,food,sale
+2025-07-29,-45.00,Starbucks,Coffee & Snacks,food,sale
+2025-07-30,-250.00,Travel Agency,Flight Booking,travel,sale
+2025-07-30,-95.00,Uber,Airport Ride,transportation,sale
+2025-07-30,-120.00,Shell,Gasoline,transportation,sale
+2025-07-31,-85.00,Trader Joe's,Groceries,food,sale
+2025-07-31,-65.00,CVS,Pharmacy Items,health,sale
+2025-07-31,-45.00,Chipotle,Lunch,food,sale
+
+2025-08-01,1300.00,Freelance Client A,Web Development Project,income,other
+2025-08-01,400.00,Online Course Platform,Course Sales Revenue,income,other
+2025-08-01,-35.00,Starbucks,Coffee & Breakfast,food,sale
+2025-08-01,-45.00,Spotify,Monthly Subscription,entertainment,sale
+2025-08-01,-120.00,Shell,Gasoline,transportation,sale
+2025-08-01,-65.00,Whole Foods,Groceries,food,sale
+2025-08-02,200.00,Online Platform,Content Creation Revenue,income,other
+2025-08-02,320.00,Consulting Client I,Technical Consulting,income,other
+2025-08-02,-42.00,CVS,Pharmacy Items,health,sale
+2025-08-02,-28.00,Panera Bread,Lunch,food,sale
+2025-08-02,-120.00,Publix,Groceries,food,sale
+2025-08-02,-55.00,Target,Household Items,shopping,sale
+2025-08-02,-18.00,Netflix,Streaming Service,entertainment,sale
+2025-08-03,270.00,Investment Fund,Dividend Payment,income,other
+2025-08-03,480.00,Digital Product Sales,Template Sales,income,other
+2025-08-03,-45.00,CVS,Pharmacy Items,health,sale
+2025-08-03,-75.00,Best Buy,Electronics Accessories,shopping,sale
+2025-08-03,-60.00,Shell,Gasoline,transportation,sale
+2025-08-03,-95.00,Trader Joe's,Groceries,food,sale
+2025-08-03,-35.00,Starbucks,Coffee & Snacks,food,sale
+2025-08-04,4500.00,Employer Inc,Monthly Salary - August 2025,income,other
+2025-08-04,200.00,Online Course Platform,Course Sales Revenue,income,other
+2025-08-04,-25.00,Spotify,Subscription Renewal,entertainment,sale
+2025-08-04,-85.00,Amazon,Office Supplies,shopping,sale
+2025-08-04,-1350.00,Chase,Monthly Rent,rent,sale
+2025-08-04,-95.00,Shell,Gasoline,transportation,sale
+2025-08-04,-45.00,Starbucks,Coffee & Breakfast,food,sale
+2025-08-04,-90.00,Walmart,Groceries & Essentials,food,sale
+2025-08-04,-65.00,CVS,Pharmacy Items,health,sale
+2025-08-04,-35.00,Panera Bread,Lunch,food,sale
 

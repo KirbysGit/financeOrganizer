@@ -6,6 +6,22 @@ console.log("HEY!!!!");
 const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 console.log('API Base URL:', baseURL);
 
+// Add a refresh lock to prevent multiple simultaneous refresh attempts
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  
+  failedQueue = [];
+};
+
 const API = axios.create({ 
   baseURL: baseURL,
   withCredentials: true  // Important: This allows cookies to be sent with requests
@@ -15,15 +31,55 @@ const API = axios.create({
 API.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
-      // Try to refresh the token
+    // Only handle 401 errors for protected routes, not auth endpoints
+    if (error.response?.status === 401 && !error.config._retry && !error.config.url?.includes('/auth/refresh')) {
+      error.config._retry = true; // Mark this request as retried
+      
+      // Don't redirect for auth endpoints (login/signup) - let them handle their own errors
+      if (error.config.url?.includes('/auth/login') || error.config.url?.includes('/auth/register')) {
+        return Promise.reject(error);
+      }
+      
+      if (isRefreshing) {
+        // If already refreshing, queue this request
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then(() => {
+          return API.request(error.config);
+        }).catch(err => {
+          return Promise.reject(err);
+        });
+      }
+
+      isRefreshing = true;
+      
       try {
+        // Try to refresh the token
         await API.post('/auth/refresh');
+        processQueue(null, null);
         // Retry the original request
         return API.request(error.config);
       } catch (refreshError) {
-        // Refresh failed, redirect to login
+        // Refresh failed, clear any stored tokens and redirect to login
+        console.log('Session expired, redirecting to login');
+        processQueue(refreshError, null);
+        // Clear any stored tokens/cookies if needed
+        document.cookie = 'access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+        document.cookie = 'refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+        
+        // Clear localStorage to ensure proper logout
+        localStorage.removeItem('user');
+        localStorage.removeItem('hasConnectedData');
+        localStorage.removeItem('hasEverHadData');
+        localStorage.removeItem('hasTransactions');
+        localStorage.removeItem('hasFiles');
+        localStorage.removeItem('hasAccounts');
+        
+        // Redirect to welcome screen
         window.location.href = '/';
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
       }
     }
     return Promise.reject(error);

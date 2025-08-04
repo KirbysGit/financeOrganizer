@@ -242,7 +242,7 @@ async def upload_csv(
         message = f"File uploaded successfully at {upload_timestamp.strftime('%Y-%m-%d %H:%M:%S')}! Added {transactions_added} new transactions to {account_name}"
         if transactions_skipped > 0:
             message += f" and skipped {transactions_skipped} duplicates"
-        message += f" from {len(df)} total rows."
+        message += f" from {len(rows)} total rows."
     else:
         message = f"File uploaded at {upload_timestamp.strftime('%Y-%m-%d %H:%M:%S')} but no new transactions were added (all were duplicates)."
     
@@ -252,7 +252,7 @@ async def upload_csv(
         file_id=uploaded_file.id,
         transactions_added=transactions_added,
         transactions_skipped=transactions_skipped,
-        total_rows_processed=len(df),
+        total_rows_processed=len(rows),
         total_amount_imported=total_amount,
         errors=errors[:10] if errors else [],
         account_balance=total_amount if selected_account else 0,

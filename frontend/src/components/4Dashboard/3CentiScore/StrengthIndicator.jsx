@@ -21,6 +21,34 @@ const StrengthIndicator = ({ id, myStats, myCentiScore, myCentiScoreHistory, myC
     const [countdown, setCountdown] = useState('');                 // State 4 Countdown Display.
     const [growthData, setGrowthData] = useState(null);             // State 4 Growth Analysis Data.
 
+    // Check if there's enough data to calculate a score
+    const hasEnoughData = () => {
+        // Check if we have stats with meaningful data
+        if (!myStats) {
+            console.log('StrengthIndicator: myStats is null/undefined');
+            return false;
+        }
+        
+        console.log('StrengthIndicator: myStats object:', myStats);
+        
+        // Check for transactions, accounts, or files
+        // The backend returns totals.transactions, totals.accounts, but we need to check if totals exists
+        const hasTransactions = myStats.totals?.transactions > 0;
+        const hasAccounts = myStats.totals?.accounts > 0;
+        const hasFiles = myStats.total_files > 0; // This might not exist in the backend response
+        
+        console.log('StrengthIndicator: Data checks:', {
+            hasTransactions,
+            hasAccounts,
+            hasFiles,
+            total_transactions: myStats.totals?.transactions,
+            total_accounts: myStats.totals?.accounts,
+            total_files: myStats.total_files
+        });
+        
+        return hasTransactions || hasAccounts || hasFiles;
+    };
+
     // Typewriter tagline messages
     const stageMessages = [
         'Grabbing your data …',
@@ -206,11 +234,16 @@ const StrengthIndicator = ({ id, myStats, myCentiScore, myCentiScoreHistory, myC
                         <PromptQuestion>
                             Want to see your Centi. score?
                         </PromptQuestion>
-                        <PromptButton onClick={() => {
-                            setShowPrompt(false);
-                            handleCalculateClick();
-                        }}>
-                            Sure, why not? ✨
+                        <PromptButton 
+                            onClick={() => {
+                                if (hasEnoughData()) {
+                                    setShowPrompt(false);
+                                    handleCalculateClick();
+                                }
+                            }}
+                            $hasData={hasEnoughData()}
+                        >
+                            {hasEnoughData() ? 'Sure, why not? ✨' : <ButtonContainer><LeftEmoji>📝</LeftEmoji> <RightText>Not Enough Data Right Now</RightText></ButtonContainer>}
                         </PromptButton>
                     </RightSide>
                 </PromptCard>
@@ -374,7 +407,10 @@ const PromptDescription = styled.p`
 // -------------------------------------------------------- Prompt Button. ("Show Me My Score 🔍")
 const PromptButton = styled.button`
     font: inherit;
-    background: linear-gradient(135deg, #4f46e5, #10b981);
+    background: ${props => props.$hasData 
+        ? 'linear-gradient(135deg, #4f46e5, #10b981)' 
+        : 'linear-gradient(135deg, #6b7280, #9ca3af)'
+    };
     color: white;
     border: none;
     padding: 1.25rem 2rem;
@@ -382,13 +418,17 @@ const PromptButton = styled.button`
     border-radius: 20px;
     font-size: 1.2rem;
     font-weight: 600;
-    cursor: pointer;
+    cursor: ${props => props.$hasData ? 'pointer' : 'default'};
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
-    box-shadow: 0 6px 20px rgba(79, 70, 229, 0.25);
+    box-shadow: ${props => props.$hasData 
+        ? '0 6px 20px rgba(79, 70, 229, 0.25)' 
+        : '0 4px 12px rgba(107, 114, 128, 0.2)'
+    };
     min-height: 60px;
     border: 2px solid transparent;
+    opacity: ${props => props.$hasData ? '1' : '0.8'};
     
     @media (max-width: 768px) {
         padding: 1rem 2rem;
@@ -397,14 +437,20 @@ const PromptButton = styled.button`
     }
     
     &:hover {
-        transform: translateY(-3px) scale(1.02);
-        box-shadow: 0 12px 30px rgba(79, 70, 229, 0.35);
-        background: linear-gradient(135deg, #6366f1, #059669);
-        border-color: rgba(255, 255, 255, 0.2);
+        transform: ${props => props.$hasData ? 'translateY(-3px) scale(1.02)' : 'linear-gradient(135deg,rgb(103, 103, 105),rgb(145, 145, 145))'};
+        box-shadow: ${props => props.$hasData 
+            ? '0 12px 30px rgba(79, 70, 229, 0.35)' 
+            : '0 4px 12px rgba(107, 114, 128, 0.2)'
+        };
+        background: ${props => props.$hasData 
+            ? 'linear-gradient(135deg, #6366f1, #059669)' 
+            : 'linear-gradient(135deg, #6b7280, #9ca3af)'
+        };
+        border-color: ${props => props.$hasData ? 'rgba(255, 255, 255, 0.2)' : 'transparent'};
     }
     
     &:active {
-        transform: translateY(-1px) scale(1.01);
+        transform: ${props => props.$hasData ? 'translateY(-1px) scale(1.01)' : 'none'};
         transition: all 0.1s ease;
     }
     
@@ -417,10 +463,11 @@ const PromptButton = styled.button`
         height: 100%;
         background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
         transition: left 0.6s ease-out;
+        opacity: ${props => props.$hasData ? '1' : '0'};
     }
     
     &:hover::before {
-        left: 100%;
+        left: ${props => props.$hasData ? '100%' : '-100%'};
     }
     
     /* Add a subtle glow effect */
@@ -431,7 +478,10 @@ const PromptButton = styled.button`
         left: -2px;
         right: -2px;
         bottom: -2px;
-        background: linear-gradient(135deg, #4f46e5, #10b981);
+        background: ${props => props.$hasData 
+            ? 'linear-gradient(135deg, #4f46e5, #10b981)' 
+            : 'linear-gradient(135deg, #6b7280, #9ca3af)'
+        };
         border-radius: 22px;
         z-index: -1;
         opacity: 0;
@@ -439,7 +489,7 @@ const PromptButton = styled.button`
     }
     
     &:hover::after {
-        opacity: 0.3;
+        opacity: ${props => props.$hasData ? '0.3' : '0'};
     }
 `;
 // -------------------------------------------------------- Card That Holds Loading Spinner & Text.
@@ -546,5 +596,22 @@ const Wave = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Button Container.
+
+const ButtonContainer = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 4fr;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+`;
+
+const LeftEmoji = styled.div`
+    font-size: 2.25rem;
+`;
+
+const RightText = styled.div`
+    font-size: 1.25rem;
+`;
 // Export Component.
 export default StrengthIndicator;

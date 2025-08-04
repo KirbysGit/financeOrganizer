@@ -23,6 +23,16 @@ const SpendingGrid = ({ myTransactions, id }) => {
     const [showNet, setShowNet] = useState(true);
     const [dateRange, setDateRange] = useState('30D');
 
+    // Get user name from localStorage
+    const getUserName = () => {
+        try {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            return user.first_name || 'there';
+        } catch (error) {
+            return 'there';
+        }
+    };
+
     // Date Range Options.
     const dateRangeOptions = [
         { value: '7D', label: '7 Days' },
@@ -55,53 +65,73 @@ const SpendingGrid = ({ myTransactions, id }) => {
 
     // -------------------------------------------------------- Process Chart Data.
     const processChartData = (transactions) => {
-        // Get Days To Show.
-        const daysToShow = dateRange === '7D' ? 7 : dateRange === '14D' ? 14 : 30;
+        // Check if we have real data
+        const hasRealData = transactions && transactions.length > 0;
+        
+        if (hasRealData) {
+            // Get Days To Show.
+            const daysToShow = dateRange === '7D' ? 7 : dateRange === '14D' ? 14 : 30;
 
-        // Get & Set Start Date.
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() - (daysToShow - 1));
+            // Get & Set Start Date.
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - (daysToShow - 1));
 
-        // Get Recent Transactions.
-        const recentTransactions = transactions.filter(tx => 
-            new Date(tx.date) >= startDate
-        );
+            // Get Recent Transactions.
+            const recentTransactions = transactions.filter(tx => 
+                new Date(tx.date) >= startDate
+            );
 
-        // Get Dates.
-        const dates = Array.from({ length: daysToShow }, (_, i) => {
-            const date = new Date();
-            date.setDate(date.getDate() - (daysToShow - 1 - i));
-            return date.toISOString().split('T')[0];
-        });
+            // Get Dates.
+            const dates = Array.from({ length: daysToShow }, (_, i) => {
+                const date = new Date();
+                date.setDate(date.getDate() - (daysToShow - 1 - i));
+                return date.toISOString().split('T')[0];
+            });
 
-        // Initialize Arrays.
-        const incomeData = new Array(daysToShow).fill(0);
-        const spendingData = new Array(daysToShow).fill(0);
+            // Initialize Arrays.
+            const incomeData = new Array(daysToShow).fill(0);
+            const spendingData = new Array(daysToShow).fill(0);
 
-        // Process Transactions.
-        recentTransactions.forEach(tx => {
-            const dateIndex = dates.indexOf(tx.date.split('T')[0]);
-            if (dateIndex !== -1) {
-                if (tx.amount > 0) {
-                    incomeData[dateIndex] += tx.amount;
-                } else {
-                    spendingData[dateIndex] += Math.abs(tx.amount);
+            // Process Transactions.
+            recentTransactions.forEach(tx => {
+                const dateIndex = dates.indexOf(tx.date.split('T')[0]);
+                if (dateIndex !== -1) {
+                    if (tx.amount > 0) {
+                        incomeData[dateIndex] += tx.amount;
+                    } else {
+                        spendingData[dateIndex] += Math.abs(tx.amount);
+                    }
                 }
-            }
-        });
+            });
 
-        // Get Net Data.
-        const netData = incomeData.map((inc, i) => inc - spendingData[i]);
+            // Get Net Data.
+            const netData = incomeData.map((inc, i) => inc - spendingData[i]);
 
-        // Return Data.
-        return {
-            labels: dates.map(date => new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
-            daily: {
-                income: incomeData,
-                spending: spendingData,
-                net: netData
-            }
-        };
+            // Return Real Data.
+            return {
+                labels: dates.map(date => new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
+                daily: {
+                    income: incomeData,
+                    spending: spendingData,
+                    net: netData
+                }
+            };
+        } else {
+            // Return Placeholder Data (Jan - Dec)
+            const months = [
+                'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+            ];
+            
+            return {
+                labels: months,
+                daily: {
+                    income: new Array(12).fill(0),
+                    spending: new Array(12).fill(0),
+                    net: new Array(12).fill(0)
+                }
+            };
+        }
     };
 
     // -------------------------------------------------------- Format Currency (e.g. $1,000.00).
@@ -156,12 +186,17 @@ const SpendingGrid = ({ myTransactions, id }) => {
         // Initialize Arrays.
         const datasets = [];
 
+        // Ensure we have chart data, if not use placeholder data
+        const data = chartData || {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+        };
+
         // Add Income Data.
         if (showIncome) {
             // Push Income Data W/ Styling. (Green Gradient Bar).
             datasets.push({
                 label: 'Income',
-                data: chartData?.daily?.income || [],
+                data: data.daily?.income || new Array(12).fill(0),
                 backgroundColor: (context) => {
                     const chart = context.chart;
                     const {ctx, chartArea} = chart;
@@ -194,7 +229,7 @@ const SpendingGrid = ({ myTransactions, id }) => {
             // Push Spending Data W/ Styling. (Red Gradient Bar).
             datasets.push({
                 label: 'Spending',
-                data: chartData?.daily?.spending || [],
+                data: data.daily?.spending,
                 backgroundColor: (context) => {
                     const chart = context.chart;
                     const {ctx, chartArea} = chart;
@@ -228,7 +263,7 @@ const SpendingGrid = ({ myTransactions, id }) => {
             datasets.push({
                 type: 'line',
                 label: 'Net',
-                data: chartData?.daily?.net || [],
+                data: data.daily?.net,
                 borderColor: 'rgba(0, 123, 255, 1)',
                 backgroundColor: 'rgba(0, 123, 255, 0.1)',
                 borderWidth: 4,
@@ -249,7 +284,7 @@ const SpendingGrid = ({ myTransactions, id }) => {
 
         // Return Data.
         return {
-            labels: chartData?.labels || [],
+            labels: data.labels || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
             datasets: datasets
         };
     };
@@ -406,6 +441,12 @@ const SpendingGrid = ({ myTransactions, id }) => {
         }
     };
 
+    // Check if we have data to show
+    const hasData = transactions.length > 0 && chartData && chartData.daily && (
+        chartData.daily.income.some(val => val > 0) || 
+        chartData.daily.spending.some(val => val > 0)
+    );
+
     // -------------------------------------------------------- Spending Grid UI.
     return (
         <SpendingGridWrapper id={id}>
@@ -416,22 +457,24 @@ const SpendingGrid = ({ myTransactions, id }) => {
                     Here's how your money moved lately...
                 </SectionTitle>
 
-                {/* Cash Flow Summary. */}
-                <CashFlowSummary>
-                    <CashFlowIcon>
-                        {netSummary > 0 ? '📈' : netSummary < 0 ? '📉' : '➡️'}
-                    </CashFlowIcon>
-                    <CashFlowMessageContainer>
-                        <CashFlowMessage>
-                            {getCashFlowMessage().main}
-                        </CashFlowMessage>
-                        {getCashFlowMessage().secondary && (
-                            <CashFlowSecondaryMessage>
-                                {getCashFlowMessage().secondary}
-                            </CashFlowSecondaryMessage>
-                        )}
-                    </CashFlowMessageContainer>
-                </CashFlowSummary>
+                {/* Cash Flow Summary - Only show if we have data */}
+                {hasData && (
+                    <CashFlowSummary>
+                        <CashFlowIcon>
+                            {netSummary > 0 ? '📈' : netSummary < 0 ? '📉' : '➡️'}
+                        </CashFlowIcon>
+                        <CashFlowMessageContainer>
+                            <CashFlowMessage>
+                                {getCashFlowMessage().main}
+                            </CashFlowMessage>
+                            {getCashFlowMessage().secondary && (
+                                <CashFlowSecondaryMessage>
+                                    {getCashFlowMessage().secondary}
+                                </CashFlowSecondaryMessage>
+                            )}
+                        </CashFlowMessageContainer>
+                    </CashFlowSummary>
+                )}
 
                 {/* Chart Container. */}
                 <ChartContainer>
@@ -440,58 +483,78 @@ const SpendingGrid = ({ myTransactions, id }) => {
                             <LoadingSpinner />
                             <LoadingText>Loading financial data...</LoadingText>
                         </LoadingContainer>
-                    ) : (
+                    ) : hasData ? (
                         <Bar data={getBarChartData()} options={chartOptions} height={400} />
+                    ) : (
+                        <ChartWithOverlay>
+                            <Bar data={getBarChartData()} options={chartOptions} height={400} />
+                            {console.log(getBarChartData())}
+                            <EmptyChartOverlay>
+                                <EmptyChartModal>
+                                    <EmptyChartIcon>😢</EmptyChartIcon>
+                                    <EmptyChartTitle>
+                                        Sorry, <span style={{fontWeight: '600', background: 'linear-gradient(135deg, var(--button-primary), var(--amount-positive))', backgroundClip: 'text', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'}}>{getUserName()}</span>
+                                    </EmptyChartTitle>
+                                    <EmptyChartSubtitle>
+                                        We Don't Have Your Data Yet.
+                                        <br />
+                                        Refresh The Page To Add Your Data.
+                                    </EmptyChartSubtitle>
+                                </EmptyChartModal>
+                            </EmptyChartOverlay>
+                        </ChartWithOverlay>
                     )}
                 </ChartContainer>
 
-                {/* Chart Toggles. */}
-                <ChartToggles>
-                    <DateRangeSelector>
-                        <DateRangeButtons>
-                            <SlidingBackground $activeIndex={dateRangeOptions.findIndex(opt => opt.value === dateRange)} />
-                            {dateRangeOptions.map((option, index) => (
-                                <DateRangeButton
-                                    key={option.value}
-                                    $isActive={dateRange === option.value}
-                                    onClick={() => setDateRange(option.value)}
-                                >
-                                    {option.label}
-                                </DateRangeButton>
-                            ))}
-                        </DateRangeButtons>
-                    </DateRangeSelector>
-                    
-                    <ToggleGroup>
-                        <ToggleButton 
-                            $isActive={showIncome} 
-                            onClick={() => setShowIncome(v => !v)}
-                            color="rgba(40, 167, 69, 0.8)"
-                            aria-label={`${showIncome ? 'Hide' : 'Show'} income data`}
-                        >
-                            <ToggleIcon>💰</ToggleIcon>
-                            Income
-                        </ToggleButton>
-                        <ToggleButton 
-                            $isActive={showSpending} 
-                            onClick={() => setShowSpending(v => !v)}
-                            color="rgba(220, 53, 69, 0.8)"
-                            aria-label={`${showSpending ? 'Hide' : 'Show'} spending data`}
-                        >
-                            <ToggleIcon>💸</ToggleIcon>
-                            Spending
-                        </ToggleButton>
-                        <ToggleButton 
-                            $isActive={showNet} 
-                            onClick={() => setShowNet(v => !v)}
-                            color="rgba(0, 123, 255, 0.8)"
-                            aria-label={`${showNet ? 'Hide' : 'Show'} net data`}
-                        >
-                            <ToggleIcon>📊</ToggleIcon>
-                            Net
-                        </ToggleButton>
-                    </ToggleGroup>
-                </ChartToggles>
+                {/* Chart Toggles - Only show if we have data */}
+                {hasData && (
+                    <ChartToggles>
+                        <DateRangeSelector>
+                            <DateRangeButtons>
+                                <SlidingBackground $activeIndex={dateRangeOptions.findIndex(opt => opt.value === dateRange)} />
+                                {dateRangeOptions.map((option, index) => (
+                                    <DateRangeButton
+                                        key={option.value}
+                                        $isActive={dateRange === option.value}
+                                        onClick={() => setDateRange(option.value)}
+                                    >
+                                        {option.label}
+                                    </DateRangeButton>
+                                ))}
+                            </DateRangeButtons>
+                        </DateRangeSelector>
+                        
+                        <ToggleGroup>
+                            <ToggleButton 
+                                $isActive={showIncome} 
+                                onClick={() => setShowIncome(v => !v)}
+                                color="rgba(40, 167, 69, 0.8)"
+                                aria-label={`${showIncome ? 'Hide' : 'Show'} income data`}
+                            >
+                                <ToggleIcon>💰</ToggleIcon>
+                                Income
+                            </ToggleButton>
+                            <ToggleButton 
+                                $isActive={showSpending} 
+                                onClick={() => setShowSpending(v => !v)}
+                                color="rgba(220, 53, 69, 0.8)"
+                                aria-label={`${showSpending ? 'Hide' : 'Show'} spending data`}
+                            >
+                                <ToggleIcon>💸</ToggleIcon>
+                                Spending
+                            </ToggleButton>
+                            <ToggleButton 
+                                $isActive={showNet} 
+                                onClick={() => setShowNet(v => !v)}
+                                color="rgba(0, 123, 255, 0.8)"
+                                aria-label={`${showNet ? 'Hide' : 'Show'} net data`}
+                            >
+                                <ToggleIcon>📊</ToggleIcon>
+                                Net
+                            </ToggleButton>
+                        </ToggleGroup>
+                    </ChartToggles>
+                )}
             </CashFlowChart>
 
             {/* Recent Transactions. */}
@@ -526,7 +589,15 @@ const SpendingGrid = ({ myTransactions, id }) => {
                             ))}
                     </TransactionList>
                 ) : (
-                    <EmptyMessage>No recent transactions</EmptyMessage>
+                    <EmptyTransactionsContainer>
+                        <EmptyTransactionsIcon>🤔</EmptyTransactionsIcon>
+                        <EmptyTransactionsTitle>
+                            No Transactions Yet...
+                        </EmptyTransactionsTitle>
+                        <EmptyTransactionsSubtitle>
+                            Refresh The Page & Attach An Account To See Your Transactions!
+                        </EmptyTransactionsSubtitle>
+                    </EmptyTransactionsContainer>
                 )}
             </RecentTransactions>
         </SpendingGridWrapper>
@@ -594,6 +665,65 @@ const ChartContainer = styled.div`
         pointer-events: none;
     }
 `
+
+// -------------------------------------------------------- Chart With Overlay.
+const ChartWithOverlay = styled.div`
+    position: relative;
+    height: 100%;
+    width: 100%;
+`
+
+// -------------------------------------------------------- Empty Chart Overlay.
+const EmptyChartOverlay = styled.div`
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(2px);
+    z-index: 10;
+`
+
+// -------------------------------------------------------- Empty Chart Modal.
+const EmptyChartModal = styled.div`
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 16px;
+    padding: 1.25rem;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    border: 2px solid rgba(100, 100, 100, 0.1);
+    max-width: 325px;
+    backdrop-filter: blur(10px);
+`
+
+// -------------------------------------------------------- Empty Chart Icon.
+const EmptyChartIcon = styled.div`
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+`
+
+// -------------------------------------------------------- Empty Chart Title.
+const EmptyChartTitle = styled.h3`
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 0.5rem 0;
+    line-height: 1;
+`
+
+// -------------------------------------------------------- Empty Chart Subtitle.
+const EmptyChartSubtitle = styled.p`
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.4;
+`
+
 // -------------------------------------------------------- Chart Toggles. (Time Period & Chart Types).
 const ChartToggles = styled.div`
     display: grid;
@@ -828,6 +958,47 @@ const RecentTransactions = styled.div`
     gap: 1rem;
     overflow-y: auto;
 `
+
+// -------------------------------------------------------- Empty Transactions Container.
+const EmptyTransactionsContainer = styled.div`
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+    border-radius: 16px;
+    max-width: 275px;
+    margin-top: 3rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    align-self: center;
+    justify-self: center;
+    justify-content: center;
+    padding: 1rem 1rem;
+    text-align: center;
+`
+
+// -------------------------------------------------------- Empty Transactions Icon.
+const EmptyTransactionsIcon = styled.div`
+    font-size: 3rem;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+    margin-bottom: 0.5rem;
+`
+
+// -------------------------------------------------------- Empty Transactions Title.
+const EmptyTransactionsTitle = styled.h3`
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1;
+    margin-bottom: 0.5rem;
+`
+
+// -------------------------------------------------------- Empty Transactions Subtitle.
+const EmptyTransactionsSubtitle = styled.p`
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.5;
+`
+
 // -------------------------------------------------------- Transaction List.
 const TransactionList = styled.div`
     display: flex;

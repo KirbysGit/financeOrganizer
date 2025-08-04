@@ -377,18 +377,119 @@ const TransactionTable = ({ transactions, onDelete, onRefresh, id, existingAccou
     if (transactions.length === 0) {
         return (
             <TransactionsWrapper id={id} $noTransactions={true}>
-                <EmptyStateCard>
-                    <EmptyIcon>📊</EmptyIcon>
-                    <EmptyTitle>No Transactions Yet...</EmptyTitle>
-                    <EmptyDescription>Start by uploading a CSV file or adding transactions manually.</EmptyDescription>
-                    <EmptyStateAddButton 
-                        onClick={() => setManualTxModal(true)}
-                        aria-label="Add Manual Transaction"
-                        title="Add Manual Transaction"
-                    >
-                        <FontAwesomeIcon icon={faPlus} />
-                    </EmptyStateAddButton>
-                </EmptyStateCard>
+                <TableHeaderWrapper>
+                    <TableHeader
+                        title="Transaction History"
+                        searchTerm={searchTerm}
+                        setSearchTerm={setSearchTerm}
+                        setCurrentPage={setCurrentPage}
+                        isSearchFocused={isSearchFocused}
+                        setIsSearchFocused={setIsSearchFocused}
+                        entriesPerPage={entriesPerPage}
+                        setEntriesPerPage={setEntriesPerPage}
+                        sortField={sortField}
+                        sortDirection={sortDirection}
+                        handleSort={handleSort}
+                        getSortIcon={getSortIcon}
+                        indexOfFirst={0}
+                        indexOfLast={0}
+                        sortedTransactionsLength={0}
+                        resultsInfoWidth={resultsInfoWidth}
+                        refreshLoading={refreshLoading}
+                        handleRefresh={handleRefresh}
+                        showAddMenu={showAddMenu}
+                        setShowAddMenu={setShowAddMenu}
+                        setManualTxModal={setManualTxModal}
+                        onRefresh={onRefresh}
+                        onUpload={onUpload}
+                        existingAccounts={existingAccounts}
+                        dateFilter={dateFilter}
+                        onDateFilterChange={handleDateFilterChange}
+                        amountFilter={amountFilter}
+                        onAmountFilterChange={handleAmountFilterChange}
+                        accountFilter={accountFilter}
+                        onAccountFilterChange={handleAccountFilterChange}
+                        typeFilter={typeFilter}
+                        onTypeFilterChange={handleTypeFilterChange}
+                        tagFilter={tagFilter}
+                        onTagFilterChange={handleTagFilterChange}
+                    />
+                </TableHeaderWrapper>
+
+                <TableContainer $entriesPerPage={entriesPerPage}>
+                    <StyledTable>
+                        <thead>
+                            <tr>
+                                <th>Select</th>
+                                <SortableHeader 
+                                    $isActive={sortField === 'date'}
+                                    onClick={() => handleSort('date')}
+                                >
+                                    Date
+                                    <SortIcon>
+                                        <FontAwesomeIcon icon={getSortIcon('date')} />
+                                    </SortIcon>
+                                </SortableHeader>
+                                <SortableHeader 
+                                    $isActive={sortField === 'vendor'}
+                                    onClick={() => handleSort('vendor')}
+                                >
+                                    Vendor
+                                    <SortIcon>
+                                        <FontAwesomeIcon icon={getSortIcon('vendor')} />
+                                    </SortIcon>
+                                </SortableHeader>
+                                <SortableHeader 
+                                    $isActive={sortField === 'description'}
+                                    onClick={() => handleSort('description')}
+                                >
+                                    Description
+                                    <SortIcon>
+                                        <FontAwesomeIcon icon={getSortIcon('description')} />
+                                    </SortIcon>
+                                </SortableHeader>
+                                <SortableHeader 
+                                    $isActive={sortField === 'amount'}
+                                    onClick={() => handleSort('amount')}
+                                >
+                                    Amount
+                                    <SortIcon>
+                                        <FontAwesomeIcon icon={getSortIcon('amount')} />
+                                    </SortIcon>
+                                </SortableHeader>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colSpan="6" style={{ padding: 0, border: 'none' }}>
+                                    <EmptyStateCard>
+                                        <EmptyIcon>📊</EmptyIcon>
+                                        <EmptyTitle>No Transactions Yet...</EmptyTitle>
+                                        <EmptyDescription>Start by uploading a CSV file or adding transactions manually.</EmptyDescription>
+                                        <EmptyStateAddButton 
+                                            onClick={() => setManualTxModal(true)}
+                                            aria-label="Add Manual Transaction"
+                                            title="Add Manual Transaction"
+                                        >
+                                            <FontAwesomeIcon icon={faPlus} />
+                                        </EmptyStateAddButton>
+                                    </EmptyStateCard>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </StyledTable>
+                </TableContainer>
+
+                {/* Manual Transaction Modal */}
+                {manualTxModal && (
+                    <ManualTxModal
+                        isOpen={manualTxModal}
+                        onClose={() => setManualTxModal(false)}
+                        onSuccess={handleManualTxSuccess}
+                        existingAccounts={existingAccounts}
+                    />
+                )}
             </TransactionsWrapper>
         )
     }
@@ -857,8 +958,8 @@ const TableContainer = styled.div`
 // -------------------------------------------------------- Empty State Card.
 const EmptyStateCard = styled.div`
     width: 100%;
-    padding: 4rem 2rem;
-    margin: 2rem auto;
+    padding: 3rem 2rem;
+    margin: 1rem;
     border-radius: 16px;
     background: rgba(255, 255, 255, 0.4);
     text-align: center;
@@ -867,6 +968,11 @@ const EmptyStateCard = styled.div`
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     
     &::before {
         content: '';

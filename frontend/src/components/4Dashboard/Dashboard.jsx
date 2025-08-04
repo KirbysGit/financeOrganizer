@@ -124,7 +124,7 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
 
     // -------------------------------------------------------- Show Dashboard Animation After Loading.
     useEffect(() => {
-        if (!loading && hasEverHadData) {
+        if (!loading) {
             // Small delay to ensure loading screen is fully hidden
             const timer = setTimeout(() => {
                 setShowDashboard(true);
@@ -132,15 +132,15 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
             
             return () => clearTimeout(timer);
         }
-    }, [loading, hasEverHadData]);
+    }, [loading]);
 
     // -------------------------------------------------------- On Site Mount, Load All Data.
     useEffect(() => {
-        if (hasEverHadData && !hasLoadedRef.current) {
+        if (!hasLoadedRef.current) {
             hasLoadedRef.current = true;
             loadAllData();
         }
-    }, [hasEverHadData]);
+    }, []);
 
     // -------------------------------------------------------- Load All Data.
     const loadAllData = async () => {
@@ -230,6 +230,7 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
     const loadStats = async () => {
         try {                                           // Try.
             const statsData = await getStats();             // API Request For Fetch Stats.
+            console.log('Dashboard: Stats API response:', statsData);
             setStats(statsData.data);                      // Set Stats To State.
         } catch (err) {                                 // If Error.
             console.error("Load Failed:", err);             // Display Error To Console.
@@ -430,7 +431,7 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
                     )}
                 </>
             )}
-            { hasEverHadData && loading && (
+            { loading && (
                 <LoadingScreen 
                     loading={loading}
                     loadingProgress={loadingProgress}

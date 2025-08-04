@@ -907,7 +907,6 @@ const TagModal = ({ isOpen, onClose, transaction, onTagsUpdated, onTagSelect, se
         try {
             setIsInitializing(true);
             await initializeDefaultTags();
-            toast.success('Default tags initialized!');
             
             // Reload tags after initialization
             const response = await getTags();

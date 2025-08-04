@@ -109,7 +109,7 @@ const FinanceConnect = ({ onBack, onComplete, user }) => {
         setUploadSuccess(true);
         setHasData(true);
         setTimeout(() => {
-            onComplete();
+            onComplete(true); // User actually has data
         }, 2000);
     };
 
@@ -118,7 +118,7 @@ const FinanceConnect = ({ onBack, onComplete, user }) => {
         setPlaidSuccess(true);
         setHasData(true);
         setTimeout(() => {
-            onComplete();
+            onComplete(true); // User actually has data
         }, 2000);
     };
 
@@ -127,7 +127,7 @@ const FinanceConnect = ({ onBack, onComplete, user }) => {
         setManualSuccess(true);
         setHasData(true);
         setTimeout(() => {
-            onComplete();
+            onComplete(true); // User actually has data
         }, 2000);
     };
 
@@ -144,7 +144,9 @@ const FinanceConnect = ({ onBack, onComplete, user }) => {
 
     // -------------------------------------------------------- Skip Setup.
     const handleSkip = () => {
-        onComplete();
+        // Don't set any localStorage flags when skipping - let the user explore without data
+        // This way they can refresh to get back to FinanceConnect
+        onComplete(false); // User skipped, no actual data
     };
 
     // -------------------------------------------------------- Handle Back Navigation.

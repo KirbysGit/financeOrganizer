@@ -24,7 +24,8 @@ from app.database import FileUpload, Transaction, User
 # Create Router Instance.
 router = APIRouter(prefix="/files", tags=["Files"])
 
-# -------------------------------------------------------- Get All Files.
+# Handle both /files and /files/ without redirects
+@router.get("", response_model=list[FileUploadOut])
 @router.get("/", response_model=list[FileUploadOut])
 def get_files(
     db: Session = Depends(get_db), 

@@ -104,7 +104,7 @@ API.interceptors.response.use(
 export const uploadCSV = (formData) => API.post('/upload', formData, { headers: { 'Content-Type' : 'multipart/form-data'} });
 
 // ----------------------------------------------------------------- Get All Files.
-export const getFiles = () => API.get('/files');
+export const getFiles = () => API.get('/files/');
 
 // ----------------------------------------------------------------- Get Transactions From Specific File.
 export const getFileTransactions = (fileId) => API.get(`/files/${fileId}/transactions`);

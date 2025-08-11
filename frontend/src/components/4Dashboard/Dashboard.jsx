@@ -69,7 +69,7 @@ const slideUp = keyframes`
 `;
 
 // Dashboard Component.
-const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHasConnectedData, onLogout, onClearDataFlags }) => {
+const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHasConnectedData, onLogout, onClearDataFlags, onClearSkipFlag }) => {
 
     const [loading, setLoading] = useState(true);               // State 4 Loading State.
     const [stats, setStats] = useState({});                     // State 4 Stats Data.
@@ -220,6 +220,11 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
             // Check if we actually loaded any data
             if (transactions.length === 0 && files.length === 0 && accounts.length === 0) {
                 console.log('Dashboard: No data loaded, user should be redirected to FinanceConnect');
+            } else {
+                // User has actual data, clear the skip flag
+                if (onClearSkipFlag) {
+                    onClearSkipFlag();
+                }
             }
         }
     };

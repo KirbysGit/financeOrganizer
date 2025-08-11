@@ -184,6 +184,7 @@ function App() {
             localStorage.removeItem('hasTransactions');
             localStorage.removeItem('hasFiles');
             localStorage.removeItem('hasAccounts');
+            localStorage.removeItem('userSkippedSetup'); // Also clear skip flag
             setHasConnectedData(false);
             setHasEverHadData(false);
             return false;
@@ -333,6 +334,12 @@ function App() {
     localStorage.removeItem('userSkippedSetup');
     setHasConnectedData(false);
     setHasEverHadData(false);
+  };
+
+  // Clear skip flag when user has actual data
+  const clearSkipFlag = () => {
+    localStorage.removeItem('userSkippedSetup');
+    console.log('App: Cleared userSkippedSetup flag - user has actual data');
   };
 
   // Handle Finance Connection Completion.
@@ -485,14 +492,15 @@ function App() {
       
       {/* Dashboard. */}
       {currentPage === 'dashboard' && (
-        <Dashboard 
-          hasEverHadData={hasEverHadData} 
-          setHasEverHadData={setHasEverHadData}
-          hasConnectedData={hasConnectedData}
-          setHasConnectedData={setHasConnectedData}
-          onLogout={handleLogout}
-          onClearDataFlags={clearDataFlags}
-        />
+                    <Dashboard 
+              hasEverHadData={hasEverHadData}
+              setHasEverHadData={setHasEverHadData}
+              hasConnectedData={hasConnectedData}
+              setHasConnectedData={setHasConnectedData}
+              onLogout={handleLogout}
+              onClearDataFlags={clearDataFlags}
+              onClearSkipFlag={clearSkipFlag}
+            />
       )}
       
       {/* Email Verification. */}

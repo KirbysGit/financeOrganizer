@@ -10,34 +10,20 @@ import { styled, keyframes } from 'styled-components';
 import { useEffect, useState } from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
-// Bank Logo Imports - Using public folder for production compatibility.
-// Create a function that tries multiple path strategies
-const getImagePath = (filename) => {
-  const baseUrl = import.meta.env.BASE_URL || '';
-  const origin = window.location.origin;
-  
-  return [
-    `${baseUrl}images/bankLogos/${filename}`,           // Strategy 1: Base URL + relative
-    `/images/bankLogos/${filename}`,                    // Strategy 2: Absolute from root
-    `./images/bankLogos/${filename}`,                   // Strategy 3: Relative to current
-    `${origin}/images/bankLogos/${filename}`,           // Strategy 4: Full origin path
-    `${origin}${baseUrl}images/bankLogos/${filename}`   // Strategy 5: Origin + base URL
-  ];
-};
-
-const bankOfAmericaLogo = getImagePath('bankOfAmerica.png');
-const chaseLogo = getImagePath('chase.png');
-const wellsFargoLogo = getImagePath('wellsFargo.png');
-const citibankLogo = getImagePath('citibank.png');
-const amexLogo = getImagePath('amex.png');
-const capitalOneLogo = getImagePath('capitalOne.png');
-const usBankLogo = getImagePath('usbank.png');
-const pncBankLogo = getImagePath('pncbank.png');
-const fifthThirdBankLogo = getImagePath('fifththirdBank.png');
-const keyBankLogo = getImagePath('keybank.png');
-const sofiLogo = getImagePath('sofi.png');
-const tdBankLogo = getImagePath('tdBank.png');
-const truistLogo = getImagePath('truistLogo.png');
+// Bank Logo Imports - Using absolute imports from src/images for better build handling
+import bankOfAmericaLogo from 'src/images/bankLogos/bankOfAmerica.png';
+import chaseLogo from 'src/images/bankLogos/chase.png';
+import wellsFargoLogo from 'src/images/bankLogos/wellsFargo.png';
+import citibankLogo from 'src/images/bankLogos/citibank.png';
+import amexLogo from 'src/images/bankLogos/amex.png';
+import capitalOneLogo from 'src/images/bankLogos/capitalOne.png';
+import usBankLogo from 'src/images/bankLogos/usbank.png';
+import pncBankLogo from 'src/images/bankLogos/pncbank.png';
+import fifthThirdBankLogo from 'src/images/bankLogos/fifththirdBank.png';
+import keyBankLogo from 'src/images/bankLogos/keybank.png';
+import sofiLogo from 'src/images/bankLogos/sofi.png';
+import tdBankLogo from 'src/images/bankLogos/tdBank.png';
+import truistLogo from 'src/images/bankLogos/truistLogo.png';
 
 // -------------------------------------------------------- Bank Carousel Component.
 const BankCarousel = () => {
@@ -61,7 +47,7 @@ const BankCarousel = () => {
     ];
 
     // Debug logging
-    console.log('BankCarousel: Logo path strategies:', {
+    console.log('BankCarousel: Imported logos:', {
         bankOfAmericaLogo,
         chaseLogo,
         wellsFargoLogo,
@@ -78,8 +64,6 @@ const BankCarousel = () => {
     });
     
     console.log('BankCarousel: Banks array:', banks);
-    console.log('BankCarousel: Current location:', window.location.href);
-    console.log('BankCarousel: Base URL:', import.meta.env.BASE_URL);
 
     // Duplicate Banks For Seamless Infinite Scroll (Double Duplication For Smoother Loop).
     const duplicatedBanks = [...banks, ...banks];
@@ -98,23 +82,10 @@ const BankCarousel = () => {
                                 $position={index % 3}
                             >
                                 <BankLogo 
-                                src={bank.logo[0]} 
+                                src={bank.logo} 
                                 alt={bank.name}
                                 onLoad={() => console.log(`BankCarousel: Image loaded successfully: ${bank.name}`)}
-                                onError={(e) => {
-                                    console.error(`BankCarousel: Image failed to load: ${bank.name}`, e);
-                                    // Try fallback paths
-                                    const img = e.target;
-                                    const currentIndex = bank.logo.findIndex(path => path === img.src);
-                                    const nextIndex = currentIndex + 1;
-                                    
-                                    if (nextIndex < bank.logo.length) {
-                                        console.log(`BankCarousel: Trying fallback path ${nextIndex} for ${bank.name}:`, bank.logo[nextIndex]);
-                                        img.src = bank.logo[nextIndex];
-                                    } else {
-                                        console.error(`BankCarousel: All paths failed for ${bank.name}`);
-                                    }
-                                }}
+                                onError={(e) => console.error(`BankCarousel: Image failed to load: ${bank.name}`, e)}
                             />
                             </Slide>
                         );

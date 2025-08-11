@@ -1,3 +1,10 @@
+// ProgressPanel.jsx
+
+// This is the main sub-component of the actual CentiScore component, honestly like the main sub sub component, 
+// this just shows like the users progress with a chart, and some other card framed insights for the user. Again,
+// I want to add more to this, but I also don't want to leave a bunch of placeholders for V1, so I'm going to keep it
+// there for right now. 
+
 // Imports.
 import React, { useState, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
@@ -22,7 +29,7 @@ const ProgressPanel = ({ isVisible, onToggle, scoreHistory }) => {
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const hasGrowthData = !!scoreHistory?.growth?.has_growth_data;
 
-
+    // -------------------------------------------------------- Render.
     return (
         <ProgressPanelContainer $visible={isVisible}>
             {isLoadingHistory ? (
@@ -31,11 +38,14 @@ const ProgressPanel = ({ isVisible, onToggle, scoreHistory }) => {
                     <LoadingText aria-live="polite">Loading your progress...</LoadingText>
                 </LoadingContainer>
             ) : scoreHistory ? (
+                // -------------------------------------------------------- Progress Content.
                 <ProgressContent>
+                    {/* Progress Header. */}
                     <ProgressHeader>
                         <ProgressTitle>Your Centi Score Journey</ProgressTitle>
                     </ProgressHeader>
                     
+                    {/* Progress Grid. */}
                     <ProgressGrid>
                         <ChartSection>
                             <SectionTitle>Your Score Progress</SectionTitle>
@@ -44,11 +54,14 @@ const ProgressPanel = ({ isVisible, onToggle, scoreHistory }) => {
                             </ChartContainer>
                         </ChartSection>
                         
+                        {/* Progress Insights Section. */}
                         <ProgressInsightsSection>
                             <SectionTitle style={{ marginBottom: '1rem' }}>Progress Insights</SectionTitle>
                                 <InsightsGrid>
+                                    {/* Progress Insights Grid. */}
                                     {scoreHistory.growth?.has_growth_data && (
                                         <>
+                                            {/* Current Streak Insight Card. */}
                                             <InsightCard>
                                                 <InsightHeader>
                                                     <InsightIcon>🔥</InsightIcon>
@@ -72,6 +85,7 @@ const ProgressPanel = ({ isVisible, onToggle, scoreHistory }) => {
                                                 </InsightSubtext>
                                             </InsightCard>
                                             
+                                            {/* Best Score Insight Card. */}
                                             <InsightCard>
                                                 <InsightHeader>
                                                     <InsightIcon>🏆</InsightIcon>
@@ -86,6 +100,7 @@ const ProgressPanel = ({ isVisible, onToggle, scoreHistory }) => {
                                                 </InsightSubtext>
                                             </InsightCard>
                                             
+                                            {/* Average Score Insight Card. */}
                                             <InsightCard>
                                                 <InsightHeader>
                                                     <InsightIcon>📊</InsightIcon>
@@ -100,6 +115,7 @@ const ProgressPanel = ({ isVisible, onToggle, scoreHistory }) => {
                                                 </InsightSubtext>
                                             </InsightCard>
                                             
+                                            {/* Weeks Tracked Insight Card. */}
                                             <InsightCard>
                                                 <InsightHeader>
                                                     <InsightIcon>📅</InsightIcon>
@@ -114,6 +130,7 @@ const ProgressPanel = ({ isVisible, onToggle, scoreHistory }) => {
                                                 </InsightSubtext>
                                             </InsightCard>
                                             
+                                            {/* Score Range Insight Card. */}
                                             <InsightCard>
                                                 <InsightHeader>
                                                     <InsightIcon>📈</InsightIcon>
@@ -133,6 +150,7 @@ const ProgressPanel = ({ isVisible, onToggle, scoreHistory }) => {
                                                 </InsightSubtext>
                                             </InsightCard>
                                             
+                                            {/* Current Trend Insight Card. */}
                                             <InsightCard>
                                                 <InsightHeader>
                                                     <InsightIcon>🎯</InsightIcon>
@@ -152,6 +170,8 @@ const ProgressPanel = ({ isVisible, onToggle, scoreHistory }) => {
                                             </InsightCard>
                                         </>
                                 )}
+
+                                {/* Status Insight Card. */}
                                     {!scoreHistory.growth?.has_growth_data && (
                                         <InsightCard>
                                             <InsightLabel>Status</InsightLabel>
@@ -160,7 +180,7 @@ const ProgressPanel = ({ isVisible, onToggle, scoreHistory }) => {
                                     )}
                                 </InsightsGrid>
                                 
-                                {/* Motivational Quote Card */}
+                                {/* Motivational Quote Card. */}
                                 <MotivationalCard>
                                     <QuoteIcon>✨</QuoteIcon>
                                     <QuoteText>
@@ -567,5 +587,5 @@ const QuoteSubtext = styled.div`
     opacity: 0.8;
 `;
 
-// Export Component.
+// Export The ProgressPanel Component.
 export default ProgressPanel;

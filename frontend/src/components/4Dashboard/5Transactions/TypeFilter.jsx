@@ -1,9 +1,17 @@
+// TypeFilter.jsx
+
+// This is the component that allows the user to filter the transactions by type. It's a modal that allows the user to
+// select the types of transactions they want to see, and it also allows the user to select all or clear all. The master
+// switch allows users to sort their transactions by positive or negative, and then the individual types allow them to
+// select the specific types of transactions they want to see.
+
+// Imports.
 import React, { useState, useEffect } from 'react';
 import { styled } from 'styled-components';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheck, faXmark, faFilter, faPlus, faMinus } from '@fortawesome/free-solid-svg-icons';
 
-// Transaction type labels and categories
+// Transaction Type Labels And Categories.
 const TRANSACTION_TYPE_LABELS = {
     "sale": "Purchase",
     "payment": "Credit Card Payment", 
@@ -15,15 +23,18 @@ const TRANSACTION_TYPE_LABELS = {
     "other": "Other",
 };
 
+// Negative Types.
 const NEGATIVE_TYPES = ["sale", "fee", "interest", "adjustment"];
 const POSITIVE_TYPES = ["refund", "payment", "transfer"];
 
+// Type Filter Component.
 const TypeFilter = ({ 
     isOpen, 
     onClose, 
     onApplyFilter, 
     currentFilter = null 
 }) => {
+    // States.
     const [selectedTypes, setSelectedTypes] = useState(
         currentFilter?.types || []
     );
@@ -34,7 +45,7 @@ const TypeFilter = ({
         currentFilter?.negativeOnly || false
     );
 
-    // Reset when currentFilter changes
+    // Reset When Current Filter Changes.
     useEffect(() => {
         if (currentFilter) {
             setSelectedTypes(currentFilter.types || []);
@@ -47,6 +58,7 @@ const TypeFilter = ({
         }
     }, [currentFilter]);
 
+    // Handle Type Toggle.
     const handleTypeToggle = (type) => {
         setSelectedTypes(prev => 
             prev.includes(type) 
@@ -55,32 +67,38 @@ const TypeFilter = ({
         );
     };
 
+    // Handle Select All.
     const handleSelectAll = () => {
         setSelectedTypes(Object.keys(TRANSACTION_TYPE_LABELS));
     };
 
+    // Handle Deselect All.
     const handleDeselectAll = () => {
         setSelectedTypes([]);
     };
 
+    // Handle Positive Only.
     const handlePositiveOnly = () => {
         setPositiveOnly(true);
         setNegativeOnly(false);
         setSelectedTypes(POSITIVE_TYPES);
     };
 
+    // Handle Negative Only.
     const handleNegativeOnly = () => {
         setNegativeOnly(true);
         setPositiveOnly(false);
         setSelectedTypes(NEGATIVE_TYPES);
     };
 
+    // Handle Clear Master.
     const handleClearMaster = () => {
         setPositiveOnly(false);
         setNegativeOnly(false);
         setSelectedTypes([]);
     };
 
+    // Handle Apply.
     const handleApply = () => {
         const filterData = {
             types: selectedTypes,
@@ -92,6 +110,7 @@ const TypeFilter = ({
         onClose();
     };
 
+    // Handle Clear.
     const handleClear = () => {
         setSelectedTypes([]);
         setPositiveOnly(false);
@@ -100,6 +119,7 @@ const TypeFilter = ({
         onClose();
     };
 
+    // Get Status Text.
     const getStatusText = () => {
         if (positiveOnly) return "Positive Only";
         if (negativeOnly) return "Negative Only";
@@ -110,6 +130,7 @@ const TypeFilter = ({
         return `${selectedTypes.length} Types`;
     };
 
+    // If The Modal Is Not Open, Return Null.
     if (!isOpen) return null;
 
     return (
@@ -208,7 +229,7 @@ const TypeFilter = ({
     );
 };
 
-// Styled Components
+// -------------------------------------------------------- Filter Container.
 const FilterContainer = styled.div`
     background: white;
     border-radius: 16px;
@@ -231,6 +252,7 @@ const FilterContainer = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Filter Header.
 const FilterHeader = styled.div`
     display: flex;
     justify-content: space-between;
@@ -240,6 +262,7 @@ const FilterHeader = styled.div`
     border-bottom: 1px solid #e0e0e0;
 `;
 
+// -------------------------------------------------------- Filter Title.
 const FilterTitle = styled.h3`
     margin: 0;
     font-size: 1.25rem;
@@ -247,11 +270,13 @@ const FilterTitle = styled.h3`
     color: var(--text-primary);
 `;
 
+// -------------------------------------------------------- Filter Controls.
 const FilterControls = styled.div`
     height: 10px;
     background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
 `;
 
+// -------------------------------------------------------- Close Button.
 const CloseButton = styled.button`
     background: none;
     border: none;
@@ -268,12 +293,14 @@ const CloseButton = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Master Switch Section.
 const MasterSwitchSection = styled.div`
     margin-bottom: 1rem;
     padding: 1.25rem 1.25rem 1rem 1.25rem;
     border-bottom: 1px solid #e0e0e0;
 `;
 
+// -------------------------------------------------------- Master Switch Title.
 const MasterSwitchTitle = styled.h4`
     margin: 0 0 0.5rem 0;
     font-size: 1rem;
@@ -281,18 +308,21 @@ const MasterSwitchTitle = styled.h4`
     color: var(--text-primary);
 `;
 
+// -------------------------------------------------------- Master Switch Description.
 const MasterSwitchDescription = styled.p`
     margin: 0 0 1rem 0;
     font-size: 0.9rem;
     color: var(--text-secondary);
 `;
 
+// -------------------------------------------------------- Master Switch Buttons.
 const MasterSwitchButtons = styled.div`
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
 `;
 
+// -------------------------------------------------------- Master Switch Button.
 const MasterSwitchButton = styled.button`
     font: inherit;
     display: flex;
@@ -325,11 +355,13 @@ const MasterSwitchButton = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Type Selection Section.
 const TypeSelectionSection = styled.div`
     margin-bottom: 1rem;
     padding: 0 1.25rem;
 `;
 
+// -------------------------------------------------------- Type Selection Header.
 const TypeSelectionHeader = styled.div`
     display: flex;
     justify-content: space-between;
@@ -337,6 +369,7 @@ const TypeSelectionHeader = styled.div`
     margin-bottom: 1rem;
 `;
 
+// -------------------------------------------------------- Type Selection Title.
 const TypeSelectionTitle = styled.h4`
     margin: 0;
     font-size: 1rem;
@@ -344,11 +377,13 @@ const TypeSelectionTitle = styled.h4`
     color: var(--text-primary);
 `;
 
+// -------------------------------------------------------- Type Selection Actions.
 const TypeSelectionActions = styled.div`
     display: flex;
     gap: 0.5rem;
 `;
 
+// -------------------------------------------------------- Action Button.
 const ActionButton = styled.button`
     font: inherit;
     padding: 0.5rem 1rem;
@@ -366,6 +401,7 @@ const ActionButton = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Type Grid.
 const TypeGrid = styled.div`
     display: flex;
     flex-direction: column;
@@ -394,6 +430,7 @@ const TypeGrid = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Type Checkbox.
 const TypeCheckbox = styled.button`
     font: inherit;
     display: flex;
@@ -415,6 +452,7 @@ const TypeCheckbox = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Checkbox Icon.
 const CheckboxIcon = styled.div`
     width: 16px;
     height: 16px;
@@ -427,6 +465,7 @@ const CheckboxIcon = styled.div`
     flex-shrink: 0;
 `;
 
+// -------------------------------------------------------- Type Label.
 const TypeLabel = styled.div`
     display: flex;
     flex-direction: column;
@@ -445,6 +484,7 @@ const TypeLabel = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Status Display.
 const StatusDisplay = styled.div`
     display: flex;
     justify-content: space-between;
@@ -455,18 +495,21 @@ const StatusDisplay = styled.div`
     margin: 0 1.25rem 1rem 1.25rem;
 `;
 
+// -------------------------------------------------------- Status Label.
 const StatusLabel = styled.span`
     font-size: 0.9rem;
     color: var(--text-secondary);
     font-weight: 500;
 `;
 
+// -------------------------------------------------------- Status Value.
 const StatusValue = styled.span`
     font-size: 0.9rem;
     color: var(--text-primary);
     font-weight: 600;
 `;
 
+// -------------------------------------------------------- Action Buttons.
 const ActionButtons = styled.div`
     display: flex;
     gap: 1rem;
@@ -474,6 +517,7 @@ const ActionButtons = styled.div`
     padding: 0 1.25rem 1.25rem 1.25rem;
 `;
 
+// -------------------------------------------------------- Clear Button.
 const ClearButton = styled.button`
     font: inherit;
     font-size: 0.8rem;
@@ -492,6 +536,7 @@ const ClearButton = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Apply Button.
 const ApplyButton = styled.button`
     font: inherit;
     font-size: 0.8rem;
@@ -510,4 +555,5 @@ const ApplyButton = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Export The TypeFilter Component.
 export default TypeFilter; 

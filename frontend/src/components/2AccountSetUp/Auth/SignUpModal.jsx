@@ -1,3 +1,13 @@
+// SignUpModal.jsx
+//
+// This is the modal that the user will see when they click the "Sign Up" button in the WelcomeScreen.
+// 
+// The user will see a modal with a form to enter their first name, last name, email address, password, and confirm 
+// password. The form will validate their inputs, and if they are valid allow them to sign up, If the user's infor-
+// mation is correct, they will be redirected to the dashboard. If the user's information is incorrect, they will 
+// see an error message. There is an option to sign up / in with Google as well, and at the very bottom there is an
+// option to sign in which will redirect them to the LoginModal. 
+
 // Imports.
 import React, { useState } from 'react';
 import { styled } from 'styled-components';
@@ -14,7 +24,18 @@ import { registerUser, googleAuthCode } from '../../../services/api';
 
 // -------------------------------------------------------- SignUpModal Component.
 const SignUpModal = ({ onSignUpSuccess, onShowLogin }) => {
-    // Form States.
+
+    // -------------------------------------------------------- State Declarations.
+    
+    const [errors, setErrors] = useState({});                                   // State 4 Errors.
+    const [isLoading, setIsLoading] = useState(false);                          // State 4 Loading.
+    const [successStates, setSuccessStates] = useState({});                     // State 4 Success States.
+    const [showPassword, setShowPassword] = useState(false);                    // State 4 Whether Password Is Being Shown.
+    const [passwordFocused, setPasswordFocused] = useState(false);              // State 4 Whether Password Is Focused.
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);      // State 4 Whether Confirm Password Is Being Shown.
+    const [confirmPasswordFocused, setConfirmPasswordFocused] = useState(false); // State 4 Whether Confirm Password Is Focused.
+    const [passwordRequirementsShown, setPasswordRequirementsShown] = useState(false); // State 4 Whether Password Requirements Are Shown.
+    const [confirmPasswordRequirementsShown, setConfirmPasswordRequirementsShown] = useState(false); // State 4 Whether Confirm Password Requirements Are Shown.
     const [formData, setFormData] = useState({
         firstName: '',
         lastName: '',
@@ -22,17 +43,6 @@ const SignUpModal = ({ onSignUpSuccess, onShowLogin }) => {
         password: '',
         confirmPassword: ''
     });
-    
-    // UI States.
-    const [showPassword, setShowPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
-    const [errors, setErrors] = useState({});
-    const [successStates, setSuccessStates] = useState({});
-    const [passwordFocused, setPasswordFocused] = useState(false);
-    const [confirmPasswordFocused, setConfirmPasswordFocused] = useState(false);
-    const [passwordRequirementsShown, setPasswordRequirementsShown] = useState(false);
-    const [confirmPasswordRequirementsShown, setConfirmPasswordRequirementsShown] = useState(false);
 
     // -------------------------------------------------------- Password Requirements Checker.
     const checkPasswordRequirements = (password) => {
@@ -84,13 +94,14 @@ const SignUpModal = ({ onSignUpSuccess, onShowLogin }) => {
 
     // -------------------------------------------------------- Handle Input Changes with Validation.
     const handleInputChange = (e) => {
+        // Get Name & Value From Input.
         const { name, value } = e.target;
         setFormData(prev => ({
             ...prev,
             [name]: value
         }));
         
-        // Real-time validation
+        // Real-Time Validation.
         let errorMessage = '';
         switch (name) {
             case 'firstName':
@@ -104,7 +115,7 @@ const SignUpModal = ({ onSignUpSuccess, onShowLogin }) => {
                 break;
             case 'password':
                 errorMessage = validatePassword(value);
-                // Also validate confirm password if it has a value
+                // Also Validate Confirm Password If It Has A Value.
                 if (formData.confirmPassword) {
                     const confirmError = validateConfirmPassword(formData.confirmPassword, value);
                     setErrors(prev => ({
@@ -112,7 +123,7 @@ const SignUpModal = ({ onSignUpSuccess, onShowLogin }) => {
                         confirmPassword: confirmError
                     }));
                 }
-                // Update confirm password success state when password changes
+                // Update Confirm Password Success State When Password Changes.
                 if (formData.confirmPassword) {
                     setSuccessStates(prev => ({
                         ...prev,
@@ -134,13 +145,13 @@ const SignUpModal = ({ onSignUpSuccess, onShowLogin }) => {
             [name]: errorMessage
         }));
         
-        // Update success states
+        // Update Success States.
         setSuccessStates(prev => ({
             ...prev,
             [name]: !errorMessage && value.trim() !== ''
         }));
         
-        // Special handling for confirm password - only show success if password is also valid
+        // Special Handling For Confirm Password - Only Show Success If Password Is Also Valid.
         if (name === 'confirmPassword') {
             setSuccessStates(prev => ({
                 ...prev,
@@ -151,10 +162,11 @@ const SignUpModal = ({ onSignUpSuccess, onShowLogin }) => {
 
     // -------------------------------------------------------- Handle Form Submission.
     const handleSubmit = async (e) => {
+        // Prevent Default Form Submission.
         e.preventDefault();
         setIsLoading(true);
         
-        // Comprehensive Validation.
+        // Comprehensive Validation (First Name, Last Name, Email, Password, Confirm Password).
         const newErrors = {};
         newErrors.firstName = validateFirstName(formData.firstName);
         newErrors.lastName = validateLastName(formData.lastName);
@@ -162,22 +174,22 @@ const SignUpModal = ({ onSignUpSuccess, onShowLogin }) => {
         newErrors.password = validatePassword(formData.password);
         newErrors.confirmPassword = validateConfirmPassword(formData.confirmPassword);
 
-        // Remove Empty Error Messages.
+        // Remove Empty Error Messages (If There Are Any).
         const filteredErrors = Object.fromEntries(
             Object.entries(newErrors).filter(([_, value]) => value !== '')
         );
 
+        // If There Are Any Errors, Set Errors And Return.
         if (Object.keys(filteredErrors).length > 0) {
             setErrors(filteredErrors);
             setIsLoading(false);
             return;
         }
 
-        // Call Registration API.
+        // Call Registration API (Create User Data Object).
         try {
             console.log('SignUpModal: Form submitted successfully, calling registration API...');
             
-            // Create User Data Object.
             const userData = {
                 first_name: formData.firstName,
                 last_name: formData.lastName,
@@ -185,17 +197,16 @@ const SignUpModal = ({ onSignUpSuccess, onShowLogin }) => {
                 password: formData.password
             };
             
-            // Call Registration API.
             const response = await registerUser(userData);
             console.log('SignUpModal: Registration successful:', response.data);
             
-            // Store user data in localStorage (cookies handle the token automatically)
+            // Store User Data In Local Storage (Cookies Handle The Token Automatically).
             localStorage.setItem('user', JSON.stringify(response.data.user));
             
-            // Call onSignUpSuccess Callback.
-            onSignUpSuccess();
+            // Call onSignUpSuccess Callback With Email.
+            onSignUpSuccess(formData.email);
         } catch (error) {
-            console.error('Sign up failed:', error);
+            console.error('Sign Up Failed:', error);
             if (error.response?.data?.detail) {
                 setErrors({ general: error.response.data.detail });
             } else {
@@ -206,42 +217,48 @@ const SignUpModal = ({ onSignUpSuccess, onShowLogin }) => {
         }
     };
 
-    // -------------------------------------------------------- Handle Google Sign In.
+    // -------------------------------------------------------- Handle Google Sign In (Google Auth Code Flow).
     const handleGoogleSuccess = async (response) => {
         try {
             setIsLoading(true);
             console.log('Google Sign In Success:', response);
             
-            // For auth-code flow, we send the authorization code to the backend
-            // The backend will exchange it for tokens and user info
+            // For Auth-Code Flow, We Send The Authorization Code To The Backend.
+            // The Backend Will Exchange It For Tokens And User Info.
             const authData = {
                 code: response.code,
                 redirect_uri: window.location.origin
             };
             
-            console.log('Sending authorization code to backend:', authData);
+            console.log('Sending Authorization Code To Backend:', authData);
             
-            // Send authorization code to backend for authentication/registration
+            // Send Authorization Code To Backend For Authentication/Registration.
             const authResponse = await googleAuthCode(authData);
             const authResult = authResponse.data;
             console.log('Backend Google auth response:', authResult);
             
-            // Store user data in localStorage (cookies handle the token automatically)
+            // Store User Data In Local Storage (Cookies Handle The Token Automatically).
             localStorage.setItem('user', JSON.stringify(authResult.user));
             
-            // Call onSignUpSuccess callback
+            // Call onSignUpSuccess Callback.
             onSignUpSuccess();
             
         } catch (error) {
             console.error('Google authentication failed:', error);
             if (error.response?.status === 409) {
-                // Account already exists with password - show specific message
+                // Account Already Exists With Password - Show Specific Message.
                 setErrors({ 
                     general: 'This email is already registered with a password. Please sign in with your password instead.',
                     showLoginLink: true
                 });
+            } else if (error.response?.status === 401) {
+                // Unauthorized - Could Be Verification Error Or Other Auth Issues.
+                setErrors({ 
+                    general: error.response.data.detail || 'Authentication failed. Please check your credentials and try again.',
+                    showLoginLink: true
+                });
             } else if (error.response?.status === 500) {
-                // Server error - likely account conflict
+                // Server Error - Likely Account Conflict.
                 setErrors({ 
                     general: 'This email is already registered. Please sign in with your password instead.',
                     showLoginLink: true
@@ -250,7 +267,7 @@ const SignUpModal = ({ onSignUpSuccess, onShowLogin }) => {
                 setErrors({ general: error.response.data.detail });
             } else if (error.response?.data?.message) {
                 setErrors({ general: error.response.data.message });
-            } else if (error.message && error.message.includes('Failed to process Google authentication')) {
+            } else if (error.message && error.message.includes('Failed To Process Google Authentication')) {
                 setErrors({ 
                     general: 'This email is already registered with a password. Please sign in with your password instead.',
                     showLoginLink: true
@@ -265,7 +282,7 @@ const SignUpModal = ({ onSignUpSuccess, onShowLogin }) => {
         }
     };
 
-    // -------------------------------------------------------- Google Login Hook.
+    // -------------------------------------------------------- Google Login Hook (Google Auth Code Flow).
     const googleLogin = useGoogleLogin({
         onSuccess: handleGoogleSuccess,
         onError: () => {
@@ -278,9 +295,9 @@ const SignUpModal = ({ onSignUpSuccess, onShowLogin }) => {
         redirect_uri: window.location.origin
     });
 
-    // -------------------------------------------------------- Custom Google Login with Centered Popup.
+    // -------------------------------------------------------- Custom Google Login With Centered Popup.
     const handleCustomGoogleLogin = () => {
-        // Add a visual indicator that popup is opening
+        // Add A Visual Indicator That Popup Is Opening.
         const button = document.querySelector('.google-login-button');
         if (button) {
             button.style.transform = 'scale(0.95)';
@@ -289,7 +306,7 @@ const SignUpModal = ({ onSignUpSuccess, onShowLogin }) => {
             }, 150);
         }
         
-        // Use the Google login function
+        // Use The Google Login Function.
         googleLogin();
     };
 
@@ -298,33 +315,42 @@ const SignUpModal = ({ onSignUpSuccess, onShowLogin }) => {
         onSuccess: handleGoogleSuccess,
         onError: () => {
             console.error('Google One Tap Login Failed');
-            // Don't show error for One Tap as it's optional
+            // Don't Show Error For One Tap As It's Optional.
         },
-        disabled: false, // Enable One Tap
-        auto_select: false, // Don't auto-select, let user choose
-        cancel_on_tap_outside: true, // Close when clicking outside
-        prompt_parent_id: 'google-one-tap-container' // Optional: specify container
+        disabled: false, // Enable One Tap.
+        auto_select: false, // Don't Auto-Select, Let User Choose.
+        cancel_on_tap_outside: true, // Close When Clicking Outside.
+        prompt_parent_id: 'google-one-tap-container' // Optional: Specify Container.
     });
 
     return (
         <>
-            {/* Google One Tap Container */}
+            {/* Google One Tap Container. */}
             <div id="google-one-tap-container" style={{ position: 'fixed', top: '20px', right: '20px', zIndex: 9999 }} />
             
             <ModalContainer>
             <FormContainer>
+                {/* Logo. */}
                 <LogoContainer>
                     <Logo src={colorScheme} alt="Centi Logo" />
                 </LogoContainer>
                 
+                {/* Title. */}
                 <FormTitle>Create Your Account</FormTitle>
+
+                {/* Subtitle. */}
                 <FormSubtitle>Join thousands of users taking control of their finances</FormSubtitle>
                 
+                {/* Form. */}
                 <StyledForm onSubmit={handleSubmit}>
+                    {/* Form Row. */}
                     <FormRow>
+                        {/* First Name Form Group. */}
                         <FormGroup>
+                            {/* Label, "First Name *" */}
                             <Label htmlFor="firstName">First Name <span>*</span></Label>
                             <InputWrapper $hasError={!!errors.firstName} $isSuccess={!!successStates.firstName}> 
+                                {/* Input. */}
                                 <Input
                                     type="text"
                                     id="firstName"
@@ -334,14 +360,21 @@ const SignUpModal = ({ onSignUpSuccess, onShowLogin }) => {
                                     placeholder="Enter your first name"
                                     $hasError={!!errors.firstName}
                                 />
+
+                                {/* Success Checkmark. */}
                                 {successStates.firstName && <SuccessCheckmark />}
                             </InputWrapper>
+
+                            {/* Error Message. */}
                             {errors.firstName && <ErrorMessage>{errors.firstName}</ErrorMessage>}
                         </FormGroup>
                         
+                        {/* Last Name Form Group. */}
                         <FormGroup>
+                            {/* Label, "Last Name *" */}
                             <Label htmlFor="lastName">Last Name <span>*</span></Label>
                             <InputWrapper $hasError={!!errors.lastName} $isSuccess={!!successStates.lastName}> 
+                                {/* Input. */}
                                 <Input
                                     type="text"
                                     id="lastName"
@@ -351,15 +384,22 @@ const SignUpModal = ({ onSignUpSuccess, onShowLogin }) => {
                                     placeholder="Enter your last name"
                                     $hasError={!!errors.lastName}
                                 />
+
+                                {/* Success Checkmark. */}
                                 {successStates.lastName && <SuccessCheckmark />}
                             </InputWrapper>
+
+                            {/* Error Message. */}
                             {errors.lastName && <ErrorMessage>{errors.lastName}</ErrorMessage>}
                         </FormGroup>
                     </FormRow>
                     
+                    {/* Email Form Group. */}
                     <FormGroup>
+                        {/* Label, "Email Address *" */}
                         <Label htmlFor="email">Email Address <span>*</span></Label>
                         <InputWrapper $hasError={!!errors.email} $isSuccess={!!successStates.email}>
+                            {/* Input. */}
                             <Input
                                 type="email"
                                 id="email"
@@ -374,9 +414,12 @@ const SignUpModal = ({ onSignUpSuccess, onShowLogin }) => {
                         {errors.email && <ErrorMessage>{errors.email}</ErrorMessage>}
                     </FormGroup>
                     
+                    {/* Password Form Group. */}
                     <FormGroup>
+                        {/* Label, "Password *" */}
                         <Label htmlFor="password">Password <span>*</span></Label>
                         <InputWrapper $hasError={!!errors.password} $isSuccess={!!successStates.password}>
+                            {/* Input. */}
                             <Input
                                 type={showPassword ? "text" : "password"}
                                 id="password"
@@ -391,6 +434,8 @@ const SignUpModal = ({ onSignUpSuccess, onShowLogin }) => {
                                 $hasError={!!errors.password}
                                 autoComplete="new-password"
                             />
+
+                            {/* Password Toggle. */}
                             <PasswordToggle
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
@@ -398,10 +443,15 @@ const SignUpModal = ({ onSignUpSuccess, onShowLogin }) => {
                             >
                                 <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
                             </PasswordToggle>
+
+                            {/* Success Checkmark. */}
                             {successStates.password && <SuccessCheckmark />}
                         </InputWrapper>
+
+                        {/* Error Message. */}
                         {errors.password && <ErrorMessage>{errors.password}</ErrorMessage>}
                         
+                        {/* Password Requirements (If Password Is Focused). */}
                         <PasswordRequirements $isVisible={passwordRequirementsShown}>
                             <RequirementItem $isMet={checkPasswordRequirements(formData.password).minLength}>
                                 <RequirementIcon $isMet={checkPasswordRequirements(formData.password).minLength}>
@@ -446,9 +496,12 @@ const SignUpModal = ({ onSignUpSuccess, onShowLogin }) => {
                         </PasswordRequirements>
                     </FormGroup>
                     
+                    {/* Confirm Password Form Group. */}
                     <FormGroup>
+                        {/* Label, "Confirm Password *" */}
                         <Label htmlFor="confirmPassword">Confirm Password <span>*</span></Label>
                         <InputWrapper $hasError={!!errors.confirmPassword} $isSuccess={!!successStates.confirmPassword}>
+                            {/* Input. */}
                             <Input
                                 type={showConfirmPassword ? "text" : "password"}
                                 id="confirmPassword"
@@ -463,6 +516,8 @@ const SignUpModal = ({ onSignUpSuccess, onShowLogin }) => {
                                 $hasError={!!errors.confirmPassword}
                                 autoComplete="new-password"
                             />
+
+                            {/* Confirm Password Toggle. */}
                             <PasswordToggle
                                 type="button"
                                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -470,10 +525,15 @@ const SignUpModal = ({ onSignUpSuccess, onShowLogin }) => {
                             >
                                 <FontAwesomeIcon icon={showConfirmPassword ? faEyeSlash : faEye} />
                             </PasswordToggle>
+
+                            {/* Success Checkmark. */}
                             {successStates.confirmPassword && <SuccessCheckmark />}
                         </InputWrapper>
+
+                        {/* Error Message. */}
                         {errors.confirmPassword && <ErrorMessage>{errors.confirmPassword}</ErrorMessage>}
                         
+                        {/* Password Requirements. */}
                         <PasswordRequirements $isVisible={confirmPasswordRequirementsShown}>
                             <RequirementItem $isMet={formData.password === formData.confirmPassword && isPasswordFullyValid(formData.password)}>
                                 <RequirementIcon $isMet={formData.password === formData.confirmPassword && isPasswordFullyValid(formData.password)}>
@@ -488,12 +548,14 @@ const SignUpModal = ({ onSignUpSuccess, onShowLogin }) => {
                         </PasswordRequirements>
                     </FormGroup>
                     
+                    {/* General Error Message. */}
                     {errors.general && (
                         <GeneralErrorMessage $hasPulse={errors.showLoginLink}>
                             {errors.general}
                         </GeneralErrorMessage>
                     )}
                     
+                    {/* Sign Up Button. */}
                     <SignUpButton type="submit" disabled={isLoading}>
                         {isLoading ? (
                             <>
@@ -506,10 +568,12 @@ const SignUpModal = ({ onSignUpSuccess, onShowLogin }) => {
                     </SignUpButton>
                 </StyledForm>
                 
+                {/* Divider. */}
                 <Divider>
                     <DividerText>or</DividerText>
                 </Divider>
                 
+                {/* Custom Google Button. */}
                 <CustomGoogleButton 
                     className="google-login-button"
                     type="button" 
@@ -528,10 +592,14 @@ const SignUpModal = ({ onSignUpSuccess, onShowLogin }) => {
                         </>
                     )}
                 </CustomGoogleButton>
+
+                {/* Google Info Text. */}
                 <GoogleInfoText>
                     New Users Only • Existing Accounts Should Use Password Login
                 </GoogleInfoText>
                 <Divider />
+
+                {/* Login Prompt. */}
                 <LoginPrompt>
                     Already have an account? <LoginLink onClick={onShowLogin}>Sign in</LoginLink>
                 </LoginPrompt>
@@ -541,7 +609,7 @@ const SignUpModal = ({ onSignUpSuccess, onShowLogin }) => {
     );
 };
 
-// -------------------------------------------------------- Styled Components
+// -------------------------------------------------------- Entire Modal Container (Outer Container).
 const ModalContainer = styled.div`
     display: flex;
     flex-direction: column;
@@ -563,22 +631,26 @@ const ModalContainer = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Form Container.
 const FormContainer = styled.div`
     width: 100%;
 `;
 
+// -------------------------------------------------------- Logo Container.
 const LogoContainer = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
 `;
 
+// -------------------------------------------------------- Logo.
 const Logo = styled.img`
     height: 80px;
     width: auto;
     border-radius: 8px;
 `;
 
+// -------------------------------------------------------- Form Title.
 const FormTitle = styled.h2`
     font-size: 2rem;
     font-weight: 700;
@@ -587,6 +659,7 @@ const FormTitle = styled.h2`
     text-align: center;
 `;
 
+// -------------------------------------------------------- Form Subtitle.
 const FormSubtitle = styled.p`
     color: var(--text-secondary);
     text-align: center;
@@ -594,12 +667,14 @@ const FormSubtitle = styled.p`
     font-size: 1rem;
 `;
 
+// -------------------------------------------------------- Styled Form.
 const StyledForm = styled.form`
     display: flex;
     flex-direction: column;
     gap: 1rem;
 `;
 
+// -------------------------------------------------------- Form Row.
 const FormRow = styled.div`
     display: grid;
     max-width: 100%;
@@ -611,12 +686,14 @@ const FormRow = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Form Group.
 const FormGroup = styled.div`
     display: flex;
     flex-direction: column;
     gap: 0.325rem;
 `;
 
+// -------------------------------------------------------- Label.
 const Label = styled.label`
     font-weight: 600;
     color: var(--text-primary);
@@ -628,6 +705,7 @@ const Label = styled.label`
     }
 `;
 
+// -------------------------------------------------------- Input.
 const Input = styled.input`
     font: inherit;
     padding: 0.75rem 1rem;
@@ -648,6 +726,7 @@ const Input = styled.input`
     }
 `;
 
+// -------------------------------------------------------- Success Checkmark.
 const SuccessCheckmark = styled.div`
     position: absolute;
     right: 0.75rem;
@@ -682,6 +761,7 @@ const SuccessCheckmark = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Input Wrapper.
 const InputWrapper = styled.div`
     display: flex;
     align-items: center;
@@ -719,6 +799,7 @@ const InputWrapper = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Password Toggle.
 const PasswordToggle = styled.button`
     display: flex;
     align-items: center;
@@ -736,6 +817,7 @@ const PasswordToggle = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Error Message.
 const ErrorMessage = styled.span`
     color: var(--amount-negative);
     font-size: 0.8rem;
@@ -746,6 +828,7 @@ const ErrorMessage = styled.span`
     display: block;
 `;
 
+// -------------------------------------------------------- General Error Message.
 const GeneralErrorMessage = styled.div`
     color: var(--amount-negative);
     background: linear-gradient(135deg, rgba(220, 53, 69, 0.15), rgba(220, 53, 69, 0.08));
@@ -771,6 +854,7 @@ const GeneralErrorMessage = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Login Link In Error.
 const LoginLinkInError = styled.button`
     background: none;
     border: none;
@@ -789,6 +873,7 @@ const LoginLinkInError = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Sign Up Button.
 const SignUpButton = styled.button`
     font: inherit;
     background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
@@ -841,6 +926,7 @@ const SignUpButton = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Loading Spinner.
 const LoadingSpinner = styled.div`
     width: 16px;
     height: 16px;
@@ -855,6 +941,7 @@ const LoadingSpinner = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Divider.
 const Divider = styled.div`
     display: flex;
     align-items: center;
@@ -869,12 +956,14 @@ const Divider = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Divider Text.
 const DividerText = styled.span`
     padding: 0 1rem;
     color: var(--text-secondary);
     font-size: 0.9rem;
 `;
 
+// -------------------------------------------------------- Custom Google Button.
 const CustomGoogleButton = styled.button`
     display: flex;
     width: 100%;
@@ -911,11 +1000,13 @@ const CustomGoogleButton = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Google Logo.
 const GoogleLogo = styled.img`
     width: 20px;
     height: 20px;
 `;
 
+// -------------------------------------------------------- Login Prompt.
 const LoginPrompt = styled.p`
     text-align: center;
     color: var(--text-secondary);
@@ -924,6 +1015,7 @@ const LoginPrompt = styled.p`
     padding: 0 0 0.25rem 0;
 `;
 
+// -------------------------------------------------------- Login Link.
 const LoginLink = styled.span`
     color: var(--button-primary);
     cursor: pointer;
@@ -934,6 +1026,7 @@ const LoginLink = styled.span`
     }
 `;
 
+// -------------------------------------------------------- Google Info Text.
 const GoogleInfoText = styled.p`
     text-align: center;
     color: var(--text-secondary);
@@ -942,6 +1035,7 @@ const GoogleInfoText = styled.p`
     opacity: 0.8;
 `;
 
+// -------------------------------------------------------- Password Requirements.
 const PasswordRequirements = styled.div`
     display: flex;
     flex-direction: column;
@@ -959,6 +1053,7 @@ const PasswordRequirements = styled.div`
     pointer-events: ${props => props.$isVisible ? 'auto' : 'none'};
 `;
 
+// -------------------------------------------------------- Requirement Item.
 const RequirementItem = styled.div`
     display: flex;
     align-items: center;
@@ -968,6 +1063,7 @@ const RequirementItem = styled.div`
     transition: color 0.3s ease;
 `;
 
+// -------------------------------------------------------- Requirement Icon.
 const RequirementIcon = styled.span`
     display: flex;
     align-items: center;

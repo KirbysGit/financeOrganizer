@@ -1,3 +1,11 @@
+// SpendingGrid.jsx
+
+// This is the second component of the Dashboard, it is a component that displays the user's
+// spending data in a grid format. It also has a chart that displays the user's spending data
+// with custom styling for like the date frame, and the choice of what to show out of the income,
+// spending, and net data. Then on the right side of the screen it has a list of the recent
+// transactions that the user has made, and a summary of the user's spending data.
+
 // Imports.
 import React from 'react';
 import { styled } from 'styled-components';
@@ -23,7 +31,7 @@ const SpendingGrid = ({ myTransactions, id }) => {
     const [showNet, setShowNet] = useState(true);
     const [dateRange, setDateRange] = useState('30D');
 
-    // Get user name from localStorage
+    // Get User Name From LocalStorage.
     const getUserName = () => {
         try {
             const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -49,7 +57,7 @@ const SpendingGrid = ({ myTransactions, id }) => {
             generateSummary(processedData);
             setLoading(false);
         } else {
-            console.log('No transactions received from props');
+            console.log('No Transactions Received From Props');
             setLoading(false);
         }
     }, [myTransactions, dateRange]);
@@ -65,7 +73,7 @@ const SpendingGrid = ({ myTransactions, id }) => {
 
     // -------------------------------------------------------- Process Chart Data.
     const processChartData = (transactions) => {
-        // Check if we have real data
+        // Check If We Have Real Data.
         const hasRealData = transactions && transactions.length > 0;
         
         if (hasRealData) {
@@ -117,7 +125,7 @@ const SpendingGrid = ({ myTransactions, id }) => {
                 }
             };
         } else {
-            // Return Placeholder Data (Jan - Dec)
+            // Return Placeholder Data (Jan - Dec).
             const months = [
                 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
@@ -441,7 +449,7 @@ const SpendingGrid = ({ myTransactions, id }) => {
         }
     };
 
-    // Check if we have data to show
+    // Check If We Have Data To Show.
     const hasData = transactions.length > 0 && chartData && chartData.daily && (
         chartData.daily.income.some(val => val > 0) || 
         chartData.daily.spending.some(val => val > 0)
@@ -457,7 +465,7 @@ const SpendingGrid = ({ myTransactions, id }) => {
                     Here's how your money moved lately...
                 </SectionTitle>
 
-                {/* Cash Flow Summary - Only show if we have data */}
+                {/* Cash Flow Summary - Only Show If We Have Data. */}
                 {hasData && (
                     <CashFlowSummary>
                         <CashFlowIcon>
@@ -506,7 +514,7 @@ const SpendingGrid = ({ myTransactions, id }) => {
                     )}
                 </ChartContainer>
 
-                {/* Chart Toggles - Only show if we have data */}
+                {/* Chart Toggles - Only Show If We Have Data. */}
                 {hasData && (
                     <ChartToggles>
                         <DateRangeSelector>

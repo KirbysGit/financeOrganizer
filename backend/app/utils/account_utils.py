@@ -1,25 +1,34 @@
+# Account Utils.
+#
+# Functions :
+#   - 'create_account_balance_snapshot' - Create Balance Snapshots For All User Accounts.
+#   - 'calculate_account_financial_impact' - Calculate Total Assets, Liabilities, And Net Worth With Proper Categorization.
+#   - 'get_account_growth_data' - Get Account Balance Growth Over Specified Period.
+#   - 'calculate_account_health_indicators' - Calculate Account Health Indicators Like Utilization Rate.
+#   - 'get_account_percentage_contributions' - Calculate What Percentage Of Total Assets/Liabilities This Account Represents.
+#   - 'analyze_account_portfolio' - Analyze The User's Account Portfolio For Insights.
+
 # Imports.
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-from typing import Dict, List, Optional, Tuple
-from datetime import datetime, date, timedelta
+from datetime import date, timedelta
+from typing import Dict, List, Optional
 
 # Local Imports.
 from ..database import Account, AccountBalanceHistory, Transaction
 
 # -------------------------------------------------------- Account Balance Tracking.
-
 def create_account_balance_snapshot(
     db: Session, 
     user_id: int, 
     snapshot_date: date = None
 ) -> List[AccountBalanceHistory]:
-    """Create balance snapshots for all user accounts."""
+    """Create Balance Snapshots For All User Accounts."""
     
     if snapshot_date is None:
         snapshot_date = date.today()
     
-    # Get all active accounts for the user
+    # Get All Active Accounts For The User.
     accounts = db.query(Account).filter(
         Account.user_id == user_id,
         Account.is_active == True
@@ -27,9 +36,9 @@ def create_account_balance_snapshot(
     
     snapshots = []
     
-    # Create snapshots for each account
+    # Create Snapshots For Each Account.
     for account in accounts:
-        # Check if snapshot already exists for this date
+        # Check If Snapshot Already Exists For This Date.
         existing = db.query(AccountBalanceHistory).filter(
             AccountBalanceHistory.user_id == user_id,
             AccountBalanceHistory.account_id == account.account_id,
@@ -37,7 +46,7 @@ def create_account_balance_snapshot(
         ).first()
         
         if existing:
-            # Update existing snapshot
+            # Update Existing Snapshot.
             existing.current_balance = account.current_balance
             existing.available_balance = account.available_balance
             existing.limit = account.limit
@@ -46,7 +55,7 @@ def create_account_balance_snapshot(
             existing.account_subtype = account.subtype
             existing.currency = account.currency
         else:
-            # Create new snapshot
+            # Create New Snapshot.
             snapshot = AccountBalanceHistory(
                 user_id=user_id,
                 account_id=account.account_id,
@@ -61,14 +70,14 @@ def create_account_balance_snapshot(
             )
             snapshots.append(snapshot)
     
-    # Handle cash account (transactions with account_id = None)
+    # Handle Cash Account (Transactions With Account_Id = None).
     cash_balance = db.query(func.sum(Transaction.amount)).filter(
         Transaction.account_id.is_(None),
         Transaction.user_id == user_id
     ).scalar() or 0
     
     if cash_balance != 0:
-        # Check if cash snapshot already exists
+        # Check If Cash Snapshot Already Exists.
         existing_cash = db.query(AccountBalanceHistory).filter(
             AccountBalanceHistory.user_id == user_id,
             AccountBalanceHistory.account_id.is_(None),
@@ -93,7 +102,7 @@ def create_account_balance_snapshot(
             )
             snapshots.append(cash_snapshot)
     
-    # Add snapshots to database
+    # Add Snapshots To Database.
     if snapshots:
         db.add_all(snapshots)
         db.commit()
@@ -101,26 +110,25 @@ def create_account_balance_snapshot(
     return snapshots
 
 # -------------------------------------------------------- Enhanced Financial Calculations.
-
 def calculate_account_financial_impact(
     db: Session, 
     user_id: int
 ) -> Dict[str, float]:
-    """Calculate total assets, liabilities, and net worth with proper categorization."""
+    """Calculate Total Assets, Liabilities, And Net Worth With Proper Categorization."""
     
-    # Get all accounts
+    # Get All Accounts.
     accounts = db.query(Account).filter(
         Account.user_id == user_id,
         Account.is_active == True
     ).all()
     
-    # Calculate cash balance
+    # Calculate Cash Balance.
     cash_balance = db.query(func.sum(Transaction.amount)).filter(
         Transaction.account_id.is_(None),
         Transaction.user_id == user_id
     ).scalar() or 0
     
-    # Categorize accounts properly
+    # Categorize Accounts Properly.
     assets = 0
     liabilities = 0
     
@@ -128,16 +136,16 @@ def calculate_account_financial_impact(
         balance = account.current_balance or 0
         
         if account.type in ['depository', 'investment']:
-            # Assets: checking, savings, investment accounts
+            # Assets: Checking, Savings, Investment Accounts.
             assets += balance
         elif account.type in ['credit', 'loan']:
-            # Liabilities: credit cards, loans, mortgages
-            liabilities += abs(balance)  # Ensure positive for liability calculation
+            # Liabilities: Credit Cards, Loans, Mortgages.
+            liabilities += abs(balance)  # Ensure Positive For Liability Calculation.
         else:
-            # Default to assets for unknown types
+            # Default To Assets For Unknown Types.
             assets += balance
     
-    # Add cash to assets
+    # Add Cash To Assets.
     assets += cash_balance
     
     net_worth = assets - liabilities
@@ -160,23 +168,23 @@ def get_account_growth_data(
     end_date = date.today()
     start_date = end_date - timedelta(days=days)
     
-    # Get current balance
+    # Get Current Balance.
     current_balance = None
     if account_id is None:
-        # Cash account
+        # Cash Account.
         current_balance = db.query(func.sum(Transaction.amount)).filter(
             Transaction.account_id.is_(None),
             Transaction.user_id == user_id
         ).scalar() or 0
     else:
-        # Regular account
+        # Regular Account.
         account = db.query(Account).filter(
             Account.account_id == account_id,
             Account.user_id == user_id
         ).first()
         current_balance = account.current_balance if account else 0
     
-    # Get historical balance
+    # Get Historical Balance.
     historical_balance = db.query(AccountBalanceHistory.current_balance).filter(
         AccountBalanceHistory.user_id == user_id,
         AccountBalanceHistory.account_id == account_id,
@@ -195,7 +203,7 @@ def get_account_growth_data(
     historical_balance = historical_balance[0]
     balance_change = current_balance - historical_balance
     
-    # Calculate growth percentage
+    # Calculate Growth Percentage.
     if historical_balance != 0:
         growth_percentage = (balance_change / abs(historical_balance)) * 100
     else:
@@ -213,17 +221,17 @@ def calculate_account_health_indicators(
     user_id: int, 
     account: Account
 ) -> Dict[str, Optional[float]]:
-    """Calculate account health indicators like utilization rate."""
+    """Calculate Account Health Indicators Like Utilization Rate."""
     
     indicators = {}
     
-    # Calculate utilization rate for credit cards
+    # Calculate Utilization Rate For Credit Cards.
     if account.type == 'credit' and account.limit and account.limit > 0:
         current_balance = abs(account.current_balance or 0)
         utilization_rate = (current_balance / account.limit) * 100
         indicators['utilization_rate'] = utilization_rate
     
-    # Calculate days since last transaction
+    # Calculate Days Since Last Transaction.
     last_transaction = db.query(Transaction.date).filter(
         Transaction.account_id == account.account_id,
         Transaction.user_id == user_id
@@ -241,20 +249,21 @@ def get_account_percentage_contributions(
     account_balance: float, 
     account_type: str
 ) -> Dict[str, float]:
-    """Calculate what percentage of total assets/liabilities this account represents."""
+    """Calculate What Percentage Of Total Assets/Liabilities This Account Represents."""
     
+    # Calculate Financial Impact.
     financial_impact = calculate_account_financial_impact(db, user_id)
     
     percentages = {}
     
     if account_type in ['depository', 'investment', 'cash']:
-        # Asset account
+        # Asset Account.
         if financial_impact['total_assets'] > 0:
             percentages['percentage_of_total_assets'] = (account_balance / financial_impact['total_assets']) * 100
         else:
             percentages['percentage_of_total_assets'] = 0
     elif account_type in ['credit', 'loan']:
-        # Liability account
+        # Liability Account.
         if financial_impact['total_liabilities'] > 0:
             percentages['percentage_of_total_liabilities'] = (account_balance / financial_impact['total_liabilities']) * 100
         else:
@@ -263,23 +272,22 @@ def get_account_percentage_contributions(
     return percentages
 
 # -------------------------------------------------------- Account Analysis.
-
 def analyze_account_portfolio(
     db: Session, 
     user_id: int
 ) -> Dict[str, any]:
-    """Analyze the user's account portfolio for insights."""
+    """Analyze The User's Account Portfolio For Insights."""
     
-    # Get all accounts with enhanced data
+    # Get All Accounts With Enhanced Data.
     accounts = db.query(Account).filter(
         Account.user_id == user_id,
         Account.is_active == True
     ).all()
     
-    # Calculate financial impact
+    # Calculate Financial Impact.
     financial_impact = calculate_account_financial_impact(db, user_id)
     
-    # Analyze account distribution
+    # Analyze Account Distribution.
     account_analysis = {
         "total_accounts": len(accounts),
         "account_types": {},
@@ -288,7 +296,7 @@ def analyze_account_portfolio(
         "risk_indicators": []
     }
     
-    # Group by account type
+    # Group By Account Type.
     for account in accounts:
         account_type = account.type
         if account_type not in account_analysis["account_types"]:
@@ -306,7 +314,7 @@ def analyze_account_portfolio(
             "subtype": account.subtype
         })
     
-    # Add cash account
+    # Add Cash Account.
     cash_balance = financial_impact["cash_balance"]
     if cash_balance != 0:
         if "cash" not in account_analysis["account_types"]:

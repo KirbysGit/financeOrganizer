@@ -1,14 +1,31 @@
 # Centi Score Routes.
 
+# Router : Tag w/ "Centi Score".
+#
+# API Endpoints :
+#   - 'get_centi_score_status' - Get Comprehensive Status Of User's Centi Score Data.
+#   - 'get_current_centi_score' - Get The Current/Latest Centi Score For The User.
+#   - 'get_centi_score_history' - Get The History Of Weekly Centi Scores For The User.
+#   - 'get_centi_score_growth' - Get Detailed Growth Analysis For The User's Centi Score.
+#   - 'get_centi_score_summary' - Get A Quick Summary Of The User's Centi Score Growth.
+#   - 'calculate_weekly_score' - Manually Calculate And Store A Weekly Centi Score For The Current Week.
+#   - 'get_score_trend' - Get Trend Analysis For The User's Centi Score.
+#   - 'calculate_all_users_weekly_scores' - Calculate Weekly Scores For All Users (Admin Function).
+
+
 # Imports.
-from typing import List
-from sqlalchemy.orm import Session
 from datetime import date
+from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, HTTPException
 
 # Local Imports.
+from app.database import User
+
+# Local Models.
+from app.models import WeeklyCentiScore as WeeklyCentiScoreModel
+
+# Local Utils.
 from app.utils.db_utils import get_db
-from app.database import User, WeeklyCentiScore
 from app.utils.auth_utils import get_current_user
 from app.utils.centi_score_utils import (
     create_weekly_score,
@@ -22,7 +39,6 @@ from app.utils.centi_score_utils import (
     get_score_growth_summary,
     check_user_centi_score_status
 )
-from app.models import WeeklyCentiScore as WeeklyCentiScoreModel
 
 # Create Router Instance.
 router = APIRouter(tags=["Centi Score"])

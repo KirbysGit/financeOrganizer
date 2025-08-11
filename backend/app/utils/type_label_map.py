@@ -1,4 +1,4 @@
-# Imports.
+# Type Label Map Utils.
 
 # -------------------------------------------------------- Transaction Type Labels.
 TRANSACTION_TYPE_LABELS = {

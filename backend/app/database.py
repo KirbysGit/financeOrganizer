@@ -1,4 +1,25 @@
-# Note : These Defines Actual Database Schemas.
+# Database File For The Backend.
+#
+# Note : These Define Actual Database Schemas. Want to simplify any models that are not needed.
+#
+# Models :
+#   - 'User' - User Model.
+#   - 'Account' - Account Model.
+#   - 'Transaction' - Transaction Model.
+#   - 'Institution' - Institution Model.
+#   - 'FileUpload' - File Upload Model.
+#   - 'MonthlySnapshot' - Monthly Snapshot Model.
+#   - 'WeeklyCentiScore' - Weekly Centi Score Model.
+#   - 'AccountBalanceHistory' - Account Balance History Model.
+#   - 'Tag' - Tag Model.
+#   - 'TransactionTag' - Transaction Tag Association Model.
+
+# Functions : 
+#   - 'get_database_url' - Get Database URL.
+#   - 'create_engine_safe' - Create Engine Safe.
+#   - 'get_engine' - Get Engine.
+#   - 'get_session' - Get Session.
+#   - 'create_tables' - Create Tables.
 
 # Imports.
 import os
@@ -194,112 +215,112 @@ class FileUpload(Base):
 
 # -------------------------------------------------------- Monthly Snapshot Model
 class MonthlySnapshot(Base):
-    __tablename__ = "monthly_snapshots"
+    __tablename__ = "monthly_snapshots" # Physical Table Name In Database.
     
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    snapshot_date = Column(Date, index=True)  # First day of the month
+    id = Column(Integer, primary_key=True, index=True)  # Monthly Snapshot ID.
+    user_id = Column(Integer, ForeignKey("users.id"))   # User ID.
+    snapshot_date = Column(Date, index=True)            # First Day Of The Month.
     
-    # Financial metrics
-    net_worth = Column(Float, default=0.0)
-    total_assets = Column(Float, default=0.0)
-    total_liabilities = Column(Float, default=0.0)
-    monthly_cash_flow = Column(Float, default=0.0)
-    monthly_income = Column(Float, default=0.0)
-    monthly_spending = Column(Float, default=0.0)
-    transaction_count = Column(Integer, default=0)
-    
-    # Metadata
+    # Financial Metrics.
+    net_worth = Column(Float, default=0.0)              # Net Worth.
+    total_assets = Column(Float, default=0.0)           # Total Assets.
+    total_liabilities = Column(Float, default=0.0)      # Total Liabilities.
+    monthly_cash_flow = Column(Float, default=0.0)      # Monthly Cash Flow.
+    monthly_income = Column(Float, default=0.0)         # Monthly Income.
+    monthly_spending = Column(Float, default=0.0)       # Monthly Spending.
+    transaction_count = Column(Integer, default=0)      # Number Of Transactions.
+
+    # Metadata.
     created_at = Column(DateTime)
     
-    # Relationships
+    # Relationships.
     user = relationship("User")
 
 # -------------------------------------------------------- Weekly Centi Score Model
 class WeeklyCentiScore(Base):
-    __tablename__ = "weekly_centi_scores"
+    __tablename__ = "weekly_centi_scores" # Physical Table Name In Database.
     
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    score_date = Column(Date, index=True)  # Monday of the week
+    id = Column(Integer, primary_key=True, index=True)  # Weekly Centi Score ID.
+    user_id = Column(Integer, ForeignKey("users.id"))   # User ID.
+    score_date = Column(Date, index=True)               # Monday Of The Week.
     
-    # Score components
-    total_score = Column(Integer, default=0)
-    net_worth_score = Column(Integer, default=0)
-    assets_score = Column(Integer, default=0)
-    liabilities_score = Column(Integer, default=0)
-    cash_flow_score = Column(Integer, default=0)
+    # Score Components.
+    total_score = Column(Integer, default=0)            # Total Score.
+    net_worth_score = Column(Integer, default=0)        # Net Worth Score.
+    assets_score = Column(Integer, default=0)           # Assets Score.
+    liabilities_score = Column(Integer, default=0)      # Liabilities Score.
+    cash_flow_score = Column(Integer, default=0)        # Cash Flow Score.
     
-    # Financial data at time of calculation
-    net_worth = Column(Float, default=0.0)
-    total_assets = Column(Float, default=0.0)
-    total_liabilities = Column(Float, default=0.0)
-    monthly_cash_flow = Column(Float, default=0.0)
-    transaction_count = Column(Integer, default=0)
+    # Financial Data At Time Of Calculation.
+    net_worth = Column(Float, default=0.0)              # Net Worth.
+    total_assets = Column(Float, default=0.0)           # Total Assets.
+    total_liabilities = Column(Float, default=0.0)      # Total Liabilities.
+    monthly_cash_flow = Column(Float, default=0.0)      # Monthly Cash Flow.
+    transaction_count = Column(Integer, default=0)      # Number Of Transactions.
     
-    # Metadata
+    # Metadata.
     created_at = Column(DateTime, default=datetime.now())
     
-    # Relationships
+    # Relationships.
     user = relationship("User")
 
 # -------------------------------------------------------- Account Balance History Model
 class AccountBalanceHistory(Base):
-    __tablename__ = "account_balance_history"
+    __tablename__ = "account_balance_history" # Physical Table Name In Database.
     
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    account_id = Column(String, index=True)  # Plaid account_id or null for cash
-    snapshot_date = Column(Date, index=True)  # Date of the balance snapshot
+    id = Column(Integer, primary_key=True, index=True)  # Account Balance History ID.
+    user_id = Column(Integer, ForeignKey("users.id"))   # User ID.
+    account_id = Column(String, index=True)             # Plaid Account ID Or Null For Cash.
+    snapshot_date = Column(Date, index=True)            # Date Of The Balance Snapshot.
     
-    # Balance information
-    current_balance = Column(Float, default=0.0)
-    available_balance = Column(Float, default=0.0)
-    limit = Column(Float, default=0.0)  # Credit limit if applicable
+    # Balance Information.
+    current_balance = Column(Float, default=0.0)        # Current Balance.
+    available_balance = Column(Float, default=0.0)      # Available Balance.
+    limit = Column(Float, default=0.0)                  # Credit Limit If Applicable.
     
-    # Account metadata at time of snapshot
-    account_name = Column(String)
-    account_type = Column(String)
-    account_subtype = Column(String)
-    currency = Column(String, default="USD")
+    # Account Metadata At Time Of Snapshot.
+    account_name = Column(String)                       # Account Name.
+    account_type = Column(String)                       # Account Type.
+    account_subtype = Column(String)                    # Account Subtype.
+    currency = Column(String, default="USD")            # Currency.
     
-    # Metadata
+    # Metadata.
     created_at = Column(DateTime, default=datetime.now())
     
-    # Relationships
+    # Relationships.
     user = relationship("User")
 
 # -------------------------------------------------------- Tag Model
 class Tag(Base):
-    __tablename__ = "tags"
+    __tablename__ = "tags" # Physical Table Name In Database.
     
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    name = Column(String, nullable=False)
-    emoji = Column(String, default="🏷️")  # Default emoji
-    color = Column(String, default="#6366f1")  # Default color
-    is_default = Column(Boolean, default=False)  # Whether it's a system default tag
-    created_at = Column(DateTime, default=datetime.now())
-    updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now())
+    id = Column(Integer, primary_key=True, index=True)  # Tag ID.
+    user_id = Column(Integer, ForeignKey("users.id"))   # User ID.
+    name = Column(String, nullable=False)               # Tag Name.
+    emoji = Column(String, default="🏷️")                # Default Emoji.
+    color = Column(String, default="#6366f1")           # Default Color.
+    is_default = Column(Boolean, default=False)         # Whether It's A System Default Tag.
+    created_at = Column(DateTime, default=datetime.now()) # When Tag Was Created.
+    updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now()) # When Tag Was Last Updated.
     
-    # Relationships
+    # Relationships.
     user = relationship("User")
     transaction_tags = relationship("TransactionTag", back_populates="tag")
 
 # -------------------------------------------------------- Transaction Tag Association Model
 class TransactionTag(Base):
-    __tablename__ = "transaction_tags"
+    __tablename__ = "transaction_tags" # Physical Table Name In Database.
     
-    id = Column(Integer, primary_key=True, index=True)
-    transaction_id = Column(Integer, ForeignKey("transactions.id"), nullable=False)
-    tag_id = Column(Integer, ForeignKey("tags.id"), nullable=False)
-    created_at = Column(DateTime, default=datetime.now())
+    id = Column(Integer, primary_key=True, index=True)                              # Transaction Tag ID.
+    transaction_id = Column(Integer, ForeignKey("transactions.id"), nullable=False) # Transaction ID.
+    tag_id = Column(Integer, ForeignKey("tags.id"), nullable=False)                 # Tag ID.
+    created_at = Column(DateTime, default=datetime.now())                           # When Transaction Tag Was Created.
     
-    # Relationships
-    transaction = relationship("Transaction", back_populates="tags")
-    tag = relationship("Tag", back_populates="transaction_tags")
+    # Relationships.
+    transaction = relationship("Transaction", back_populates="tags") # Many-To-One Relationship With Transaction.
+    tag = relationship("Tag", back_populates="transaction_tags") # Many-To-One Relationship With Tag.
 
-# Database Setup.
+# -------------------------------------------------------- Database Setup.
 def get_database_url():
     """Get database URL with fallback for Railway"""
     database_url = os.getenv("DATABASE_URL")
@@ -308,6 +329,7 @@ def get_database_url():
         database_url = "sqlite:///./finance_organizer.db"
     return database_url
 
+# -------------------------------------------------------- Create Engine Safe.
 def create_engine_safe():
     """Create database engine with error handling"""
     try:
@@ -328,10 +350,11 @@ def create_engine_safe():
         # Return None so the app can still start without database
         return None
 
-# Initialize engine lazily
+# Initialize Engine Lazily.
 engine = None
 SessionLocal = None
 
+# -------------------------------------------------------- Get Engine.
 def get_engine():
     """Get or create database engine"""
     global engine
@@ -339,6 +362,7 @@ def get_engine():
         engine = create_engine_safe()
     return engine
 
+# -------------------------------------------------------- Get Session.
 def get_session():
     """Get database session"""
     global SessionLocal
@@ -350,7 +374,7 @@ def get_session():
             return None
     return SessionLocal()
 
-# Create Tables (only if engine is available)
+# -------------------------------------------------------- Create Tables.
 def create_tables():
     """Create database tables if engine is available"""
     engine = get_engine()

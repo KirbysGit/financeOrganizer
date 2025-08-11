@@ -1,8 +1,16 @@
+// Dashboard.jsx
+
+// This is the main dashboard component that is used on the dashboard. This contains the entirety of the dashboard,
+// w/ all of its sub-components, such as the navbar, footer, mini sidebar, and more. I tried to wire most of the API
+// endpoints to this component, so that the code is more readable and maintainable but I need to work on that more
+// with some of the newer files I have been working with that I just would directly call the API endpoints from.
+
 // Imports.
 import React, { useState, useEffect, useRef, useMemo, useLayoutEffect } from 'react';
 import { styled, keyframes } from 'styled-components';
 import { faBomb, faUser, faChartLine, faPalette, faDatabase, faSync, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import toast from 'react-hot-toast';
 
 // Components.
 import NavBar from './0NavBar/NavBar';
@@ -22,7 +30,7 @@ import { getStats } from '../../services/api';
 import { getAccounts } from '../../services/api';
 import { emptyDatabase } from '../../services/api';
 import { deleteFile, renameFile, getFiles } from '../../services/api';
-import { fetchTransactions, deleteTransaction } from '../../services/api';
+import { fetchTransactions, deleteTransaction, bulkDeleteTransactions } from '../../services/api';
 import { 
     getCurrentCentiScore, 
     getCentiScoreHistory, 
@@ -165,11 +173,11 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
             loadCentiScoreTrend()
         ]);
 
-        // Fixed 3-second loading time
+        // Fixed 3-Second Loading Time.
         const loadingTime = 3000;
 
         try {
-            // Wait for both the data loading and fixed time
+            // Wait For Both The Data Loading And Fixed Time.
             await Promise.all([
                 loadingPromise,
                 new Promise(resolve => setTimeout(resolve, loadingTime))
@@ -189,7 +197,7 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
         try {
             const transactionsData = await fetchTransactions();
             setTransactions(transactionsData.data);
-            // Set localStorage flag if we have transactions
+            // Set LocalStorage Flag If We Have Transactions.
             if (transactionsData.data.length > 0) {
                 localStorage.setItem('hasTransactions', 'true');
             }
@@ -203,7 +211,7 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
         try {
             const filesData = await getFiles();
             setFiles(filesData.data);
-            // Set localStorage flag if we have files
+            // Set LocalStorage Flag If We Have Files.
             if (filesData.data.length > 0) {
                 localStorage.setItem('hasFiles', 'true');
             }
@@ -217,7 +225,7 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
         try {
             const accountsData = await getAccounts();
             setAccounts(accountsData.data);
-            // Set localStorage flag if we have accounts
+            // Set LocalStorage Flag If We Have Accounts.
             if (accountsData.data.length > 0) {
                 localStorage.setItem('hasAccounts', 'true');
             }
@@ -289,7 +297,7 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
                 setHasEverHadData(true);
             }
             
-            // Update hasConnectedData if we have any data
+            // Update HasConnectedData If We Have Any Data.
             if ((transactions.length > 0 || files.length > 0 || accounts.length > 0) && !hasConnectedData) {
                 localStorage.setItem('hasConnectedData', 'true');
                 setHasConnectedData(true);
@@ -307,8 +315,8 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
             setHasEverHadData(false);
             localStorage.setItem('hasConnectedData', 'false');
             setHasConnectedData(false);
-            hasLoadedRef.current = false; // Reset the ref so data can be loaded again if needed
-            // Don't reload data here - let the component handle it
+            hasLoadedRef.current = false; // Reset The Ref So Data Can Be Loaded Again If Needed.
+            // Don't Reload Data Here - Let The Component Handle It.
         } catch (err) {                                 // If Error.
             console.error('Delete Failed:', err);           // Display Error To Console.
         }
@@ -328,9 +336,28 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
     const handleDeleteTransaction = async(transactionId) => {
         try {                                           // Try.
             await deleteTransaction(transactionId);        // API Request For Deleting Transaction by 'txId'.
-            refreshSite();                                  // Reload Transactions And Files.
+            await loadTransactions();                      // Reload Only Transactions Data.
+            await loadAccounts();                         // Reload Accounts To Update Balances.
+            // Show Success Message.
+            toast.success('Transaction successfully deleted!');
         } catch (err) {                                 // If Error.
             console.error("Delete Failed:", err);           // Display Error To Console.
+            // Show User-Friendly Error Message.
+            toast.error(`Failed to delete transaction: ${err.message || 'Unknown error occurred'}`);
+        }
+    };
+
+    // -------------------------------------------------------- Bulk Delete Transactions.
+    const handleBulkDeleteTransactions = async(transactionIds) => {
+        try {
+            await bulkDeleteTransactions(transactionIds);
+            await loadTransactions();                     // Reload Transactions Data.
+            await loadAccounts();                        // Reload Accounts To Update Balances.
+            // Show Single Success Message For Bulk Delete.
+            toast.success(`Successfully deleted ${transactionIds.length} transaction${transactionIds.length === 1 ? '' : 's'}!`);
+        } catch (err) {
+            console.error("Bulk Delete Failed:", err);
+            toast.error(`Failed to delete transactions: ${err.message || 'Unknown error occurred'}`);
         }
     };
     
@@ -348,10 +375,10 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
     const handleUploadCSV = async(formData) => {
         try {
             const result = await uploadCSV(formData);
-            return result; // Return the result so AccountList can access it
+            return result; // Return The Result So AccountList Can Access It.
         } catch (err) {
             console.error("Upload Failed:", err);
-            throw err; // Re-throw so AccountList can handle the error
+            throw err; // Re-Throw So AccountList Can Handle The Error.
         }
     }
 
@@ -376,14 +403,6 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
                     
                     { showDashboard && (
                         <>
-                            {/* Development Bomb Button - Remove In Production. */}
-                            <DevBombButton 
-                                onClick={clearDB} 
-                                aria-label="Clear All Data (Development)"
-                                title="Clear All Files & Corresponding Transactions (Development Only)"
-                            >
-                                <FontAwesomeIcon icon={faBomb} />
-                            </DevBombButton>
                             
                             <DashboardContent>
                                 <StatsSection 
@@ -416,6 +435,7 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
                                     id="transactions-section"
                                     transactions={transactions} 
                                     onDelete={handleDeleteTransaction}
+                                    onBulkDelete={handleBulkDeleteTransactions}
                                     onRefresh={loadTransactions}
                                     existingAccounts={accounts}
                                     onUpload={handleUploadCSV}
@@ -423,7 +443,7 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
                             </DashboardContent>
                             
                             {/* Footer */}
-                            <Footer />
+                            <Footer user={JSON.parse(localStorage.getItem('user') || '{}')} />
                             
                             {/* Mini Sidebar */}
                             <MiniSidebar />
@@ -525,4 +545,5 @@ const DevBombButton = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Export The Dashboard Component.
 export default Dashboard;

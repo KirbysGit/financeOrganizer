@@ -1,10 +1,21 @@
+# Plaid Routes.
+#
+# Note : Lots of debugging w/ this just for sake of development, will clean up in future.
+#
+# Router : Prefix w/ "/plaid" & Tag w/ "Plaid".
+#
+# API Endpoints :
+#   - 'create_link_token' - Creates Plaid Link Token.
+#   - 'exchange_public_token' - Exchanges Frontend Token For Access Token.
+#   - 'fetch_transactions' - Fetches Transactions From Access Token.
+#   - 'check_plaid_status' - Checks Plaid Production Readiness.
+#   - 'get_accounts' - Fetches Accounts From Access Token.
+
 # Imports.
-import time
-import json
 import asyncio
+from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from fastapi import APIRouter, HTTPException, Depends
-from sqlalchemy.orm import Session
 
 # Plaid Imports.
 import plaid
@@ -17,11 +28,15 @@ from plaid.model.link_token_create_request_user import LinkTokenCreateRequestUse
 from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
 
 # Local Imports.
-from app.config import plaid_config, PLAID_ENV, PLAID_TRANSACTION_DAYS
+from app.config import plaid_config, PLAID_TRANSACTION_DAYS
+from app.database import Transaction, Account, Institution, User
+
+# Local Models.
+from app.models import LinkTokenRequest, PublicTokenExchangeRequest, LinkTokenResponse, AccessTokenResponse
+
+# Local Utils.
 from app.utils.db_utils import get_db
 from app.utils.auth_utils import get_current_user
-from app.database import Transaction, Account, Institution, User
-from app.models import LinkTokenRequest, PublicTokenExchangeRequest, LinkTokenResponse, AccessTokenResponse
 
 # Create Router Instance.
 router = APIRouter(prefix="/plaid", tags=["Plaid"])
@@ -33,9 +48,15 @@ async def create_link_token(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    """Creates Plaid Link Token."""
+    
     try:
+        print(f"🔗 Creating Plaid link token for user {current_user.id} in {plaid_config.env} environment")
+        
         # Initialize Empty Product List, Then Build List Of Products Requested.
         products = []
+
+        # Products Include Transactions & Auth.
         for product in plaid_config.products:                   
             if product.strip() == 'transactions':
                 products.append(Products('transactions'))
@@ -56,11 +77,14 @@ async def create_link_token(
         
         # Call Plaids API W/ Request.
         response = plaid_config.client.link_token_create(link_request)
+        
+        print(f"✅ Link token created successfully for user {current_user.id}")
 
         # Return Token To Frontend.
         return LinkTokenResponse(link_token=response['link_token'])
         
     except Exception as e:
+        print(f"❌ Error creating link token: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Error creating link token: {str(e)}")
 
 # ----------------------------------------------------------------------- Exchange Frontend Token For Access Token.
@@ -70,7 +94,10 @@ async def exchange_public_token(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    """Exchange Frontend Token For Access Token."""
+    
     try:
+        print(f"🔄 Exchanging public token for user {current_user.id} in {plaid_config.env} environment")
 
         # Build Plaid Exchange Request W/ Public Token.
         exchange_request = ItemPublicTokenExchangeRequest(
@@ -79,6 +106,8 @@ async def exchange_public_token(
         
         # Call Plaids Secure Exchange.
         response = plaid_config.client.item_public_token_exchange(exchange_request)
+        
+        print(f"✅ Token exchange successful for user {current_user.id}, item_id: {response['item_id']}")
                
         # Store Institution In Database.
         try:
@@ -90,18 +119,19 @@ async def exchange_public_token(
             
             # If It Doesn't Exist, Create New Institution Item, Then Add To Database.
             if not existing_institution:
-                # Try to get institution details from Plaid
+                # Try To Get Institution Details From Plaid.
                 try:
-                    # Get institution info from the item
+                    # Get Institution Info From The Item.
                     item_response = plaid_config.client.item_get(
                         plaid.model.item_get_request.ItemGetRequest(
                             access_token=response['access_token']
                         )
                     )
                     
+                    # Set Institution ID.
                     institution_id = item_response.get('item', {}).get('institution_id')
                     
-                    # Get institution details
+                    # Get Institution Details.
                     institution_response = plaid_config.client.institutions_get_by_id(
                         plaid.model.institutions_get_by_id_request.InstitutionsGetByIdRequest(
                             institution_id=institution_id,
@@ -109,14 +139,18 @@ async def exchange_public_token(
                         )
                     )
                     
+                    # Set Institution Name.
                     institution_name = institution_response.get('institution', {}).get('name') if institution_response.get('institution') else None
                     
+                    print(f"🏦 Institution details fetched: {institution_name} (ID: {institution_id})")
+                    
                 except Exception as e:
-                    # If we can't get institution details, use defaults
-                    print(f"Could not fetch institution details: {e}")
+                    # If We Can't Get Institution Details, Use Defaults.
+                    print(f"⚠️ Could not fetch institution details: {e}")
                     institution_id = None
                     institution_name = None
                 
+                # Create New Institution Item, Then Add To Database.
                 new_institution = Institution(
                     user_id=current_user.id,
                     item_id=response['item_id'],
@@ -129,12 +163,14 @@ async def exchange_public_token(
                 )
                 db.add(new_institution)
                 db.commit()
+                print(f"✅ New institution created for user {current_user.id}")
             else:
                 # Update Existing Connection.
                 existing_institution.access_token = response['access_token']
                 existing_institution.is_connected = True
                 existing_institution.updated_at = datetime.now()
                 db.commit()
+                print(f"✅ Existing institution updated for user {current_user.id}")
         finally:
             # Close Database After.
             db.close()
@@ -146,6 +182,7 @@ async def exchange_public_token(
         )
         
     except Exception as e:
+        print(f"❌ Error exchanging token: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Error exchanging token: {str(e)}")
 
 # ----------------------------------------------------------------------- Fetches Transactions From Access Token.
@@ -155,6 +192,10 @@ async def fetch_transactions(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    """Fetch Transactions From Access Token."""
+    
+    print(f"📊 Fetching transactions for user {current_user.id} in {plaid_config.env} environment")
+    
     # Set Var For Max Retries Per Connection.
     max_retries = 5
 
@@ -167,12 +208,10 @@ async def fetch_transactions(
             # Calculate Date Range.
             end_date = datetime.now().date()
             
-            # Plaid Data Limits:
-            # - Sandbox: Usually 30-90 days of transactions
-            # - Development: Up to 2 years of historical data
-            # - Production: Up to 7 years of historical data
-            # For better growth analysis, pull more historical data when available
+            # For Better Growth Analysis, Pull More Historical Data When Available.
             start_date = end_date - timedelta(days=PLAID_TRANSACTION_DAYS)
+            
+            print(f"📅 Fetching transactions from {start_date} to {end_date} (attempt {attempt + 1}/{max_retries})")
             
             # Create Transaction Request.
             request = TransactionsGetRequest(
@@ -184,6 +223,8 @@ async def fetch_transactions(
             # Attempt To Fetch Transactions.
             response = plaid_config.client.transactions_get(request)
             
+            print(f"✅ Successfully fetched {len(response.get('transactions', []))} transactions")
+            
             # Process And Store Accounts First.
             try:
                 # Get Account Data.
@@ -192,7 +233,7 @@ async def fetch_transactions(
                 # Set Stored Accounts To 0 (Pre-Processed Accounts).
                 stored_accounts = 0
 
-                # Get the item_id from the response for linking accounts to institutions
+                # Get Item ID From Response For Linking Accounts To Institutions.
                 item_id = response.get('item', {}).get('item_id') if response.get('item') else None
 
                 # Per Account,
@@ -225,7 +266,7 @@ async def fetch_transactions(
                         new_account = Account(
                             user_id=current_user.id,
                             account_id=account_id,
-                            item_id=item_id,  # Link to institution
+                            item_id=item_id,
                             name=getattr(account, 'name', None),
                             official_name=getattr(account, 'official_name', None),
                             type=type_str,
@@ -242,13 +283,13 @@ async def fetch_transactions(
                         db.add(new_account)
                         stored_accounts += 1
                     else:
-                        # Update Existing Account Balances and item_id if missing
+                        # Update Existing Account Balances And Item ID If Missing.
                         if balances:
                             existing_account.current_balance = getattr(balances, 'current', existing_account.current_balance)
                             existing_account.available_balance = getattr(balances, 'available', existing_account.available_balance)
                             existing_account.updated_at = datetime.now()
                         
-                        # Update item_id if it's missing
+                        # Update Item ID If It's Missing.
                         if not existing_account.item_id and item_id:
                             existing_account.item_id = item_id
                             existing_account.updated_at = datetime.now()
@@ -256,7 +297,9 @@ async def fetch_transactions(
                 # Commit Account Changes To Database.
                 db.commit()
                 
-                # Create balance snapshots for growth tracking
+                print(f"✅ Processed {stored_accounts} new accounts")
+                
+                # Create Balance Snapshots For Growth Tracking.
                 from app.utils.account_utils import create_account_balance_snapshot
                 create_account_balance_snapshot(db, current_user.id)
                 
@@ -348,6 +391,8 @@ async def fetch_transactions(
                 # Commit Transaction Changes To Database.
                 db.commit()
                 
+                print(f"✅ Successfully stored {stored_count} new transactions")
+                
                 # Return Success Response.
                 return {
                     "message": f"Successfully fetched and stored {stored_count} new transactions and {stored_accounts} new accounts",
@@ -375,6 +420,8 @@ async def fetch_transactions(
             # Convert Error To String.
             error_str = str(e)
             
+            print(f"❌ Error fetching transactions (attempt {attempt + 1}): {error_str}")
+            
             # Check If This Is A PRODUCT_NOT_READY Error.
             if "PRODUCT_NOT_READY" in error_str:
                 
@@ -384,17 +431,20 @@ async def fetch_transactions(
                     # Calculate Delay With Exponential Backoff.
                     delay = base_delay * (2 ** attempt)
                     
+                    print(f"⏳ PRODUCT_NOT_READY, retrying in {delay} seconds...")
+                    
                     # Wait Before Retrying.
                     await asyncio.sleep(delay)
                     continue
                 else:
                     # Last Attempt Failed - Return Processing Status.
+                    print(f"⚠️ All retry attempts failed for PRODUCT_NOT_READY")
                     raise HTTPException(
                         status_code=202,  # Accepted - Processing.
                         detail={
                             "error": "PRODUCT_NOT_READY",
                             "message": "Transaction data is still being processed by your bank. "
-                                     "This is normal in sandbox mode. Please try again in a few minutes.",
+                                     "This is normal for new connections. Please try again in a few minutes.",
                             "retry_after": 60,  # Seconds.
                             "attempts": max_retries
                         }
@@ -406,6 +456,43 @@ async def fetch_transactions(
     # This Shouldn't Be Reached, But Just In Case.
     raise HTTPException(status_code=500, detail="Unexpected error in retry logic")
 
+# ----------------------------------------------------------------------- Check Plaid Production Readiness.
+@router.get("/status")
+async def check_plaid_status():
+    """Check Plaid Configuration And Production Readiness."""
+    try:
+        # Check If We Can Create A Link Token (Basic Connectivity Test).
+        test_request = LinkTokenCreateRequest(
+            products=[Products('transactions')],
+            client_name="Centi. Test",
+            country_codes=[CountryCode('US')],
+            language='en',
+            user=LinkTokenCreateRequestUser(client_user_id="test_user")
+        )
+        
+        # Try To Create A Link Token.
+        response = plaid_config.client.link_token_create(test_request)
+        
+        # Return Status.
+        return {
+            "status": "healthy",
+            "environment": plaid_config.env,
+            "products": plaid_config.products,
+            "country_codes": plaid_config.country_codes,
+            "transaction_days": PLAID_TRANSACTION_DAYS,
+            "message": f"Plaid is configured for {plaid_config.env} environment",
+            "link_token_test": "successful"
+        }
+        
+    except Exception as e:
+        # Return Error.
+        return {
+            "status": "error",
+            "environment": plaid_config.env,
+            "error": str(e),
+            "message": "Plaid configuration test failed"
+        }
+
 # ----------------------------------------------------------------------- Fetches Accounts From Access Token,
 @router.get("/accounts/{access_token}")
 async def get_accounts(
@@ -413,6 +500,8 @@ async def get_accounts(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    """Fetches Accounts From Access Token."""
+    
     try:
         # Create Account Request Using Token.
         request = AccountsGetRequest(access_token=access_token)

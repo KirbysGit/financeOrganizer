@@ -1,3 +1,13 @@
+// LoginModal.jsx
+//
+// This is the modal that the user will see when they click the "Sign In" button in the WelcomeScreen.
+// 
+// The user will see a modal with a form to enter their email address and password or they can sign in with Google.
+// The form will validate their inputs, and if they are valid allow them to sign in, If the user's information is 
+// correct, they will be redirected to the dashboard. If the user's information is incorrect, they will see an error
+// message. There is allow an option for Forgot Password, which will redirect them to the ForgotPasswordModal. Also,
+// there is an option to sign up, which will redirect them to the SignUpModal.
+
 // Imports.
 import React from 'react';
 import { useState } from 'react';
@@ -15,18 +25,15 @@ import colorScheme from '../../../images/colorSchemeIcon.png';      // Centi Log
 import { loginUser, googleAuthCode } from '../../../services/api';
 
 // -------------------------------------------------------- LoginModal Component.
-const LoginModal = ({ onLoginSuccess, onShowSignUp }) => {
-    // Form States.
-    const [formData, setFormData] = useState({
-        email: '',
-        password: ''
-    });
+const LoginModal = ({ onLoginSuccess, onShowSignUp, onShowForgotPassword }) => {
     
-    // UI States.
-    const [errors, setErrors] = useState({});                 // State 4 Errors.
-    const [isLoading, setIsLoading] = useState(false);        // State 4 Loading.
-    const [successStates, setSuccessStates] = useState({});   // State 4 Success States.
-    const [showPassword, setShowPassword] = useState(false);  // State 4 Show Password.
+    // -------------------------------------------------------- State Declarations.
+
+    const [errors, setErrors] = useState({});                               // State 4 Errors.
+    const [isLoading, setIsLoading] = useState(false);                      // State 4 Loading.
+    const [successStates, setSuccessStates] = useState({});                 // State 4 Success States.
+    const [showPassword, setShowPassword] = useState(false);                // State 4 Show Password.
+    const [formData, setFormData] = useState({email: '', password: ''});    // State 4 Form Data.
 
     // -------------------------------------------------------- Validation Functions.
     const validateEmail = (value) => {
@@ -42,7 +49,6 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp }) => {
         // If Email Is Valid, Return Empty String.
         return '';
     };
-
     const validatePassword = (value) => {
         // If Password Is Empty, Return Error.
         if (!value) return 'Password is required.';
@@ -51,7 +57,7 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp }) => {
         return '';
     };
 
-    // -------------------------------------------------------- Handle Input Changes with Validation.
+    // -------------------------------------------------------- Handle Input Changes With Validation.
     const handleInputChange = (e) => {
         // Get Name & Value From Input.
         const { name, value } = e.target;
@@ -62,7 +68,7 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp }) => {
             [name]: value
         }));
         
-        // Real-time Validation.
+        // Real-Time Validation.
         let errorMessage = '';
         switch (name) {
             case 'email':
@@ -176,6 +182,11 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp }) => {
                 setErrors({ 
                     general: 'This email is already registered with a password. Please sign in with your password instead.' 
                 });
+            } else if (error.response?.status === 401) {
+                // Unauthorized - Could Be Verification Error Or Other Auth Issues.
+                setErrors({ 
+                    general: error.response.data.detail || 'Authentication failed. Please check your credentials and try again.'
+                });
             } else if (error.response?.status === 500) {
                 // Server Error - Likely Account Conflict.
                 setErrors({ 
@@ -214,7 +225,7 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp }) => {
         ux_mode: 'popup',
     });
 
-    // -------------------------------------------------------- Custom Google Login with Centered Popup.
+    // -------------------------------------------------------- Custom Google Login With Centered Popup.
     const handleCustomGoogleLogin = () => {
         // Add A Visual Indicator That Popup Is Opening.
         const button = document.querySelector('.google-login-button');
@@ -244,22 +255,30 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp }) => {
 
     return (
         <>
-            {/* Google One Tap Container */}
+            {/* Google One Tap Container. */}
             <div id="google-one-tap-container" style={{ position: 'fixed', top: '20px', right: '20px', zIndex: 9999 }} />
             
             <ModalContainer>
             <FormContainer>
+                {/* Logo. */}
                 <LogoContainer>
                     <Logo src={colorScheme} alt="Centi Logo" />
                 </LogoContainer>
                 
+                {/* Title. */}
                 <FormTitle>Welcome Back</FormTitle>
+
+                {/* Subtitle. */}
                 <FormSubtitle>Sign in to continue managing your finances</FormSubtitle>
                 
+                {/* Form. */}
                 <StyledForm onSubmit={handleSubmit}>
+                    {/* Form Group. */}
                     <FormGroup>
+                        {/* Label, "Email Address *" */}
                         <Label htmlFor="email">Email Address <span>*</span></Label>
                         <InputWrapper $hasError={!!errors.email} $isSuccess={!!successStates.email}>
+                            {/* Input. */}
                             <Input
                                 type="email"
                                 id="email"
@@ -269,14 +288,21 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp }) => {
                                 placeholder="Enter your email"
                                 $hasError={!!errors.email}
                             />
+
+                            {/* Success Checkmark. */}
                             {successStates.email && <SuccessCheckmark />}
                         </InputWrapper>
+
+                        {/* Error Message. */}
                         {errors.email && <ErrorMessage>{errors.email}</ErrorMessage>}
                     </FormGroup>
                     
+                    {/* Form Group. */}
                     <FormGroup>
+                        {/* Label, "Password *" */}
                         <Label htmlFor="password">Password <span>*</span></Label>
                         <InputWrapper $hasError={!!errors.password} $isSuccess={!!successStates.password}>
+                            {/* Input. */}
                             <Input
                                 type={showPassword ? "text" : "password"}
                                 id="password"
@@ -287,6 +313,8 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp }) => {
                                 $hasError={!!errors.password}
                                 autoComplete="current-password"
                             />
+
+                            {/* Password Toggle. */}
                             <PasswordToggle
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
@@ -294,11 +322,21 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp }) => {
                             >
                                 <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
                             </PasswordToggle>
+
+                            {/* Success Checkmark. */}
                             {successStates.password && <SuccessCheckmark />}
                         </InputWrapper>
+
+                        {/* Error Message. */}
                         {errors.password && <ErrorMessage>{errors.password}</ErrorMessage>}
+
+                        {/* Forgot Password Link. */}
+                        <ForgotPasswordLink onClick={onShowForgotPassword}>
+                            Forgot Password?
+                        </ForgotPasswordLink>
                     </FormGroup>
                     
+                    {/* General Error Message. */}
                     {errors.general && (
                         <GeneralErrorMessage $hasPulse={errors.showLoginLink}>
                             {errors.general}
@@ -310,6 +348,7 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp }) => {
                         </GeneralErrorMessage>
                     )}
                     
+                    {/* Sign In Button. */}
                     <SignInButton type="submit" disabled={isLoading}>
                         {isLoading ? (
                             <>
@@ -322,10 +361,12 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp }) => {
                     </SignInButton>
                 </StyledForm>
                 
+                {/* Divider. */}
                 <Divider>
                     <DividerText>or</DividerText>
                 </Divider>
                 
+                {/* Custom Google Button. */}
                 <CustomGoogleButton 
                     className="google-login-button"
                     type="button" 
@@ -344,10 +385,14 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp }) => {
                         </>
                     )}
                 </CustomGoogleButton>
+
+                {/* Google Info Text. */}
                 <GoogleInfoText>
                     New Users Only • Existing Accounts Should Use Password Login
                 </GoogleInfoText>
                 <Divider />
+
+                {/* Login Prompt. */}
                 <LoginPrompt>
                     Don't have an account? <LoginLink onClick={onShowSignUp}>Sign up</LoginLink>
                 </LoginPrompt>
@@ -357,7 +402,7 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp }) => {
     );
 };
 
-// -------------------------------------------------------- Entire Modal Container.
+// -------------------------------------------------------- Entire Modal Container (Outer Container).
 const ModalContainer = styled.div`
     display: flex;
     flex-direction: column;
@@ -532,6 +577,7 @@ const InputWrapper = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Password Toggle.
 const PasswordToggle = styled.button`
     display: flex;
     align-items: center;
@@ -549,6 +595,7 @@ const PasswordToggle = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Error Message.
 const ErrorMessage = styled.span`
     color: var(--amount-negative);
     font-size: 0.8rem;
@@ -559,6 +606,7 @@ const ErrorMessage = styled.span`
     display: block;
 `;
 
+// -------------------------------------------------------- General Error Message.
 const GeneralErrorMessage = styled.div`
     color: var(--amount-negative);
     background: linear-gradient(135deg, rgba(220, 53, 69, 0.15), rgba(220, 53, 69, 0.08));
@@ -584,6 +632,7 @@ const GeneralErrorMessage = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Sign In Button.
 const SignInButton = styled.button`
     font: inherit;
     background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
@@ -636,6 +685,7 @@ const SignInButton = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Loading Spinner.
 const LoadingSpinner = styled.div`
     width: 16px;
     height: 16px;
@@ -650,6 +700,7 @@ const LoadingSpinner = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Divider.
 const Divider = styled.div`
     display: flex;
     align-items: center;
@@ -664,12 +715,14 @@ const Divider = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Divider Text.
 const DividerText = styled.span`
     padding: 0 1rem;
     color: var(--text-secondary);
     font-size: 0.9rem;
 `;
 
+// -------------------------------------------------------- Custom Google Button.
 const CustomGoogleButton = styled.button`
     display: flex;
     width: 100%;
@@ -706,11 +759,13 @@ const CustomGoogleButton = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Google Logo.
 const GoogleLogo = styled.img`
     width: 20px;
     height: 20px;
 `;
 
+// -------------------------------------------------------- Login Prompt.
 const LoginPrompt = styled.p`
     text-align: center;
     color: var(--text-secondary);
@@ -719,6 +774,7 @@ const LoginPrompt = styled.p`
     margin: 1rem 0 0 0;
 `;
 
+// -------------------------------------------------------- Login Link.
 const LoginLink = styled.span`
     color: var(--button-primary);
     cursor: pointer;
@@ -729,6 +785,7 @@ const LoginLink = styled.span`
     }
 `;
 
+// -------------------------------------------------------- Google Info Text.
 const GoogleInfoText = styled.p`
     text-align: center;
     color: var(--text-secondary);
@@ -737,6 +794,7 @@ const GoogleInfoText = styled.p`
     opacity: 0.8;
 `;
 
+// -------------------------------------------------------- Login Link In Error.
 const LoginLinkInError = styled.button`
     background: none;
     border: none;
@@ -755,4 +813,29 @@ const LoginLinkInError = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Forgot Password Link.
+const ForgotPasswordLink = styled.div`
+    font: inherit;
+    font-decoration: none;
+    background: none;
+    border: none;
+    color: var(--button-primary);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    text-align: right;
+    width: max-content;
+    justify-self: flex-end;
+    align-self: flex-end;
+    
+    &:hover {
+        text-decoration: underline;
+        scale: 1.05;
+    }
+`;
+
+// -------------------------------------------------------- Export LoginModal Component.
 export default LoginModal;

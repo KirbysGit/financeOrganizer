@@ -1,3 +1,10 @@
+// TagModal.jsx
+
+// This is the modal that allows the user to create, edit, and delete tags. It also allows the user to
+// add tags to transactions, and remove tags from transactions. This is triggered from the details of
+// the TransactionTable component, and is used to add tags to the transaction.
+
+// Imports.
 import React, { useState, useEffect, Fragment } from 'react';
 import styled from 'styled-components';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -5,851 +12,33 @@ import { faTimes, faPlus, faTrash, faTags, faHandshake, faStar, faPalette, faChe
 import { getTags, createTag, deleteTag, addTagToTransaction, removeTagFromTransaction, initializeDefaultTags, getTagTransactionCount } from '../../../services/api';
 import toast from 'react-hot-toast';
 
-// ================================================================= STYLED COMPONENTS
-
-const Modal = styled.div`
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(8px);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    padding: 2rem;
-`;
-
-const ModalContent = styled.div`
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.98));
-    border-radius: 20px;
-    max-width: 600px;
-    width: 100%;
-    max-height: 85vh;
-    overflow-y: auto;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 8px 32px rgba(0, 123, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    animation: modalSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-
-    /* Hide scrollbar for Chrome, Safari and Opera */
-    &::-webkit-scrollbar {
-        display: none;
-    }
-
-    /* Hide scrollbar for IE, Edge and Firefox */
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
-
-    @keyframes modalSlideIn {
-        from {
-            opacity: 0;
-            transform: translateY(30px) scale(0.95);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-        }
-    }
-`;
-
-const ModalHeader = styled.div`
-    position: relative;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 2rem 2rem 1.5rem 2rem;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.9));
-    border-radius: 20px 20px 0 0;
-`;
-
-const HeaderContent = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-`;
-
-const WelcomeIcon = styled.div`
-    width: 50px;
-    height: 50px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 1.2rem;
-    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
-`;
-
-const HeaderText = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-`;
-
-const ModalTitle = styled.h2`
-    margin: 0;
-    font-size: 1.4rem;
-    font-weight: 700;
-    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: var(--button-primary);
-`;
-
-const ModalSubtitle = styled.p`
-    margin: 0;
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    font-weight: 500;
-`;
-
-const CloseButton = styled.button`
-    position: absolute;
-    top: 1.5rem;
-    right: 1.5rem;
-    background: none;
-    border: none;
-    font-size: 1.2rem;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    color: white;
-    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
-    cursor: pointer;
-    border-radius: 50%;
-    transition: all 0.2s ease;
-    z-index: 1000;
-
-    &:hover {
-        opacity: 0.8;
-    }
-`;
-
-const ModalBody = styled.div`
-    padding: 2rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-`;
-
-const SectionTitle = styled.h3`
-    color: var(--text-primary);
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-`;
-
-const TagsContainer = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    margin-bottom: 0.75rem;
-    min-height: 60px;
-    padding: 1rem;
-    background: linear-gradient(135deg, rgba(248, 249, 250, 0.8), rgba(255, 255, 255, 0.9));
-    border-radius: 12px;
-    border: 2px dashed rgba(0, 123, 255, 0.2);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-`;
-
-const TagPill = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    background: ${props => props.color || '#6366f1'};
-    color: white;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    user-select: none;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    border: 1px solid transparent;
-    
-    &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-    }
-`;
-
-const RemoveTagButton = styled.button`
-    background: rgba(255, 255, 255, 0.2);
-    border: none;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    color: white;
-    font-size: 0.8rem;
-    transition: all 0.3s ease;
-    
-    &:hover {
-        background: rgba(255, 255, 255, 0.3);
-        transform: scale(1.1);
-    }
-`;
-
-const AvailableTagsContainer = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    max-height: 300px;
-    margin-bottom: 0.75rem;
-    overflow-y: auto;
-    padding: 1.5rem;
-    background: linear-gradient(135deg, rgba(248, 249, 250, 0.8), rgba(255, 255, 255, 0.9));
-    border: 2px dashed rgba(0, 123, 255, 0.2);
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-`;
-
-const AvailableTag = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    background: ${props => props.color || '#6366f1'};
-    color: white;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    opacity: ${props => props.$isSelected ? 0.5 : 1};
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    border: 2px solid transparent;
-    
-    &:hover {
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-        border-color: rgba(255, 255, 255, 0.6);
-    }
-`;
-
-const CreateTagSection = styled.div`
-    padding-top: 0.75rem;
-`;
-
-const CreateTagForm = styled.form`
-    display: grid;
-    grid-template-columns: auto 1fr auto auto;
-    gap: 1rem;
-    align-items: flex-end;
-`;
-
-const InputGroup = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    width: 100%;
-`;
-
-const InputLabel = styled.label`
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-    font-weight: 500;
-`;
-
-const FormInput = styled.input`
-    font: inherit;
-    padding: 0.75rem 1rem;
-    background: rgba(255, 255, 255, 0.9);
-    border: 2px solid rgba(0, 0, 0, 0.08);
-    border-radius: 10px;
-    color: var(--text-primary);
-    font-size: 1rem;
-    transition: all 0.3s ease;
-    height: 48px;
-    box-sizing: border-box;
-    
-    &:hover {
-        border-color: var(--button-primary);
-        background: white;
-        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
-    }
-    
-    &:focus {
-        outline: none;
-        border-color: var(--button-primary);
-        background: white;
-        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
-    }
-    
-    &::placeholder {
-        color: var(--text-secondary);
-    }
-`;
-
-const EmojiInput = styled.div`
-    position: relative;
-    width: 60px;
-    height: 48px;
-`;
-
-const EmojiButton = styled.button`
-    width: 100%;
-    height: 100%;
-    padding: 0.75rem;
-    background: rgba(255, 255, 255, 0.9);
-    border: 2px solid rgba(0, 0, 0, 0.08);
-    border-radius: 10px;
-    color: var(--text-primary);
-    font-size: 1.2rem;
-    text-align: center;
-    transition: all 0.3s ease;
-    box-sizing: border-box;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    
-    &:hover {
-        border-color: var(--button-primary);
-        background: white;
-        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
-    }
-    
-    &:focus {
-        outline: none;
-        border-color: var(--button-primary);
-        background: white;
-        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
-    }
-`;
-
-const CreateButton = styled.button`
-    font: inherit;
-    padding: 0.75rem 1.5rem;
-    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
-    border: none;
-    border-radius: 10px;
-    color: white;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    height: 48px;
-    white-space: nowrap;
-    box-sizing: border-box;
-    position: relative;
-    overflow: hidden;
-    
-    &:hover:not(:disabled) {
-        &::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-            animation: shimmer 0.5s ease-in-out;
-        }
-    }
-    
-    &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-        transform: none;
-    }
-    
-    @keyframes shimmer {
-        0% { left: -100%; }
-        100% { left: 100%; }
-    }
-`;
-
-const ActionButtons = styled.div`
-    display: flex;
-    gap: 1rem;
-    justify-content: flex-end;
-    margin-top: 2rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid rgba(0, 0, 0, 0.08);
-`;
-
-const SaveButton = styled.button`
-    font: inherit;
-    padding: 0.75rem 2rem;
-    background: linear-gradient(135deg, var(--amount-positive), #059669);
-    border: none;
-    border-radius: 10px;
-    color: white;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    
-    &:hover:not(:disabled) {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
-    }
-    
-    &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-    }
-`;
-
-const CancelButton = styled.button`
-    font: inherit;
-    padding: 0.75rem 2rem;
-    background: rgba(255, 255, 255, 0.9);
-    border: 2px solid rgba(0, 0, 0, 0.08);
-    border-radius: 10px;
-    color: var(--text-primary);
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    
-    &:hover {
-        background: rgba(0, 0, 0, 0.1);
-        border-color: rgba(0, 0, 0, 0.12);
-    }
-`;
-
-const EmptyState = styled.div`
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-    color: var(--text-secondary);
-    font-style: italic;
-    text-align: center;
-    gap: 0.5rem;
-`;
-
-const EmojiPicker = styled.div`
-    position: absolute;
-    top: 100%;
-    left: 0;
-    z-index: 1000;
-    background: white;
-    border: 2px solid rgba(0, 0, 0, 0.08);
-    border-radius: 12px;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-    padding: 1rem;
-    max-height: 250px;
-    overflow-y: auto;
-    margin-top: 0.5rem;
-    animation: slideDown 0.2s ease-out;
-    
-    &::before {
-        content: '';
-        position: absolute;
-        top: -10px;
-        left: 12px;
-        width: 16px;
-        height: 16px;
-        background: white;
-        border-left: 2px solid rgba(0, 0, 0, 0.08);
-        border-top: 2px solid rgba(0, 0, 0, 0.08);
-        transform: rotate(45deg);
-        border-radius: 2px 0 0 0;
-    }
-    
-    @keyframes slideDown {
-        from {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-`;
-
-const EmojiGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-`;
-
-const EmojiOption = styled.button`
-    width: 32px;
-    height: 32px;
-    border: none;
-    background: transparent;
-    border-radius: 6px;
-    font-size: 1.2rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    
-    &:hover {
-        background: rgba(0, 123, 255, 0.1);
-        transform: scale(1.1);
-    }
-    
-    &:focus {
-        outline: none;
-        background: rgba(0, 123, 255, 0.2);
-    }
-`;
-
-const EmojiCategory = styled.div`
-    margin-bottom: 1rem;
-    
-    &:last-child {
-        margin-bottom: 0;
-    }
-`;
-
-const CategoryTitle = styled.div`
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--text-secondary);
-    margin-bottom: 0.5rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-`;
-
-const ColorPicker = styled.div`
-    position: absolute;
-    top: 100%;
-    right: 0;
-    z-index: 1000;
-    background: white;
-    border: 2px solid rgba(0, 0, 0, 0.08);
-    border-radius: 12px;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-    padding: 1rem;
-    margin-top: 0.5rem;
-    animation: slideDown 0.2s ease-out;
-    
-    &::before {
-        content: '';
-        position: absolute;
-        top: -10px;
-        right: 12px;
-        width: 16px;
-        height: 16px;
-        background: white;
-        border-left: 2px solid rgba(0, 0, 0, 0.08);
-        border-top: 2px solid rgba(0, 0, 0, 0.08);
-        transform: rotate(45deg);
-        border-radius: 2px 0 0 0;
-    }
-`;
-
-const ColorGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 0.5rem;
-`;
-
-const ColorOption = styled.button`
-    width: 32px;
-    height: 32px;
-    border: 2px solid ${props => props.$isSelected ? 'white' : 'transparent'};
-    background: ${props => props.color};
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    
-    &:hover {
-        transform: scale(1.1);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    }
-    
-    &:focus {
-        outline: none;
-        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.3);
-    }
-`;
-
-const ColorButton = styled.button`
-    height: 48px;
-    width: 48px;
-    padding: 0.75rem;
-    background: ${props => props.color || '#f59e0b'};
-    border: 2px solid rgba(0, 0, 0, 0.1);
-    border-radius: 10px;
-    color: white;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-    box-sizing: border-box;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    
-    &:hover {
-        border-color: var(--button-primary);
-        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
-        transform: translateY(-1px);
-    }
-    
-    &:focus {
-        outline: none;
-        border-color: var(--button-primary);
-        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
-    }
-`;
-
-const DeleteButton = styled.button`
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-    border: none;
-    border-radius: 8px;
-    color: white;
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    
-    &:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-    }
-`;
-
-const ConfirmationModal = styled.div`
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(8px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-    animation: fadeIn 0.3s ease-out;
-    
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
-`;
-
-const ConfirmationContent = styled.div`
-    background: white;
-    border-radius: 16px;
-    padding: 2rem;
-    max-width: 425px;
-    width: 90%;
-    text-align: center;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    animation: slideUp 0.3s ease-out;
-    
-    @keyframes slideUp {
-        from {
-            opacity: 0;
-            transform: translateY(30px) scale(0.95);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-        }
-    }
-`;
-
-const ConfirmationTitle = styled.h3`
-    margin: 0 0 1rem 0;
-    font-size: 1.3rem;
-    font-weight: 600;
-    color: #dc2626;
-`;
-
-const ConfirmationMessage = styled.p`
-    margin: 0 0 0.5rem 0;
-    color: var(--text-secondary);
-    line-height: 1.5;
-`;
-
-const ConfirmationButtons = styled.div`
-    margin-top: 1rem;
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-`;
-
-const ConfirmButton = styled.button`
-    font: inherit;
-    font-size: 0.9rem;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-    border: none;
-    border-radius: 10px;
-    color: white;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    
-    &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
-    }
-`;
-
-const CancelConfirmButton = styled.button`
-    font: inherit;
-    font-size: 0.9rem;
-    padding: 0.75rem 1.5rem;
-    background: rgba(255, 255, 255, 0.9);
-    border: 2px solid rgba(0, 0, 0, 0.08);
-    border-radius: 10px;
-    color: var(--text-primary);
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    
-    &:hover {
-        background: rgba(0, 0, 0, 0.1);
-        border-color: rgba(0, 0, 0, 0.12);
-    }
-`;
-
-// Transaction Details Styled Components
-const TransactionDetailsSection = styled.div`
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
-    border-radius: 12px;
-    margin: 1.5rem 2rem 0rem 2rem;
-    padding: 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    position: relative;
-    overflow: hidden;
-    
-    &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
-        pointer-events: none;
-    }
-`;
-
-const TransactionDetailsHeader = styled.div`
-    display: flex;
-    align-items: center;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    position: relative;
-    z-index: 1;
-`;
-
-const TransactionDetailsContent = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    position: relative;
-    z-index: 1;
-`;
-
-const TransactionDetailsRow = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 1rem;
-    align-items: start;
-`;
-
-const TransactionDetailItem = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    transition: all 0.3s ease;
-`;
-
-const TransactionDetailLabel = styled.span`
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    opacity: 0.9;
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-`;
-
-const TransactionDetailValue = styled.span`
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.15);
-    padding: 0.6rem 0.8rem;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    word-break: break-word;
-    line-height: 1.4;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-    
-    &:hover {
-        background: rgba(255, 255, 255, 0.2);
-        border-color: rgba(255, 255, 255, 0.35);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-`;
-
 // ================================================================= TAG MODAL COMPONENT
 
 const TagModal = ({ isOpen, onClose, transaction, onTagsUpdated, onTagSelect, selectedTags: externalSelectedTags, availableTags: externalAvailableTags }) => {
-    const [availableTags, setAvailableTags] = useState([]);
-    const [selectedTags, setSelectedTags] = useState([]);
-    const [newTagName, setNewTagName] = useState('');
-    const [newTagEmoji, setNewTagEmoji] = useState('🏷️');
-    const [isCreatingTag, setIsCreatingTag] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
-    const [isInitializing, setIsInitializing] = useState(false);
-    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-    const [showColorPicker, setShowColorPicker] = useState(false);
-    const [newTagColor, setNewTagColor] = useState('#f59e0b');
-    const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
-    const [tagToDelete, setTagToDelete] = useState(null);
-    const [tagTransactionCount, setTagTransactionCount] = useState(0);
+    
+    // -------------------------------------------------------- State Variables.
+    const [availableTags, setAvailableTags] = useState([]);                         // State 4 Tags That Are Available.
+    const [selectedTags, setSelectedTags] = useState([]);                            // State 4 Tags That Are Selected.
+    const [newTagName, setNewTagName] = useState('');                              // State 4 New Tag Name.
+    const [newTagEmoji, setNewTagEmoji] = useState('🏷️');                          // State 4 New Tag Emoji.
+    const [isCreatingTag, setIsCreatingTag] = useState(false);                      // State 4 If A Tag Is Being Created.
+    const [isLoading, setIsLoading] = useState(false);                              // State 4 If The Modal Is Loading.
+    const [isInitializing, setIsInitializing] = useState(false);                    // State 4 If The Modal Is Initializing.
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);                 // State 4 If The Emoji Picker Is Showing.
+    const [showColorPicker, setShowColorPicker] = useState(false);                 // State 4 If The Color Picker Is Showing.
+    const [newTagColor, setNewTagColor] = useState('#f59e0b');                     // State 4 The Color Of The New Tag.
+    const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);   // State 4 If The Delete Confirmation Is Showing.
+    const [tagToDelete, setTagToDelete] = useState(null);                          // State 4 The Tag That Is Being Deleted.
+    const [tagTransactionCount, setTagTransactionCount] = useState(0);            // State 4 The Transaction Count For The Tag.
 
-    // Color options for tags in rainbow order
+    // -------------------------------------------------------- Color Options.
     const colorOptions = [
         '#ef4444', '#f97316', '#f59e0b', '#84cc16', '#10b981', '#06b6d4',
         '#3b82f6', '#6366f1', '#8b5cf6', '#ec4899', '#be185d', '#dc2626',
         '#65a30d', '#059669', '#0891b2', '#047857', '#7c3aed', '#6366f1'
     ];
 
-    // Emoji categories and options
+    // -------------------------------------------------------- Emoji Categories.
     const emojiCategories = {
         'Common': ['🏷️', '📝', '⭐', '💡', '🎯', '📌', '🔖', '🏆'],
         'Food & Drink': ['🍕', '🍔', '🍜', '🍣', '🍰', '☕', '🍺', '🍷'],
@@ -861,17 +50,18 @@ const TagModal = ({ isOpen, onClose, transaction, onTagsUpdated, onTagSelect, se
         'Health & Wellness': ['🏥', '💊', '🧘', '🏃', '🥗', '💪', '🧘', '🩺']
     };
 
-    // Determine if this is for manual transaction creation
+    // -------------------------------------------------------- Determine If This Is For Manual Transaction Creation.
     const isManualCreation = !transaction && externalSelectedTags !== undefined;
 
+    // -------------------------------------------------------- Use Effect.
     useEffect(() => {
         if (isOpen) {
             if (isManualCreation) {
-                // For manual creation, use external props
+                // For Manual Creation, Use External Props.
                 setAvailableTags(externalAvailableTags || []);
                 setSelectedTags(externalSelectedTags || []);
             } else {
-                // For existing transaction, load tags normally
+                // For Existing Transaction, Load Tags Normally.
             loadTags();
             if (transaction?.tags && Array.isArray(transaction.tags)) {
                 setSelectedTags(transaction.tags);
@@ -882,7 +72,7 @@ const TagModal = ({ isOpen, onClose, transaction, onTagsUpdated, onTagSelect, se
         }
     }, [isOpen, transaction, isManualCreation, externalSelectedTags, externalAvailableTags]);
 
-
+    // -------------------------------------------------------- Load Tags.
 
     const loadTags = async () => {
         try {
@@ -891,7 +81,7 @@ const TagModal = ({ isOpen, onClose, transaction, onTagsUpdated, onTagSelect, se
             console.log('Loaded tags:', tags);
             
             if (tags.length === 0) {
-                // No tags exist, initialize default tags
+                // No tags exist, Initialize Default Tags.
                 await initializeDefaultTagsIfNeeded();
             } else {
                 setAvailableTags(tags);
@@ -903,12 +93,14 @@ const TagModal = ({ isOpen, onClose, transaction, onTagsUpdated, onTagSelect, se
         }
     };
 
+    // -------------------------------------------------------- Initialize Default Tags If Needed.
+
     const initializeDefaultTagsIfNeeded = async () => {
         try {
             setIsInitializing(true);
             await initializeDefaultTags();
             
-            // Reload tags after initialization
+            // Reload Tags After Initialization.
             const response = await getTags();
             const tags = Array.isArray(response) ? response : [];
             setAvailableTags(tags);
@@ -919,6 +111,8 @@ const TagModal = ({ isOpen, onClose, transaction, onTagsUpdated, onTagSelect, se
             setIsInitializing(false);
         }
     };
+
+    // -------------------------------------------------------- Handle Create Tag.
 
     const handleCreateTag = async (e) => {
         e.preventDefault();
@@ -944,12 +138,14 @@ const TagModal = ({ isOpen, onClose, transaction, onTagsUpdated, onTagSelect, se
         }
     };
 
+    // -------------------------------------------------------- Handle Add Tag.
+
     const handleAddTag = (tag) => {
         if (isManualCreation && onTagSelect) {
-            // For manual creation, call the external handler
+            // For Manual Creation, Call The External Handler.
             onTagSelect(tag);
         } else {
-            // For existing transaction, update local state
+            // For Existing Transaction, Update Local State.
         if (!Array.isArray(selectedTags)) {
             setSelectedTags([tag]);
         } else if (!selectedTags.find(t => t.id === tag.id)) {
@@ -958,26 +154,34 @@ const TagModal = ({ isOpen, onClose, transaction, onTagsUpdated, onTagSelect, se
         }
     };
 
+    // -------------------------------------------------------- Handle Remove Tag.
+
     const handleRemoveTag = (tagId) => {
         if (isManualCreation && onTagSelect) {
-            // For manual creation, we need to handle removal differently
-            // This will be handled by the parent component
+            // For Manual Creation, We Need To Handle Removal Differently.
+            // This Will Be Handled By The Parent Component.
         } else {
-            // For existing transaction, update local state
+            // For Existing Transaction, Update Local State.
         if (Array.isArray(selectedTags)) {
             setSelectedTags(selectedTags.filter(tag => tag.id !== tagId));
             }
         }
     };
 
+    // -------------------------------------------------------- Handle Emoji Select.
+
     const handleEmojiSelect = (emoji) => {
         setNewTagEmoji(emoji);
         setShowEmojiPicker(false);
     };
 
+    // -------------------------------------------------------- Handle Emoji Button Click.
+
     const handleEmojiButtonClick = () => {
         setShowEmojiPicker(!showEmojiPicker);
     };
+
+    // -------------------------------------------------------- Handle Emoji Key Down.
 
     const handleEmojiKeyDown = (event) => {
         if (event.key === 'Enter' || event.key === ' ') {
@@ -986,30 +190,38 @@ const TagModal = ({ isOpen, onClose, transaction, onTagsUpdated, onTagSelect, se
         }
     };
 
+    // -------------------------------------------------------- Handle Color Select.
+
     const handleColorSelect = (color) => {
         setNewTagColor(color);
         setShowColorPicker(false);
     };
 
+    // -------------------------------------------------------- Handle Color Button Click.
+
     const handleColorButtonClick = () => {
         setShowColorPicker(!showColorPicker);
     };
 
+    // -------------------------------------------------------- Handle Delete Tag.
+
     const handleDeleteTag = async (tag) => {
         try {
-            // Get transaction count for this tag
+            // Get Transaction Count For This Tag.
             const countData = await getTagTransactionCount(tag.id);
             setTagTransactionCount(countData.transaction_count || 0);
         setTagToDelete(tag);
         setShowDeleteConfirmation(true);
         } catch (error) {
             console.error('Error fetching tag transaction count:', error);
-            // If we can't get the count, still allow deletion but show 0
+            // If We Can't Get The Count, Still Allow Deletion But Show 0.
             setTagTransactionCount(0);
             setTagToDelete(tag);
             setShowDeleteConfirmation(true);
         }
     };
+
+    // -------------------------------------------------------- Handle Confirm Delete.
 
     const handleConfirmDelete = async () => {
         if (!tagToDelete) return;
@@ -1019,7 +231,7 @@ const TagModal = ({ isOpen, onClose, transaction, onTagsUpdated, onTagSelect, se
             setAvailableTags(availableTags.filter(tag => tag.id !== tagToDelete.id));
             setSelectedTags(selectedTags.filter(tag => tag.id !== tagToDelete.id));
             
-            // Show success message with transaction count
+            // Show Success Message With Transaction Count.
             const affectedCount = result.transactions_affected || 0;
             if (affectedCount > 0) {
                 toast.success(`Tag "${tagToDelete.name}" deleted successfully! Removed from ${affectedCount} transaction${affectedCount === 1 ? '' : 's'}.`);
@@ -1027,15 +239,15 @@ const TagModal = ({ isOpen, onClose, transaction, onTagsUpdated, onTagSelect, se
             toast.success(`Tag "${tagToDelete.name}" deleted successfully!`);
             }
             
-            // Immediately refresh transactions to reflect the changes
+            // Immediately Refresh Transactions To Reflect The Changes.
             if (onTagsUpdated) {
                 onTagsUpdated();
             }
             
-            // Also update the current transaction's tags if it had the deleted tag
+            // Also Update The Current Transaction's Tags If It Had The Deleted Tag.
             if (transaction && Array.isArray(transaction.tags)) {
                 const updatedTransactionTags = transaction.tags.filter(tag => tag.id !== tagToDelete.id);
-                // Update the transaction object to reflect the change immediately
+                // Update The Transaction Object To Reflect The Change Immediately.
                 transaction.tags = updatedTransactionTags;
             }
         } catch (error) {
@@ -1048,13 +260,16 @@ const TagModal = ({ isOpen, onClose, transaction, onTagsUpdated, onTagSelect, se
         }
     };
 
+    // -------------------------------------------------------- Handle Cancel Delete.
+
     const handleCancelDelete = () => {
         setShowDeleteConfirmation(false);
         setTagToDelete(null);
         setTagTransactionCount(0);
     };
 
-    // Close emoji picker when clicking outside
+    // -------------------------------------------------------- Close Emoji Picker When Clicking Outside.
+
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (showEmojiPicker && !event.target.closest('.emoji-picker-container')) {
@@ -1069,9 +284,11 @@ const TagModal = ({ isOpen, onClose, transaction, onTagsUpdated, onTagSelect, se
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [showEmojiPicker, showColorPicker]);
 
+    // -------------------------------------------------------- Handle Save.
+
     const handleSave = async () => {
         if (isManualCreation) {
-            // For manual creation, just close the modal
+            // For Manual Creation, Just Close The Modal.
             onClose();
             return;
         }
@@ -1080,19 +297,19 @@ const TagModal = ({ isOpen, onClose, transaction, onTagsUpdated, onTagSelect, se
 
         setIsLoading(true);
         try {
-            // Get current transaction tags
+            // Get Current Transaction Tags.
             const currentTags = Array.isArray(transaction.tags) ? transaction.tags : [];
             const currentTagIds = currentTags.map(tag => tag.id);
             const selectedTagIds = Array.isArray(selectedTags) ? selectedTags.map(tag => tag.id) : [];
 
-            // Remove tags that are no longer selected
+            // Remove Tags That Are No Longer Selected.
             for (const tagId of currentTagIds) {
                 if (!selectedTagIds.includes(tagId)) {
                     await removeTagFromTransaction(transaction.id, tagId);
                 }
             }
 
-            // Add new tags
+            // Add New Tags.
             for (const tagId of selectedTagIds) {
                 if (!currentTagIds.includes(tagId)) {
                     await addTagToTransaction(transaction.id, tagId);
@@ -1110,17 +327,19 @@ const TagModal = ({ isOpen, onClose, transaction, onTagsUpdated, onTagSelect, se
         }
     };
 
-    // Handle modal close - ensure any tag deletions are applied immediately
+    // -------------------------------------------------------- Handle Modal Close.
+
     const handleModalClose = () => {
-        // If there are any tags that were deleted during this session, 
-        // we need to ensure the transactions are refreshed
+        // If There Are Any Tags That Were Deleted During This Session, 
+        // We Need To Ensure The Transactions Are Refreshed.
         if (onTagsUpdated) {
             onTagsUpdated();
         }
         onClose();
     };
 
-    // Format transaction details for display
+    // -------------------------------------------------------- Format Transaction Details For Display.
+
     const formatTransactionDetails = () => {
         if (!transaction) return null;
         
@@ -1137,10 +356,13 @@ const TagModal = ({ isOpen, onClose, transaction, onTagsUpdated, onTagSelect, se
         };
     };
 
+    // -------------------------------------------------------- Render.
+
     if (!isOpen) return null;
 
     return (
         <Fragment>
+            {/* Modal. */}
             <Modal onClick={handleModalClose}>
             <ModalContent onClick={(e) => e.stopPropagation()}>
                 <ModalHeader>
@@ -1158,7 +380,7 @@ const TagModal = ({ isOpen, onClose, transaction, onTagsUpdated, onTagSelect, se
                     </CloseButton>
                 </ModalHeader>
 
-                {/* Transaction Details Section */}
+                {/* Transaction Details Section. */}
                 {transaction && !isManualCreation && (
                     <TransactionDetailsSection>
                         <TransactionDetailsHeader>
@@ -1198,7 +420,7 @@ const TagModal = ({ isOpen, onClose, transaction, onTagsUpdated, onTagSelect, se
                 )}
 
                 <ModalBody>
-                    {/* Current Tags */}
+                    {/* Current Tags. */}
                     <div>
                         <SectionTitle>
                             Current Tags
@@ -1223,7 +445,7 @@ const TagModal = ({ isOpen, onClose, transaction, onTagsUpdated, onTagSelect, se
                         </TagsContainer>
                     </div>
                     <div style={{ width: '100%', height: '2px', backgroundColor: 'rgba(0, 0, 0, 0.05)', borderRadius: '10px' }} />
-                    {/* Available Tags */}
+                    {/* Available Tags. */}
                     <div>
                         <SectionTitle>
                             Available Tags
@@ -1280,7 +502,7 @@ const TagModal = ({ isOpen, onClose, transaction, onTagsUpdated, onTagSelect, se
                     </div>
 
                     <div style={{ width: '100%', height: '2px', backgroundColor: 'rgba(0, 0, 0, 0.05)', borderRadius: '10px' }} />
-                    {/* Create New Tag */}
+                    {/* Create New Tag. */}
                     <CreateTagSection>
                         <SectionTitle>
                             Create New Tag
@@ -1388,7 +610,7 @@ const TagModal = ({ isOpen, onClose, transaction, onTagsUpdated, onTagSelect, se
             </ModalContent>
         </Modal>
 
-        {/* Delete Confirmation Modal */}
+        {/* Delete Confirmation Modal. */}
         {showDeleteConfirmation && (
             <ConfirmationModal onClick={handleCancelDelete}>
                 <ConfirmationContent onClick={(e) => e.stopPropagation()}>
@@ -1422,4 +644,875 @@ const TagModal = ({ isOpen, onClose, transaction, onTagsUpdated, onTagSelect, se
     );
 };
 
+// ------------------------------------------------------------------------------------------------ Styled Components.
+
+// -------------------------------------------------------- Modal.
+const Modal = styled.div`
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 2rem;
+`;
+
+// -------------------------------------------------------- Modal Content.
+const ModalContent = styled.div`
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.98));
+    border-radius: 20px;
+    max-width: 600px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 8px 32px rgba(0, 123, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    animation: modalSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    &::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* Hide scrollbar for IE, Edge and Firefox */
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+
+    @keyframes modalSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(30px) scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+`;
+
+// -------------------------------------------------------- Modal Header.
+const ModalHeader = styled.div`
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2rem 2rem 1.5rem 2rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.9));
+    border-radius: 20px 20px 0 0;
+`;
+
+// -------------------------------------------------------- Header Content.
+const HeaderContent = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+`;
+
+// -------------------------------------------------------- Welcome Icon.
+const WelcomeIcon = styled.div`
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.2rem;
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+`;
+
+// -------------------------------------------------------- Header Text.
+const HeaderText = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+`;
+
+// -------------------------------------------------------- Modal Title.
+const ModalTitle = styled.h2`
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: var(--button-primary);
+`;
+
+// -------------------------------------------------------- Modal Subtitle.
+const ModalSubtitle = styled.p`
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+`;
+
+// -------------------------------------------------------- Close Button.
+const CloseButton = styled.button`
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: white;
+    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
+    cursor: pointer;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    z-index: 1000;
+
+    &:hover {
+        opacity: 0.8;
+    }
+`;
+
+// -------------------------------------------------------- Modal Body.
+const ModalBody = styled.div`
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+`;
+
+// -------------------------------------------------------- Section Title.
+const SectionTitle = styled.h3`
+    color: var(--text-primary);
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+`;
+
+// -------------------------------------------------------- Tags Container.
+const TagsContainer = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    min-height: 60px;
+    padding: 1rem;
+    background: linear-gradient(135deg, rgba(248, 249, 250, 0.8), rgba(255, 255, 255, 0.9));
+    border-radius: 12px;
+    border: 2px dashed rgba(0, 123, 255, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+`;
+
+// -------------------------------------------------------- Tag Pill.
+const TagPill = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: ${props => props.color || '#6366f1'};
+    color: white;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    border: 1px solid transparent;
+    
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    }
+`;
+
+// -------------------------------------------------------- Remove Tag Button.
+const RemoveTagButton = styled.button`
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: white;
+    font-size: 0.8rem;
+    transition: all 0.3s ease;
+    
+    &:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: scale(1.1);
+    }
+`;
+
+// -------------------------------------------------------- Available Tags Container.
+const AvailableTagsContainer = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    max-height: 300px;
+    margin-bottom: 0.75rem;
+    overflow-y: auto;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(248, 249, 250, 0.8), rgba(255, 255, 255, 0.9));
+    border: 2px dashed rgba(0, 123, 255, 0.2);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+`;
+
+// -------------------------------------------------------- Available Tag.
+const AvailableTag = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: ${props => props.color || '#6366f1'};
+    color: white;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    opacity: ${props => props.$isSelected ? 0.5 : 1};
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    border: 2px solid transparent;
+    
+    &:hover {
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        border-color: rgba(255, 255, 255, 0.6);
+    }
+`;
+
+// -------------------------------------------------------- Create Tag Section.
+const CreateTagSection = styled.div`
+    padding-top: 0.75rem;
+`;
+
+// -------------------------------------------------------- Create Tag Form.
+const CreateTagForm = styled.form`
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    gap: 1rem;
+    align-items: flex-end;
+`;
+
+// -------------------------------------------------------- Input Group.
+const InputGroup = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+`;
+
+// -------------------------------------------------------- Input Label.
+const InputLabel = styled.label`
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
+`;
+
+// -------------------------------------------------------- Form Input.
+const FormInput = styled.input`
+    font: inherit;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid rgba(0, 0, 0, 0.08);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    height: 48px;
+    box-sizing: border-box;
+    
+    &:hover {
+        border-color: var(--button-primary);
+        background: white;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    }
+    
+    &:focus {
+        outline: none;
+        border-color: var(--button-primary);
+        background: white;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    }
+    
+    &::placeholder {
+        color: var(--text-secondary);
+    }
+`;
+
+// -------------------------------------------------------- Emoji Input.
+const EmojiInput = styled.div`
+    position: relative;
+    width: 60px;
+    height: 48px;
+`;
+
+// -------------------------------------------------------- Emoji Button.
+const EmojiButton = styled.button`
+    width: 100%;
+    height: 100%;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid rgba(0, 0, 0, 0.08);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    &:hover {
+        border-color: var(--button-primary);
+        background: white;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    }
+    
+    &:focus {
+        outline: none;
+        border-color: var(--button-primary);
+        background: white;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    }
+`;
+
+// -------------------------------------------------------- Create Button.
+const CreateButton = styled.button`
+    font: inherit;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 48px;
+    white-space: nowrap;
+    box-sizing: border-box;
+    position: relative;
+    overflow: hidden;
+    
+    &:hover:not(:disabled) {
+        &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: shimmer 0.5s ease-in-out;
+        }
+    }
+    
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
+    @keyframes shimmer {
+        0% { left: -100%; }
+        100% { left: 100%; }
+    }
+`;
+
+// -------------------------------------------------------- Action Buttons.
+const ActionButtons = styled.div`
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+`;
+
+// -------------------------------------------------------- Save Button.
+const SaveButton = styled.button`
+    font: inherit;
+    padding: 0.75rem 2rem;
+    background: linear-gradient(135deg, var(--amount-positive), #059669);
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    
+    &:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+    }
+    
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+`;
+
+const CancelButton = styled.button`
+    font: inherit;
+    padding: 0.75rem 2rem;
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid rgba(0, 0, 0, 0.08);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    
+    &:hover {
+        background: rgba(0, 0, 0, 0.1);
+        border-color: rgba(0, 0, 0, 0.12);
+    }
+`;
+
+// -------------------------------------------------------- Empty State.
+const EmptyState = styled.div`
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    color: var(--text-secondary);
+    font-style: italic;
+    text-align: center;
+    gap: 0.5rem;
+`;
+
+// -------------------------------------------------------- Emoji Picker.
+const EmojiPicker = styled.div`
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    background: white;
+    border: 2px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    padding: 1rem;
+    max-height: 250px;
+    overflow-y: auto;
+    margin-top: 0.5rem;
+    animation: slideDown 0.2s ease-out;
+    
+    &::before {
+        content: '';
+        position: absolute;
+        top: -10px;
+        left: 12px;
+        width: 16px;
+        height: 16px;
+        background: white;
+        border-left: 2px solid rgba(0, 0, 0, 0.08);
+        border-top: 2px solid rgba(0, 0, 0, 0.08);
+        transform: rotate(45deg);
+        border-radius: 2px 0 0 0;
+    }
+    
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+`;
+
+// -------------------------------------------------------- Emoji Grid.
+const EmojiGrid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+`;
+
+// -------------------------------------------------------- Emoji Option.
+const EmojiOption = styled.button`
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    
+    &:hover {
+        background: rgba(0, 123, 255, 0.1);
+        transform: scale(1.1);
+    }
+    
+    &:focus {
+        outline: none;
+        background: rgba(0, 123, 255, 0.2);
+    }
+`;
+
+// -------------------------------------------------------- Emoji Category.
+const EmojiCategory = styled.div`
+    margin-bottom: 1rem;
+    
+    &:last-child {
+        margin-bottom: 0;
+    }
+`;
+
+// -------------------------------------------------------- Category Title.
+const CategoryTitle = styled.div`
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+`;
+
+// -------------------------------------------------------- Color Picker.
+const ColorPicker = styled.div`
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 1000;
+    background: white;
+    border: 2px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    padding: 1rem;
+    margin-top: 0.5rem;
+    animation: slideDown 0.2s ease-out;
+    
+    &::before {
+        content: '';
+        position: absolute;
+        top: -10px;
+        right: 12px;
+        width: 16px;
+        height: 16px;
+        background: white;
+        border-left: 2px solid rgba(0, 0, 0, 0.08);
+        border-top: 2px solid rgba(0, 0, 0, 0.08);
+        transform: rotate(45deg);
+        border-radius: 2px 0 0 0;
+    }
+`;
+
+// -------------------------------------------------------- Color Grid.
+const ColorGrid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.5rem;
+`;
+
+// -------------------------------------------------------- Color Option.
+const ColorOption = styled.button`
+    width: 32px;
+    height: 32px;
+    border: 2px solid ${props => props.$isSelected ? 'white' : 'transparent'};
+    background: ${props => props.color};
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    
+    &:hover {
+        transform: scale(1.1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    
+    &:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.3);
+    }
+`;
+
+// -------------------------------------------------------- Color Button.
+const ColorButton = styled.button`
+    height: 48px;
+    width: 48px;
+    padding: 0.75rem;
+    background: ${props => props.color || '#f59e0b'};
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    color: white;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    
+    &:hover {
+        border-color: var(--button-primary);
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        transform: translateY(-1px);
+    }
+    
+    &:focus {
+        outline: none;
+        border-color: var(--button-primary);
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    }
+`;
+
+// -------------------------------------------------------- Delete Button.
+const DeleteButton = styled.button`
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    }
+`;
+
+// -------------------------------------------------------- Confirmation Modal.
+const ConfirmationModal = styled.div`
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.3s ease-out;
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+`;
+
+// -------------------------------------------------------- Confirmation Content.
+const ConfirmationContent = styled.div`
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    max-width: 425px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease-out;
+    
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px) scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+`;
+
+// -------------------------------------------------------- Confirmation Title.
+const ConfirmationTitle = styled.h3`
+    margin: 0 0 1rem 0;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #dc2626;
+`;
+
+// -------------------------------------------------------- Confirmation Message.
+const ConfirmationMessage = styled.p`
+    margin: 0 0 0.5rem 0;
+    color: var(--text-secondary);
+    line-height: 1.5;
+`;
+
+// -------------------------------------------------------- Confirmation Buttons.
+const ConfirmationButtons = styled.div`
+    margin-top: 1rem;
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+`;
+
+// -------------------------------------------------------- Confirm Button.
+const ConfirmButton = styled.button`
+    font: inherit;
+    font-size: 0.9rem;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+    }
+`;
+
+// -------------------------------------------------------- Cancel Confirm Button.
+const CancelConfirmButton = styled.button`
+    font: inherit;
+    font-size: 0.9rem;
+    padding: 0.75rem 1.5rem;
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid rgba(0, 0, 0, 0.08);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    
+    &:hover {
+        background: rgba(0, 0, 0, 0.1);
+        border-color: rgba(0, 0, 0, 0.12);
+    }
+`;
+
+// -------------------------------------------------------- Transaction Details Section.
+const TransactionDetailsSection = styled.div`
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
+    border-radius: 12px;
+    margin: 1.5rem 2rem 0rem 2rem;
+    padding: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    position: relative;
+    overflow: hidden;
+    
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+        pointer-events: none;
+    }
+`;
+
+// -------------------------------------------------------- Transaction Details Header.
+const TransactionDetailsHeader = styled.div`
+    display: flex;
+    align-items: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    position: relative;
+    z-index: 1;
+`;
+
+// -------------------------------------------------------- Transaction Details Content.
+const TransactionDetailsContent = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    position: relative;
+    z-index: 1;
+`;
+
+// -------------------------------------------------------- Transaction Details Row.
+const TransactionDetailsRow = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+    align-items: start;
+`;
+
+// -------------------------------------------------------- Transaction Detail Item.
+const TransactionDetailItem = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+`;
+
+// -------------------------------------------------------- Transaction Detail Label.
+const TransactionDetailLabel = styled.span`
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.9;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+`;
+
+// -------------------------------------------------------- Transaction Detail Value.
+const TransactionDetailValue = styled.span`
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.15);
+    padding: 0.6rem 0.8rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    word-break: break-word;
+    line-height: 1.4;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    
+    &:hover {
+        background: rgba(255, 255, 255, 0.2);
+        border-color: rgba(255, 255, 255, 0.35);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+`;
+
+// -------------------------------------------------------- Export The TagModal Component.
 export default TagModal; 

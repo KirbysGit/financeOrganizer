@@ -1,17 +1,20 @@
+// api.js
+
+// This is the API file that is used to make the API calls to the backend. It contains the API instance, the base URL,
+// and the refresh lock. It also contains the response interceptor to handle auth errors. This is the main frontend
+// flow for API calls.
+
 // Imports.
 import axios from 'axios';
 
-console.log("HEY!!!!");
 // Create API Instance.
 const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-console.log('API Base URL:', baseURL);
-console.log('Environment:', import.meta.env.MODE);
-console.log('VITE_API_URL:', import.meta.env.VITE_API_URL);
 
-// Add a refresh lock to prevent multiple simultaneous refresh attempts
+// Add A Refresh Lock To Prevent Multiple Simultaneous Refresh Attempts.
 let isRefreshing = false;
 let failedQueue = [];
 
+// Process The Queue.
 const processQueue = (error, token = null) => {
   failedQueue.forEach(prom => {
     if (error) {
@@ -24,26 +27,27 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
+// Create The API Instance.
 const API = axios.create({ 
   baseURL: baseURL,
   withCredentials: true  // Important: This allows cookies to be sent with requests
 });
 
-// -------------------------------------------------------- Response Interceptor To Handle Auth Errors.
+// Response Interceptor To Handle Auth Errors.
 API.interceptors.response.use(
   (response) => response,
   async (error) => {
-    // Only handle 401 errors for protected routes, not auth endpoints
+    // Only Handle 401 Errors For Protected Routes, Not Auth Endpoints.
     if (error.response?.status === 401 && !error.config._retry && !error.config.url?.includes('/auth/refresh')) {
-      error.config._retry = true; // Mark this request as retried
+      error.config._retry = true; // Mark This Request As Retried.
       
-      // Don't redirect for auth endpoints (login/signup) - let them handle their own errors
+      // Don't Redirect For Auth Endpoints (Login/Signup) - Let Them Handle Their Own Errors.
       if (error.config.url?.includes('/auth/login') || error.config.url?.includes('/auth/register')) {
         return Promise.reject(error);
       }
       
       if (isRefreshing) {
-        // If already refreshing, queue this request
+        // If Already Refreshing, Queue This Request.
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         }).then(() => {
@@ -56,20 +60,20 @@ API.interceptors.response.use(
       isRefreshing = true;
       
       try {
-        // Try to refresh the token
+        // Try To Refresh The Token.
         await API.post('/auth/refresh');
         processQueue(null, null);
-        // Retry the original request
+        // Retry The Original Request.
         return API.request(error.config);
       } catch (refreshError) {
-        // Refresh failed, clear any stored tokens and redirect to login
+        // Refresh Failed, Clear Any Stored Tokens And Redirect To Login.
         console.log('Session expired, redirecting to login');
         processQueue(refreshError, null);
-        // Clear any stored tokens/cookies if needed
+        // Clear Any Stored Tokens/Cookies If Needed.
         document.cookie = 'access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
         document.cookie = 'refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
         
-        // Clear localStorage to ensure proper logout
+        // Clear LocalStorage To Ensure Proper Logout.
         localStorage.removeItem('user');
         localStorage.removeItem('hasConnectedData');
         localStorage.removeItem('hasEverHadData');
@@ -77,7 +81,7 @@ API.interceptors.response.use(
         localStorage.removeItem('hasFiles');
         localStorage.removeItem('hasAccounts');
         
-        // Redirect to welcome screen
+        // Redirect To Welcome Screen.
         window.location.href = '/';
         return Promise.reject(refreshError);
       } finally {
@@ -88,7 +92,7 @@ API.interceptors.response.use(
   }
 );
 
-// ================================================================= FILE OPERATIONS
+// ================================================================= FILE OPERATIONS.
 // ----------------------------------------------------------------- Upload CSV File.
 export const uploadCSV = (formData) => API.post('/upload', formData, { headers: { 'Content-Type' : 'multipart/form-data'} });
 
@@ -116,6 +120,11 @@ export const createTransaction = (data) => API.post('/transactions/', data);
 
 // ----------------------------------------------------------------- Delete Transaction By ID.
 export const deleteTransaction = (transactionId) => API.delete(`/transactions/${transactionId}`);
+
+// ----------------------------------------------------------------- Bulk Delete Transactions.
+export const bulkDeleteTransactions = (transactionIds) => API.delete('/transactions/bulk', {
+    data: { transaction_ids: transactionIds }
+});
 
 // ================================================================= TAG OPERATIONS
 // ----------------------------------------------------------------- Get All Tags
@@ -234,6 +243,22 @@ export const logoutUser = () => API.post('/auth/logout');
 // ----------------------------------------------------------------- Refresh Token
 export const refreshToken = () => API.post('/auth/refresh');
 
+// ----------------------------------------------------------------- Email Verification
+export const verifyEmail = (token) => API.get(`/auth/verify-email?token=${token}`);
+
+// ----------------------------------------------------------------- Resend Verification Email
+export const resendVerificationEmail = (email) => API.post('/auth/resend-verification', { email });
+
+// Password Reset Functions
+export const sendPasswordResetEmail = (email) => API.post('/auth/forgot-password', { email });
+
+export const verifyPasswordResetToken = (token) => API.get(`/auth/verify-reset-token?token=${token}`);
+
+export const resetPassword = (resetData) => API.post('/auth/reset-password', resetData);
+
+// Contact Form Functions
+export const submitContactForm = (contactData) => API.post('/auth/contact', contactData);
+
 // ================================================================= PLAID INTEGRATION
 // ----------------------------------------------------------------- Create Link Token for Plaid Link
 export const createLinkToken = (userId) => API.post('/plaid/create_link_token', { user_id: userId });
@@ -246,3 +271,6 @@ export const fetchPlaidTransactions = (accessToken) => API.post(`/plaid/fetch_tr
 
 // ----------------------------------------------------------------- Get Account Information from Plaid
 export const getPlaidAccounts = (accessToken) => API.get(`/plaid/accounts/${accessToken}`);
+
+// ----------------------------------------------------------------- Check Plaid Status
+export const checkPlaidStatus = () => API.get('/plaid/status');

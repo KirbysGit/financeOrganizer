@@ -1,3 +1,9 @@
+// UploadResultModal.jsx
+
+// This modal is how users can see the results of their upload, it will show the number of transactions added, 
+// the number of duplicates skipped, the total rows processed, and the total amount imported. It will also show 
+// the processing duration and any errors encountered. Just to give the user a sense of how the upload went.
+
 // Imports.
 import React from 'react';
 import { styled } from 'styled-components';
@@ -6,11 +12,11 @@ import { faTimes, faCheckCircle, faInfoCircle } from '@fortawesome/free-solid-sv
 
 // ------------------------------------------------------------------------------------------------ Helper Functions.
 
-// Clean up the upload result message for better display
+// Clean Up The Upload Result Message For Better Display.
 const formatUploadMessage = (message) => {
     if (!message) return '';
     
-    // Remove timestamp and clean up the message
+    // Remove Timestamp And Clean Up The Message.
     const cleanMessage = message
         .replace(/File uploaded successfully at \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}!/, 'File uploaded successfully!')
         .replace(/Added (\d+) new transactions to (.+) from (\d+) total rows\./, 'Added $1 new transactions to $2.')
@@ -19,7 +25,7 @@ const formatUploadMessage = (message) => {
     return cleanMessage;
 };
 
-// Extract and format timestamp from the original message
+// Extract And Format Timestamp From The Original Message.
 const extractTimestamp = (message) => {
     if (!message) return null;
     
@@ -29,7 +35,7 @@ const extractTimestamp = (message) => {
     const [, year, month, dayStr, hour, minute, second] = timestampMatch;
     const date = new Date(year, month - 1, dayStr, hour, minute, second);
     
-    // Format as "June 16 at 2:01 PM"
+    // Format As "June 16 at 2:01 PM".
     const monthNames = [
         'January', 'February', 'March', 'April', 'May', 'June',
         'July', 'August', 'September', 'October', 'November', 'December'
@@ -46,34 +52,40 @@ const extractTimestamp = (message) => {
     return `Uploaded ${monthName} ${dayNum} at ${displayHours}:${displayMinutes} ${ampm}`;
 };
 
-// -------------------------------------------------------- UploadResultModal Component.
+// ------------------------------------------------------------------------------------------------ UploadResultModal Component.
 const UploadResultModal = ({ isOpen, onClose, uploadResult }) => {
     if (!isOpen || !uploadResult) return null;
 
     return (
         <Modal onClick={onClose}>
+            {/* Modal Content. */}
             <ModalContent onClick={e => e.stopPropagation()}>
                 <ModalHeader>
                     <ModalTitle>Upload Results</ModalTitle>
                 </ModalHeader>
+                {/* Close Button. */}
                     <CloseButton onClick={onClose}>
                         <FontAwesomeIcon icon={faTimes} />
                     </CloseButton>
 
+                {/* Results Section. */}
                 <ResultsSection>
                     <SuccessHeader>
                         <FontAwesomeIcon icon={faCheckCircle} />
                         <h3>Upload Successful!</h3>
                     </SuccessHeader>
                     
+                    {/* Result Message. */}
                     <ResultMessage>{formatUploadMessage(uploadResult.message)}</ResultMessage>
                     
+                    {/* Timestamp Display. */}
                     {extractTimestamp(uploadResult.message) && (
                         <TimestampDisplay>
                             {extractTimestamp(uploadResult.message)}
                         </TimestampDisplay>
                     )}
                     
+                    {/* Results Grid. */}
                     <ResultsGrid>
                         <ResultCard>
                             <ResultLabel>New Transactions</ResultLabel>
@@ -96,6 +108,7 @@ const UploadResultModal = ({ isOpen, onClose, uploadResult }) => {
                         </ResultCard>
                     </ResultsGrid>
                     
+                    {/* Processing Info. */}
                     {uploadResult.processing_duration_ms && (
                         <ProcessingInfo>
                             <FontAwesomeIcon icon={faInfoCircle} />
@@ -103,6 +116,7 @@ const UploadResultModal = ({ isOpen, onClose, uploadResult }) => {
                         </ProcessingInfo>
                     )}
                     
+                    {/* Error Section. */}
                     {uploadResult.errors && uploadResult.errors.length > 0 && (
                         <ErrorSection>
                             <h4>Errors Encountered:</h4>
@@ -114,6 +128,7 @@ const UploadResultModal = ({ isOpen, onClose, uploadResult }) => {
                         </ErrorSection>
                     )}
                     
+                    {/* Action Button. */}
                     <ActionButton onClick={onClose} $primary>
                         Continue
                     </ActionButton>
@@ -123,7 +138,7 @@ const UploadResultModal = ({ isOpen, onClose, uploadResult }) => {
     );
 };
 
-// -------------------------------------------------------- Styled Components.
+// ------------------------------------------------------------------------------------------------ Styled Components.
 const Modal = styled.div`
     position: fixed;
     inset: 0;
@@ -136,6 +151,7 @@ const Modal = styled.div`
     padding: 2rem;
 `;
 
+// -------------------------------------------------------- Modal Content.
 const ModalContent = styled.div`
     background: white;
     border-radius: 24px;
@@ -158,6 +174,7 @@ const ModalContent = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Modal Header.
 const ModalHeader = styled.div`
     display: flex;
     justify-content: center;
@@ -166,6 +183,7 @@ const ModalHeader = styled.div`
     border-bottom: 1px solid #eee;
 `;
 
+// -------------------------------------------------------- Modal Title.
 const ModalTitle = styled.h2`
     margin: 0;
     font-size: 1.5rem;
@@ -173,6 +191,7 @@ const ModalTitle = styled.h2`
     color: #333;
 `;
 
+// -------------------------------------------------------- Close Button.
 const CloseButton = styled.button`
     background: none;
     border: none;
@@ -198,6 +217,7 @@ const CloseButton = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Results Section.
 const ResultsSection = styled.div`
     padding: 2rem;
     display: flex;
@@ -205,6 +225,7 @@ const ResultsSection = styled.div`
     gap: 1.5rem;
 `;
 
+// -------------------------------------------------------- Success Header.
 const SuccessHeader = styled.div`
     display: flex;
     align-items: center;
@@ -219,6 +240,7 @@ const SuccessHeader = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Result Message.
 const ResultMessage = styled.p`
     margin: 0;
     font-size: 1rem;
@@ -226,6 +248,7 @@ const ResultMessage = styled.p`
     line-height: 1.5;
 `;
 
+// -------------------------------------------------------- Timestamp Display.
 const TimestampDisplay = styled.div`
     margin: 0.5rem 0 0 0;
     font-size: 0.9rem;
@@ -238,12 +261,14 @@ const TimestampDisplay = styled.div`
     border: 1px solid rgba(0, 0, 0, 0.1);
 `;
 
+// -------------------------------------------------------- Results Grid.
 const ResultsGrid = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
 `;
 
+// -------------------------------------------------------- Result Card.
 const ResultCard = styled.div`
     background: rgba(255, 255, 255, 0.3);
     border-radius: 12px;
@@ -277,6 +302,7 @@ const ResultCard = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Result Label.
 const ResultLabel = styled.div`
     font-size: 0.8rem;
     color: #666;
@@ -284,6 +310,7 @@ const ResultLabel = styled.div`
     font-weight: 500;
 `;
 
+// -------------------------------------------------------- Result Value.
 const ResultValue = styled.div`
     font-size: 1.2rem;
     font-weight: ${props => props.$positive ? '600' : props.$neutral ? '500' : 'bold'};
@@ -295,6 +322,7 @@ const ResultValue = styled.div`
     }};
 `;
 
+// -------------------------------------------------------- Processing Info.
 const ProcessingInfo = styled.div`
     display: flex;
     align-items: center;
@@ -307,6 +335,7 @@ const ProcessingInfo = styled.div`
     border-radius: 8px;
 `;
 
+// -------------------------------------------------------- Error Section.
 const ErrorSection = styled.div`
     background: linear-gradient(135deg, #f8d7da, #f5c6cb);
     border: 1px solid #f5c6cb;
@@ -320,12 +349,14 @@ const ErrorSection = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Error List.
 const ErrorList = styled.ul`
     margin: 0;
     padding: 0;
     list-style: none;
 `;
 
+// -------------------------------------------------------- Error Item.
 const ErrorItem = styled.li`
     margin-bottom: 0.5rem;
     font-size: 0.8rem;
@@ -339,6 +370,7 @@ const ErrorItem = styled.li`
     }
 `;
 
+// -------------------------------------------------------- Action Button.
 const ActionButton = styled.button`
     padding: 1rem 2rem;
     border: none;

@@ -1,3 +1,11 @@
+// PlaidModal.jsx
+//
+// This is the component that is used to create the Plaid Modal for the Plaid API.
+//
+// After being prompt to connect an account, the user will see this modal, it really just provides a background
+// of information about the Plaid API and the benefits of connecting an account, and then a button to connect
+// the account.
+
 // Imports.
 import React, { useState } from 'react';
 import { styled } from 'styled-components';
@@ -10,16 +18,17 @@ import PlaidLink from './PlaidLink';
 
 // ------------------------------------------------------------------------------------------------ PlaidModal Component.
 const PlaidModal = ({ isOpen, onClose, onSuccess }) => {
-    // Plaid States.
-    const [plaidSuccess, setPlaidSuccess] = useState('');   // State 4 Plaid Success.
+    
+    // -------------------------------------------------------- State Declarations.
+
     const [plaidError, setPlaidError] = useState('');       // State 4 Plaid Error.
+    const [plaidSuccess, setPlaidSuccess] = useState('');   // State 4 Plaid Success.
 
     // -------------------------------------------------------- Handle Plaid Success & Clear Error State.
     const handlePlaidSuccess = (data) => {
         if (data.isProcessing) {
             // Bank Connected But Data Still Processing.
-            setPlaidSuccess(`✅ ${data.institution.name} connected successfully! 
-                           Your account data is still being processed and will be available shortly.`);
+            setPlaidSuccess(`✅ ${data.institution.name} connected successfully! Your account data is still being processed and will be available shortly.`);
         } else {
             // Normal Success With Account Data.
             const attemptText = data.attempts > 1 ? ` (took ${data.attempts} attempts)` : '';
@@ -36,7 +45,7 @@ const PlaidModal = ({ isOpen, onClose, onSuccess }) => {
             onSuccess();
             // Close The Modal.
             onClose();
-        }, 3000); // Give user time to read the message
+        }, 3000); // Give User Time To Read The Message.
     };
 
     // -------------------------------------------------------- Handle Plaid Error & Clear Success State.
@@ -54,14 +63,22 @@ const PlaidModal = ({ isOpen, onClose, onSuccess }) => {
         onClose();
     };
 
+    // -------------------------------------------------------- Render.
+
+    // If Modal Is Not Open, Return Null.
     if (!isOpen) return null;
 
+    // -------------------------------------------------------- Return JSX.
     return createPortal(
+        // Modal Container.
         <Modal onClick={handleClose}>
+            {/* Plaid Modal Content. */}
             <PlaidModalContent onClick={e => e.stopPropagation()}>
                 <CloseButton onClick={handleClose}>
                     <FontAwesomeIcon icon={faTimes} />
                 </CloseButton>
+
+                {/* Plaid Modal Header. */}
                 <PlaidModalHeader>
                     <PlaidHeaderContent>
                         <PlaidIcon>
@@ -74,6 +91,7 @@ const PlaidModal = ({ isOpen, onClose, onSuccess }) => {
                     </PlaidHeaderContent>
                 </PlaidModalHeader>
                 
+                {/* Plaid Modal Body. */}
                 <PlaidModalBody>
                     {plaidSuccess && (
                         <SuccessMessage>
@@ -82,14 +100,17 @@ const PlaidModal = ({ isOpen, onClose, onSuccess }) => {
                         </SuccessMessage>
                     )}
                     
+                    {/* Error Message. */}
                     {plaidError && (
                         <ErrorMessage>
                             {plaidError}
                         </ErrorMessage>
                     )}
 
+                    {/* Success Message. */}
                     {!plaidSuccess && !plaidError && (
                         <>
+                            {/* Security Section. */}
                             <SecuritySection>
                                 <SecurityTitle>🔒 Your Security is Our Priority</SecurityTitle>
                                 <SecurityFeatures>
@@ -108,6 +129,7 @@ const PlaidModal = ({ isOpen, onClose, onSuccess }) => {
                                 </SecurityFeatures>
                             </SecuritySection>
 
+                            {/* Benefits Section. */}
                             <BenefitsSection>
                                 <BenefitsTitle>What You'll Get:</BenefitsTitle>
                                 <BenefitsList>
@@ -118,11 +140,14 @@ const PlaidModal = ({ isOpen, onClose, onSuccess }) => {
                                 </BenefitsList>
                             </BenefitsSection>
 
+                            {/* Plaid Button Section. */}
                             <PlaidButtonSection>
                                 <PlaidLink 
                                     onSuccess={handlePlaidSuccess}
                                     onError={handlePlaidError}
                                 />
+
+                                {/* Disclaimer Text. */}
                                 <DisclaimerText>
                                     By connecting your account, you agree to our secure data handling practices. 
                                     You can disconnect at any time.
@@ -153,17 +178,19 @@ const Modal = styled.div`
 `;
 // -------------------------------------------------------- Plaid Modal Content.
 const PlaidModalContent = styled.div`
-    background: white;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.95));
     border-radius: 24px;
     max-width: 600px;
     width: 100%;
     max-height: 90vh;
     overflow-y: auto;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 20px 60px rgba(65, 173, 255, 0.2), 0 8px 32px rgba(0, 0, 0, 0.1);
     animation: modalSlideIn 0.3s ease-out;
     scrollbar-width: none;  /* Firefox */
     -ms-overflow-style: none;  /* IE and Edge */
     position: relative;
+    border: 1px solid rgba(65, 173, 255, 0.1);
+    backdrop-filter: blur(10px);
 
     &::-webkit-scrollbar {
         display: none;  /* Chrome, Safari, Opera */
@@ -186,8 +213,9 @@ const PlaidModalHeader = styled.div`
     justify-content: space-between;
     align-items: flex-start;
     padding: 2.5rem 2.5rem 1.5rem 2.5rem;
-    border-bottom: 1px solid #f0f0f0;
-    background: linear-gradient(135deg, #f8fbff, #ffffff);
+    border-bottom: 2px solid rgba(65, 173, 255, 0.2);
+    background: linear-gradient(135deg, rgba(65, 173, 255, 0.05), rgba(40, 167, 69, 0.05));
+    position: relative;
 `;
 // -------------------------------------------------------- Plaid Header Content.
 const PlaidHeaderContent = styled.div`
@@ -202,21 +230,30 @@ const PlaidIcon = styled.div`
     width: 80px;
     height: 80px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #00d4aa, #00b894);
+    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
     display: flex;
     align-items: center;
     justify-content: center;
     margin-bottom: 1.5rem;
     color: white;
     font-size: 2rem;
-    box-shadow: 0 8px 24px rgba(0, 212, 170, 0.3);
+    box-shadow: 0 8px 24px rgba(65, 173, 255, 0.3);
+    transition: all 0.3s ease;
+    
+    &:hover {
+        transform: scale(1.05);
+        box-shadow: 0 12px 32px rgba(65, 173, 255, 0.4);
+    }
 `;
 // -------------------------------------------------------- Plaid Modal Title.
 const PlaidModalTitle = styled.h2`
     margin: 0 0 0.5rem 0;
     font-size: 1.8rem;
     font-weight: 700;
-    color: #2c3e50;
+    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
     line-height: 1.2;
 `;
 // -------------------------------------------------------- Plaid Modal Subtitle.
@@ -269,8 +306,8 @@ const CloseButton = styled.button`
 `;
 // -------------------------------------------------------- Success Message.
 const SuccessMessage = styled.div`
-    background: linear-gradient(135deg, #d1e7dd, #badbcc);
-    border: 1px solid #badbcc;
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.1), rgba(40, 167, 69, 0.05));
+    border: 2px solid rgba(40, 167, 69, 0.3);
     color: #0f5132;
     padding: 1rem;
     border-radius: 12px;
@@ -283,13 +320,13 @@ const SuccessMessage = styled.div`
     gap: 0.5rem;
 
     svg {
-        color: #198754;
+        color: var(--amount-positive);
     }
 `;
 // -------------------------------------------------------- Error Message.
 const ErrorMessage = styled.div`
-    background: linear-gradient(135deg, #f8d7da, #f5c6cb);
-    border: 1px solid #f5c6cb;
+    background: linear-gradient(135deg, rgba(220, 53, 69, 0.1), rgba(220, 53, 69, 0.05));
+    border: 2px solid rgba(220, 53, 69, 0.3);
     color: #721c24;
     padding: 1rem;
     border-radius: 12px;
@@ -298,8 +335,8 @@ const ErrorMessage = styled.div`
 `;
 // -------------------------------------------------------- Security Section.
 const SecuritySection = styled.div`
-    background: linear-gradient(135deg, #f8fff9, #ffffff);
-    border: 1px solid #e8f5e8;
+    background: linear-gradient(135deg, rgba(65, 173, 255, 0.03), rgba(255, 255, 255, 0.8));
+    border: 2px solid rgba(65, 173, 255, 0.15);
     border-radius: 16px;
     padding: 2rem;
     display: flex;
@@ -330,7 +367,7 @@ const SecurityIcon = styled.div`
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    background: #28a745;
+    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -338,6 +375,7 @@ const SecurityIcon = styled.div`
     font-size: 0.8rem;
     font-weight: bold;
     flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(65, 173, 255, 0.3);
 `;
 const SecurityText = styled.p`
     margin: 0;
@@ -347,8 +385,8 @@ const SecurityText = styled.p`
 `;
 // -------------------------------------------------------- Benefits Section.
 const BenefitsSection = styled.div`
-    background: linear-gradient(135deg, #fff8f0, #ffffff);
-    border: 1px solid #ffeaa7;
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.03), rgba(255, 255, 255, 0.8));
+    border: 2px solid rgba(40, 167, 69, 0.15);
     border-radius: 16px;
     padding: 2rem;
     display: flex;
@@ -382,9 +420,9 @@ const PlaidButtonSection = styled.div`
     align-items: center;
     gap: 1rem;
     padding: 1.5rem;
-    background: linear-gradient(135deg, #f0f8ff, #ffffff);
+    background: linear-gradient(135deg, rgba(65, 173, 255, 0.05), rgba(255, 255, 255, 0.9));
     border-radius: 16px;
-    border: 1px solid #e3f2fd;
+    border: 2px solid rgba(65, 173, 255, 0.2);
     overflow: hidden;
 `;
 const DisclaimerText = styled.p`
@@ -397,4 +435,5 @@ const DisclaimerText = styled.p`
     max-width: 400px;
 `;
 
+// -------------------------------------------------------- Export PlaidModal Component.
 export default PlaidModal;

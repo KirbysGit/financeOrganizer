@@ -1,3 +1,9 @@
+# DB Utils.
+#
+# Functions :
+#   - 'get_db' - Get Database Session.
+#   - 'check_db_connection' - Check Database Connection.
+
 # Imports.
 from app.database import get_session
 from fastapi import HTTPException, status

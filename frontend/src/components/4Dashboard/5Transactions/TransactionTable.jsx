@@ -1,9 +1,16 @@
+// TransactionTable.jsx
+
+// This is the final main component of the Dashboard, it serves to provide all of the transactions in a list like format,
+// allowing users to search, filter, select, delete, view details, and more. I tried modularizing it a bunch with some
+// of its sub-components, but I think it's still due for a refactor, but for now it's good enough. There's also
+// some placeholders within that I need to work through.
+
 // Imports.
 import React from 'react';
 import { styled } from 'styled-components';
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSort, faSortUp, faSortDown, faPlus, faTrash, faChevronUp, faChevronDown, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faSort, faSortUp, faSortDown, faPlus, faTrash, faChevronUp, faChevronDown, faXmark, faSpinner, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
 
 // Local Imports.
 import '../../../styles/colors.css';
@@ -12,41 +19,50 @@ import ManualTxModal from '../../3FinanceConnect/Ways2Connect/ManualConnect/Manu
 import TagModal from './TagModal';
 
 // ------------------------------------------------------------------------------------------------ TransactionTable Component.
-const TransactionTable = ({ transactions, onDelete, onRefresh, id, existingAccounts = [], onUpload }) => {
+const TransactionTable = ({ transactions, onDelete, onBulkDelete, onRefresh, id, existingAccounts = [], onUpload }) => {
     // States.
-    const [currentPage, setCurrentPage] = useState(1);                          // Use State 4 Setting Pages. Default Page #1.
-    const [entriesPerPage, setEntriesPerPage] = useState(10);                   // Use State 4 Amount Of Entries Per Page. Default Page #10.
-    const [selectedIds, setSelectedIds] = useState(new Set());                  // Use State 4 Storing All Transactions That Are Selected.
-    const [txDetails, setTxDetails] = useState(null);                           // Use State 4 Storing Which Transaction Has Details Expanded.
+    const [currentPage, setCurrentPage] = useState(1);                          // State 4 Setting Pages. Default Page #1.
+    const [entriesPerPage, setEntriesPerPage] = useState(10);                   // State 4 Amount Of Entries Per Page. Default Page #10.
+    const [selectedIds, setSelectedIds] = useState(new Set());                  // State 4 Storing All Transactions That Are Selected.
+    const [txDetails, setTxDetails] = useState(null);                           // State 4 Storing Which Transaction Has Details Expanded.
     const [showAddMenu, setShowAddMenu] = useState(false);                      // State 4 Whether Add Menu Is Open.
     const [manualTxModal, setManualTxModal] = useState(false);                  // State 4 Whether Manual Transaction Modal Is Open.
     const [refreshLoading, setRefreshLoading] = useState(false);                // State 4 Whether Refresh Is Loading.
     
-    // Search and Sorting States.
+    // Delete Confirmation State.
+    const [deleteConfirmation, setDeleteConfirmation] = useState({ show: false, transaction: null });
+    const [deleteLoading, setDeleteLoading] = useState(false);
+    
+    // Bulk Selection States.
+    const [bulkDeleteConfirmation, setBulkDeleteConfirmation] = useState({ show: false, count: 0 });
+    const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
+    const [selectAll, setSelectAll] = useState(false);
+    
+    // Search & Sorting States.
     const [searchTerm, setSearchTerm] = useState('');                           // State 4 Search Functionality.
     const [sortField, setSortField] = useState('date');                         // State 4 Current Sort Field.
     const [sortDirection, setSortDirection] = useState('desc');                 // State 4 Sort Direction (asc/desc).
     const [isSearchFocused, setIsSearchFocused] = useState(false);              // State 4 Search Input Focus.
     
-    // Date Filter State
+    // Date Filter State.
     const [dateFilter, setDateFilter] = useState(null);                        // State 4 Date Filter.
     
-    // Amount Filter State
+    // Amount Filter State.
     const [amountFilter, setAmountFilter] = useState(null);                    // State 4 Amount Filter.
     
-    // Account Filter State
+    // Account Filter State.
     const [accountFilter, setAccountFilter] = useState(null);                  // State 4 Account Filter.
     
-    // Type Filter State
+    // Type Filter State.
     const [typeFilter, setTypeFilter] = useState(null);                       // State 4 Type Filter.
     
-    // Tag Filter State
+    // Tag Filter State.
     const [tagFilter, setTagFilter] = useState(null);                         // State 4 Tag Filter.
     
-    // Tag Modal State
+    // Tag Modal State.
     const [tagModal, setTagModal] = useState({ isOpen: false, transaction: null });
     
-    // State for ResultsInfo Width Calculation.
+    // State For ResultsInfo Width Calculation.
     const [resultsInfoWidth, setResultsInfoWidth] = useState(0);
 
     // -------------------------------------------------------- Handle Click Outside Dropdown.
@@ -66,10 +82,102 @@ const TransactionTable = ({ transactions, onDelete, onRefresh, id, existingAccou
     // -------------------------------------------------------- Handle Manual Transaction Success.
     const handleManualTxSuccess = () => {
         setManualTxModal(false);
-        // Refresh transactions data instead of reloading the page
+        // Refresh Transactions Data Instead Of Reloading The Page.
         if (onRefresh) {
             onRefresh();
         }
+    };
+
+    // -------------------------------------------------------- Handle Delete Transaction.
+    const handleDeleteClick = (transaction) => {
+        setDeleteConfirmation({ show: true, transaction });
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!deleteConfirmation.transaction || deleteLoading) return;
+        
+        setDeleteLoading(true);
+        try {
+            await onDelete(deleteConfirmation.transaction.id);
+            setDeleteConfirmation({ show: false, transaction: null });
+        } catch (error) {
+            console.error('Failed to delete transaction:', error);
+            // Error Message Is Now Handled In Dashboard Component.
+        } finally {
+            setDeleteLoading(false);
+        }
+    };
+
+    const handleCancelDelete = () => {
+        setDeleteConfirmation({ show: false, transaction: null });
+    };
+
+    // -------------------------------------------------------- Handle Select All.
+    const handleSelectAll = (e) => {
+        console.log('handleSelectAll called', e);
+        e?.preventDefault();
+        e?.stopPropagation();
+        
+        if (selectAll || selectedIds.size === currentTransactions.length) {
+            // Deselect All.
+            console.log('Deselecting all');
+            setSelectedIds(new Set());
+            setSelectAll(false);
+        } else {
+            // Select All Current Page Transactions.
+            console.log('Selecting all');
+            const allIds = new Set(currentTransactions.map(tx => tx.id));
+            setSelectedIds(allIds);
+            setSelectAll(true);
+        }
+    };
+
+    // -------------------------------------------------------- Handle Select All Transactions (All Filtered).
+    const handleSelectAllTransactions = () => {
+        // Check If All Filtered Transactions Are Already Selected.
+        const allFilteredIds = sortedTransactions.map(tx => tx.id);
+        const allSelected = allFilteredIds.every(id => selectedIds.has(id));
+        
+        if (allSelected) {
+            // Deselect All.
+            setSelectedIds(new Set());
+            setSelectAll(false);
+        } else {
+            // Select All Transactions That Match Current Filters (Not Just Current Page).
+            const allFilteredIdsSet = new Set(allFilteredIds);
+            setSelectedIds(allFilteredIdsSet);
+            setSelectAll(true);
+        }
+    };
+
+    // -------------------------------------------------------- Handle Bulk Delete.
+    const handleBulkDelete = () => {
+        if (selectedIds.size === 0) return;
+        setBulkDeleteConfirmation({ show: true, count: selectedIds.size });
+    };
+
+    const handleConfirmBulkDelete = async () => {
+        if (selectedIds.size === 0 || bulkDeleteLoading) return;
+        
+        setBulkDeleteLoading(true);
+        try {
+            // Use Bulk Delete API Instead Of Individual Deletes.
+            const transactionIds = Array.from(selectedIds);
+            await onBulkDelete(transactionIds);
+            
+            // Clear Selections And Close Modal.
+            setSelectedIds(new Set());
+            setSelectAll(false);
+            setBulkDeleteConfirmation({ show: false, count: 0 });
+        } catch (error) {
+            console.error('Failed to delete transactions:', error);
+        } finally {
+            setBulkDeleteLoading(false);
+        }
+    };
+
+    const handleCancelBulkDelete = () => {
+        setBulkDeleteConfirmation({ show: false, count: 0 });
     };
 
     // -------------------------------------------------------- Handle Refresh Transactions.
@@ -110,7 +218,17 @@ const TransactionTable = ({ transactions, onDelete, onRefresh, id, existingAccou
     const toggleSelection = (id) => {
         setSelectedIds((prev) => {
             const newSet = new Set(prev);
-            newSet.has(id) ? newSet.delete(id) : newSet.add(id);
+            if (newSet.has(id)) {
+                newSet.delete(id);
+                // If We Deselect An Item, Uncheck SelectAll.
+                setSelectAll(false);
+            } else {
+                newSet.add(id);
+                // If We Select All Visible Transactions, Check SelectAll.
+                if (newSet.size === currentTransactions.length) {
+                    setSelectAll(true);
+                }
+            }
             return newSet;
         })
     }
@@ -137,7 +255,7 @@ const TransactionTable = ({ transactions, onDelete, onRefresh, id, existingAccou
         // Date Filter Logic
         if (dateFilter) {
             const txDate = new Date(tx.date);
-            txDate.setHours(0, 0, 0, 0); // Reset time to start of day for comparison
+            txDate.setHours(0, 0, 0, 0); // Reset Time To Start Of Day For Comparison.
             
             if (dateFilter.mode === 'single') {
                 const filterDate = new Date(dateFilter.date);
@@ -149,7 +267,7 @@ const TransactionTable = ({ transactions, onDelete, onRefresh, id, existingAccou
                 const startDate = new Date(dateFilter.startDate);
                 const endDate = new Date(dateFilter.endDate);
                 startDate.setHours(0, 0, 0, 0);
-                endDate.setHours(23, 59, 59, 999); // End of day
+                endDate.setHours(23, 59, 59, 999); // End Of Day.
                 
                 if (txDate < startDate || txDate > endDate) {
                     return false;
@@ -164,7 +282,7 @@ const TransactionTable = ({ transactions, onDelete, onRefresh, id, existingAccou
         
         // Amount Filter Logic
         if (amountFilter) {
-            const txAmount = Math.abs(tx.amount); // Use absolute value for comparison
+            const txAmount = Math.abs(tx.amount); // Use Absolute Value For Comparison.
             const { minAmount, maxAmount } = amountFilter;
             
             if (minAmount && txAmount < minAmount) {
@@ -188,7 +306,7 @@ const TransactionTable = ({ transactions, onDelete, onRefresh, id, existingAccou
             const txType = tx.category_primary?.toLowerCase();
             const txAmount = tx.amount;
             
-            // Master switch logic
+            // Master Switch Logic.
             if (typeFilter.positiveOnly && txAmount <= 0) {
                 return false;
             }
@@ -196,7 +314,7 @@ const TransactionTable = ({ transactions, onDelete, onRefresh, id, existingAccou
                 return false;
             }
             
-            // Individual type selection
+            // Individual Type Selection.
             if (typeFilter.types && typeFilter.types.length > 0) {
                 if (!txType || !typeFilter.types.includes(txType)) {
                     return false;
@@ -204,7 +322,7 @@ const TransactionTable = ({ transactions, onDelete, onRefresh, id, existingAccou
             }
         }
         
-        // Tag Filter Logic
+        // Tag Filter Logic.
         if (tagFilter && tagFilter.tagIds && tagFilter.tagIds.length > 0) {
             const txTagIds = Array.isArray(tx.tags) ? tx.tags.map(tag => tag.id) : [];
             const hasMatchingTag = tagFilter.tagIds.some(tagId => txTagIds.includes(tagId));
@@ -213,7 +331,7 @@ const TransactionTable = ({ transactions, onDelete, onRefresh, id, existingAccou
             }
         }
         
-        // Search Term Logic
+        // Search Term Logic.
         if (!searchTerm) return true;
         
         const searchLower = searchTerm.toLowerCase();
@@ -274,37 +392,37 @@ const TransactionTable = ({ transactions, onDelete, onRefresh, id, existingAccou
             setSortField(field);
             setSortDirection('asc');
         }
-        setCurrentPage(1); // Reset to first page when sorting
+        setCurrentPage(1); // Reset To First Page When Sorting.
     };
 
     // -------------------------------------------------------- Handle Date Filter Change.
     const handleDateFilterChange = (filterData) => {
         setDateFilter(filterData);
-        setCurrentPage(1); // Reset to first page when filtering
+        setCurrentPage(1); // Reset To First Page When Filtering.
     };
 
     // -------------------------------------------------------- Handle Amount Filter Change.
     const handleAmountFilterChange = (filterData) => {
         setAmountFilter(filterData);
-        setCurrentPage(1); // Reset to first page when filtering
+        setCurrentPage(1); // Reset To First Page When Filtering.
     };
 
     // -------------------------------------------------------- Handle Account Filter Change.
     const handleAccountFilterChange = (filterData) => {
         setAccountFilter(filterData);
-        setCurrentPage(1); // Reset to first page when filtering
+        setCurrentPage(1); // Reset To First Page When Filtering.
     };
 
     // -------------------------------------------------------- Handle Type Filter Change.
     const handleTypeFilterChange = (filterData) => {
         setTypeFilter(filterData);
-        setCurrentPage(1); // Reset to first page when filtering
+        setCurrentPage(1); // Reset To First Page When Filtering.
     };
 
     // -------------------------------------------------------- Handle Tag Filter Change.
     const handleTagFilterChange = (filterData) => {
         setTagFilter(filterData);
-        setCurrentPage(1); // Reset to first page when filtering
+        setCurrentPage(1); // Reset To First Page When Filtering.
     };
 
     // -------------------------------------------------------- Handle Tag Modal.
@@ -317,7 +435,7 @@ const TransactionTable = ({ transactions, onDelete, onRefresh, id, existingAccou
     };
 
     const handleTagsUpdated = () => {
-        // Refresh transactions to get updated tag data
+        // Refresh Transactions To Get Updated Tag Data.
         if (onRefresh) {
             onRefresh();
         }
@@ -416,72 +534,40 @@ const TransactionTable = ({ transactions, onDelete, onRefresh, id, existingAccou
                     />
                 </TableHeaderWrapper>
 
-                <TableContainer $entriesPerPage={entriesPerPage}>
+                <TableContainer $entriesPerPage={5}>
                     <StyledTable>
                         <thead>
                             <tr>
                                 <th>Select</th>
-                                <SortableHeader 
-                                    $isActive={sortField === 'date'}
-                                    onClick={() => handleSort('date')}
-                                >
-                                    Date
-                                    <SortIcon>
-                                        <FontAwesomeIcon icon={getSortIcon('date')} />
-                                    </SortIcon>
-                                </SortableHeader>
-                                <SortableHeader 
-                                    $isActive={sortField === 'vendor'}
-                                    onClick={() => handleSort('vendor')}
-                                >
-                                    Vendor
-                                    <SortIcon>
-                                        <FontAwesomeIcon icon={getSortIcon('vendor')} />
-                                    </SortIcon>
-                                </SortableHeader>
-                                <SortableHeader 
-                                    $isActive={sortField === 'description'}
-                                    onClick={() => handleSort('description')}
-                                >
-                                    Description
-                                    <SortIcon>
-                                        <FontAwesomeIcon icon={getSortIcon('description')} />
-                                    </SortIcon>
-                                </SortableHeader>
-                                <SortableHeader 
-                                    $isActive={sortField === 'amount'}
-                                    onClick={() => handleSort('amount')}
-                                >
-                                    Amount
-                                    <SortIcon>
-                                        <FontAwesomeIcon icon={getSortIcon('amount')} />
-                                    </SortIcon>
-                                </SortableHeader>
+                                <th>Date</th>
+                                <th>Vendor</th>
+                                <th>Description</th>
+                                <th>Amount</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
                                 <td colSpan="6" style={{ padding: 0, border: 'none' }}>
-                                    <EmptyStateCard>
-                                        <EmptyIcon>📊</EmptyIcon>
-                                        <EmptyTitle>No Transactions Yet...</EmptyTitle>
-                                        <EmptyDescription>Start by uploading a CSV file or adding transactions manually.</EmptyDescription>
-                                        <EmptyStateAddButton 
-                                            onClick={() => setManualTxModal(true)}
-                                            aria-label="Add Manual Transaction"
-                                            title="Add Manual Transaction"
-                                        >
-                                            <FontAwesomeIcon icon={faPlus} />
-                                        </EmptyStateAddButton>
-                                    </EmptyStateCard>
+                <EmptyStateCard>
+                    <EmptyIcon>📊</EmptyIcon>
+                    <EmptyTitle>No Transactions Yet...</EmptyTitle>
+                    <EmptyDescription>Start by uploading a CSV file or adding transactions manually.</EmptyDescription>
+                    <EmptyStateAddButton 
+                        onClick={() => setManualTxModal(true)}
+                        aria-label="Add Manual Transaction"
+                        title="Add Manual Transaction"
+                    >
+                        <FontAwesomeIcon icon={faPlus} />
+                    </EmptyStateAddButton>
+                </EmptyStateCard>
                                 </td>
                             </tr>
                         </tbody>
                     </StyledTable>
                 </TableContainer>
 
-                {/* Manual Transaction Modal */}
+                {/* Manual Transaction Modal. */}
                 {manualTxModal && (
                     <ManualTxModal
                         isOpen={manualTxModal}
@@ -562,7 +648,7 @@ const TransactionTable = ({ transactions, onDelete, onRefresh, id, existingAccou
                     </NoResultsActions>
                 </NoResultsCard>
 
-                {/* Manual Transaction Modal */}
+                {/* Manual Transaction Modal. */}
                 {manualTxModal && (
                     <ManualTxModal
                         isOpen={manualTxModal}
@@ -617,46 +703,52 @@ const TransactionTable = ({ transactions, onDelete, onRefresh, id, existingAccou
             </TableHeaderWrapper>
 
             <TableContainer $entriesPerPage={entriesPerPage}>
+                {/* Bulk Actions Toolbar */}
+                {selectedIds.size > 0 && (
+                    <BulkActionsToolbar>
+                        <BulkActionsInfo>
+                            <FontAwesomeIcon icon={faCheckCircle} />
+                            {selectedIds.size} transaction{selectedIds.size === 1 ? '' : 's'} selected
+                        </BulkActionsInfo>
+                        <BulkActionsButtons>
+                            <BulkSelectAllButton onClick={handleSelectAllTransactions}>
+                                <FontAwesomeIcon icon={faCheckCircle} />
+                                {(() => {
+                                    const allFilteredIds = sortedTransactions.map(tx => tx.id);
+                                    const allSelected = allFilteredIds.every(id => selectedIds.has(id));
+                                    return allSelected ? 'Deselect All' : `Select All (${sortedTransactions.length})`;
+                                })()}
+                            </BulkSelectAllButton>
+                            <BulkDeleteButton onClick={handleBulkDelete}>
+                                <FontAwesomeIcon icon={faTrash} />
+                                Delete Selected
+                            </BulkDeleteButton>
+                            <BulkClearButton onClick={() => { setSelectedIds(new Set()); setSelectAll(false); }}>
+                                <FontAwesomeIcon icon={faXmark} />
+                                Clear Selection
+                            </BulkClearButton>
+                        </BulkActionsButtons>
+                    </BulkActionsToolbar>
+                )}
+                
                 <StyledTable>
                     <thead>
                         <tr>
-                            <th>Select</th>
-                            <SortableHeader 
-                                $isActive={sortField === 'date'}
-                                onClick={() => handleSort('date')}
-                            >
-                                Date
-                                <SortIcon>
-                                    <FontAwesomeIcon icon={getSortIcon('date')} />
-                                </SortIcon>
-                            </SortableHeader>
-                            <SortableHeader 
-                                $isActive={sortField === 'vendor'}
-                                onClick={() => handleSort('vendor')}
-                            >
-                                Vendor
-                                <SortIcon>
-                                    <FontAwesomeIcon icon={getSortIcon('vendor')} />
-                                </SortIcon>
-                            </SortableHeader>
-                            <SortableHeader 
-                                $isActive={sortField === 'description'}
-                                onClick={() => handleSort('description')}
-                            >
-                                Description
-                                <SortIcon>
-                                    <FontAwesomeIcon icon={getSortIcon('description')} />
-                                </SortIcon>
-                            </SortableHeader>
-                            <SortableHeader 
-                                $isActive={sortField === 'amount'}
-                                onClick={() => handleSort('amount')}
-                            >
-                                Amount
-                                <SortIcon>
-                                    <FontAwesomeIcon icon={getSortIcon('amount')} />
-                                </SortIcon>
-                            </SortableHeader>
+                            <th style={{ cursor: 'pointer' }} onClick={selectedIds.size > 0 ? handleSelectAll : undefined}>
+                                {selectedIds.size > 0 ? (
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <CheckboxIndicator $isChecked={selectAll || selectedIds.size === currentTransactions.length}>
+                                            {(selectAll || selectedIds.size === currentTransactions.length) && <CheckMark>✓</CheckMark>}
+                                        </CheckboxIndicator>
+                                    </div>
+                                ) : (
+                                    'Select'
+                                )}
+                            </th>
+                            <th>Date</th>
+                            <th>Vendor</th>
+                            <th>Description</th>
+                            <th>Amount</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -698,7 +790,7 @@ const TransactionTable = ({ transactions, onDelete, onRefresh, id, existingAccou
                                         >
                                             <FontAwesomeIcon icon={txDetails === tx.id ? faChevronUp : faChevronDown} />
                                         </ActionButton>
-                                        <DeleteButton onClick={() => onDelete(tx.id)}>
+                                        <DeleteButton onClick={() => handleDeleteClick(tx)}>
                                             <FontAwesomeIcon icon={faTrash} />
                                         </DeleteButton>
                                     </ActionsCell>
@@ -894,6 +986,72 @@ const TransactionTable = ({ transactions, onDelete, onRefresh, id, existingAccou
                 transaction={tagModal.transaction}
                 onTagsUpdated={handleTagsUpdated}
             />
+
+            {/* Delete Confirmation Modal */}
+            {deleteConfirmation.show && (
+                <ConfirmationModal
+                    isOpen={deleteConfirmation.show}
+                    onClose={handleCancelDelete}
+                    onConfirm={handleConfirmDelete}
+                >
+                    <ConfirmationContent>
+                        <ConfirmationMessage>
+                            Are you sure you want to delete this transaction?
+                        </ConfirmationMessage>
+                        <ConfirmationSubtitle>
+                            This action cannot be undone.
+                        </ConfirmationSubtitle>
+                        <ConfirmationActions>
+                            <ConfirmButton onClick={handleConfirmDelete} disabled={deleteLoading}>
+                                {deleteLoading ? (
+                                    <>
+                                        <FontAwesomeIcon icon={faSpinner} spin />
+                                        Deleting...
+                                    </>
+                                ) : (
+                                    'Yes'
+                                )}
+                            </ConfirmButton>
+                            <CancelButton onClick={handleCancelDelete} disabled={deleteLoading}>
+                                No
+                            </CancelButton>
+                        </ConfirmationActions>
+                    </ConfirmationContent>
+                </ConfirmationModal>
+            )}
+
+            {/* Bulk Delete Confirmation Modal */}
+            {bulkDeleteConfirmation.show && (
+                <ConfirmationModal
+                    isOpen={bulkDeleteConfirmation.show}
+                    onClose={handleCancelBulkDelete}
+                    onConfirm={handleConfirmBulkDelete}
+                >
+                    <ConfirmationContent>
+                        <ConfirmationMessage>
+                            Are you sure you want to delete {bulkDeleteConfirmation.count} selected transactions?
+                        </ConfirmationMessage>
+                        <ConfirmationSubtitle>
+                            This action cannot be undone.
+                        </ConfirmationSubtitle>
+                        <ConfirmationActions>
+                            <ConfirmButton onClick={handleConfirmBulkDelete} disabled={bulkDeleteLoading}>
+                                {bulkDeleteLoading ? (
+                                    <>
+                                        <FontAwesomeIcon icon={faSpinner} spin />
+                                        Deleting...
+                                    </>
+                                ) : (
+                                    'Yes'
+                                )}
+                            </ConfirmButton>
+                            <CancelButton onClick={handleCancelBulkDelete} disabled={bulkDeleteLoading}>
+                                No
+                            </CancelButton>
+                        </ConfirmationActions>
+                    </ConfirmationContent>
+                </ConfirmationModal>
+            )}
         </TransactionsWrapper>
     );
 };
@@ -1647,12 +1805,13 @@ const TransactionDetailValue = styled.span`
     `}
 `
 
-// -------------------------------------------------------- Tags Section. (TagsHeader, TagsPlaceholder)
+// -------------------------------------------------------- Tags Section.
 const TagsSection = styled.div`
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
 `
+// -------------------------------------------------------- Tags Header.
 const TagsHeader = styled.h3`
     font-weight: 600;
     font-size: 0.8rem;
@@ -1661,6 +1820,7 @@ const TagsHeader = styled.h3`
     letter-spacing: 0.5px;
     margin: 0;
 `
+// -------------------------------------------------------- Tags Placeholder.
 const TagsPlaceholder = styled.div`
     font-size: 0.9rem;
     color: var(--text-secondary);
@@ -1672,6 +1832,7 @@ const TagsPlaceholder = styled.div`
 `
 
 // -------------------------------------------------------- Transaction Tags Components.
+// -------------------------------------------------------- Transaction Tags Container.
 const TransactionTagsContainer = styled.div`
     display: flex;
     flex-wrap: wrap;
@@ -1699,6 +1860,7 @@ const TransactionTagsContainer = styled.div`
     }
 `
 
+// -------------------------------------------------------- Transaction Tag Pill.
 const TransactionTagPill = styled.div`
     display: flex;
     align-items: center;
@@ -1734,6 +1896,7 @@ const TransactionTagPill = styled.div`
     }
 `
 
+// -------------------------------------------------------- Add Tag Button.
 const AddTagButton = styled.button`
     display: flex;
     align-items: center;
@@ -1777,11 +1940,13 @@ const TransactionTagsPlaceholder = styled.div`
     }
 `
 
+// -------------------------------------------------------- Tags Placeholder Icon.
 const TagsPlaceholderIcon = styled.div`
     font-size: 2.5rem;
     opacity: 0.7;
 `
 
+// -------------------------------------------------------- Tags Placeholder Text.
 const TagsPlaceholderText = styled.div`
     font-size: 1.1rem;
     font-weight: 600;
@@ -1789,51 +1954,12 @@ const TagsPlaceholderText = styled.div`
     margin-bottom: 0.5rem;
 `
 
+// -------------------------------------------------------- Tags Placeholder Subtext.
 const TagsPlaceholderSubtext = styled.div`
     font-size: 0.9rem;
     color: var(--text-secondary);
     line-height: 1.4;
     margin-bottom: 1rem;
-`
-
-// -------------------------------------------------------- Transaction Features Placeholder.
-const TransactionFeaturesPlaceholder = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem 1rem;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 12px;
-    border: 2px dashed rgba(255, 255, 255, 0.3);
-    text-align: center;
-    transition: all 0.3s ease;
-    flex: 1;
-    
-    &:hover {
-        background: rgba(255, 255, 255, 0.1);
-        border-color: rgba(255, 255, 255, 0.5);
-        transform: translateY(-2px);
-    }
-`
-
-const FeaturesPlaceholderIcon = styled.div`
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-    opacity: 0.7;
-`
-
-const FeaturesPlaceholderText = styled.div`
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 0.5rem;
-`
-
-const FeaturesPlaceholderSubtext = styled.div`
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    line-height: 1.4;
 `
 
 // -------------------------------------------------------- Transaction Insights Placeholder.
@@ -1851,11 +1977,13 @@ const TransactionInsightsPlaceholder = styled.div`
     flex: 1;
 `
 
+// -------------------------------------------------------- Insights Placeholder Icon.
 const InsightsPlaceholderIcon = styled.div`
     font-size: 2.5rem;
     opacity: 0.7;
 `
 
+// -------------------------------------------------------- Insights Placeholder Text.
 const InsightsPlaceholderText = styled.div`
     font-size: 1.1rem;
     font-weight: 600;
@@ -1863,13 +1991,14 @@ const InsightsPlaceholderText = styled.div`
     margin-bottom: 0.5rem;
 `
 
+// -------------------------------------------------------- Insights Placeholder Subtext.
 const InsightsPlaceholderSubtext = styled.div`
     font-size: 0.9rem;
     color: var(--text-secondary);
     line-height: 1.4;
 `
 
-// -------------------------------------------------------- Pagination Components.
+// -------------------------------------------------------- Pagination Container.
 const PaginationContainer = styled.div`
     display: flex;
     justify-content: center;
@@ -1885,6 +2014,7 @@ const PaginationContainer = styled.div`
     margin: 0 auto;
     margin-top: auto;
 `
+// -------------------------------------------------------- Pagination.
 const Pagination = styled.div`
     display: flex;
     justify-content: center;
@@ -1893,6 +2023,7 @@ const Pagination = styled.div`
     position: relative;
     z-index: 1;
 `
+// -------------------------------------------------------- Page Button.
 const PageButton = styled.button`
     background: rgba(0, 0, 0, 0.1);
     border: 2px solid rgba(0, 0, 0, 0.2);
@@ -1925,6 +2056,7 @@ const PageButton = styled.button`
         transform: translateY(0);
     }
 `
+// -------------------------------------------------------- Page Info.
 const PageInfo = styled.span`
     padding: 0.75rem 1.25rem;
     border: 2px solid rgba(255, 255, 255, 0.3);
@@ -1935,7 +2067,7 @@ const PageInfo = styled.span`
     color: var(--text-secondary);
 `
 
-// -------------------------------------------------------- Custom Checkbox Components.
+// -------------------------------------------------------- Custom Checkbox.
 const CustomCheckbox = styled.div`
     position: relative;
     display: inline-flex;
@@ -1948,6 +2080,7 @@ const CustomCheckbox = styled.div`
         transform: scale(1.05);
     }
 `
+// -------------------------------------------------------- Checkbox Input.
 const CheckboxInput = styled.input`
     position: absolute;
     opacity: 0;
@@ -1955,6 +2088,7 @@ const CheckboxInput = styled.input`
     height: 0;
     cursor: pointer;
 `
+// -------------------------------------------------------- Checkbox Indicator.
 const CheckboxIndicator = styled.div`
     width: 1.5rem;
     height: 1.5rem;
@@ -2007,6 +2141,7 @@ const CheckboxIndicator = styled.div`
         }
     `}
 `
+// -------------------------------------------------------- Check Mark.
 const CheckMark = styled.span`
     color: white;
     font-size: 0.9rem;
@@ -2060,6 +2195,348 @@ const SortIcon = styled.span`
 
     ${SortableHeader}:hover & {
         opacity: 1;
+    }
+`;
+
+// -------------------------------------------------------- Confirmation Modal Components.
+const ConfirmationModal = styled.div`
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.3s ease-out;
+    backdrop-filter: blur(4px);
+    
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+`;
+
+// -------------------------------------------------------- Confirmation Content.
+const ConfirmationContent = styled.div`
+    background: linear-gradient(white, white) padding-box, linear-gradient(135deg, var(--button-primary), var(--amount-positive)) border-box;
+    border-radius: 16px;
+    padding: 2rem 1rem;
+    max-width: 350px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.34);
+    border: 3px solid transparent;
+    position: relative;
+    overflow: hidden;
+    animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+        border-radius: 16px;
+        pointer-events: none;
+    }
+    
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px) scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+`;
+
+// -------------------------------------------------------- Confirmation Message.
+const ConfirmationMessage = styled.div`
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    position: relative;
+    z-index: 1;
+    line-height: 1.5;
+`;
+
+const ConfirmationSubtitle = styled.div`
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: #6c757d;
+    margin-bottom: 1.5rem;
+    position: relative;
+    z-index: 1;
+    line-height: 1.4;
+    opacity: 0.8;
+`;
+
+const ConfirmationActions = styled.div`
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+`;
+
+const ConfirmButton = styled.button`
+    font: inherit;
+    background: linear-gradient(135deg, var(--amount-negative), #c82333);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.34);
+    position: relative;
+    overflow: hidden;
+    min-width: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s;
+    }
+    
+    &:hover:not(:disabled) {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(220, 53, 69, 0.4);
+        
+        &::before {
+            left: 100%;
+        }
+    }
+    
+    &:active:not(:disabled) {
+        transform: translateY(-1px);
+        transition: all 0.1s ease;
+    }
+    
+    &:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.3), 0 4px 6px rgba(0, 0, 0, 0.34);
+    }
+    
+    &:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+    }
+`;
+
+const CancelButton = styled.button`
+    font: inherit;
+    background: grey;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.34);
+    position: relative;
+    overflow: hidden;
+    min-width: 120px;
+    
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s;
+    }
+    
+    &:hover:not(:disabled) {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(108, 117, 125, 0.4);
+        
+        &::before {
+            left: 100%;
+        }
+    }
+    
+    &:active:not(:disabled) {
+        transform: translateY(-1px);
+        transition: all 0.1s ease;
+    }
+    
+    &:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(108, 117, 125, 0.3), 0 4px 6px rgba(0, 0, 0, 0.34);
+    }
+    
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+`;
+
+// -------------------------------------------------------- Bulk Actions Components.
+
+// -------------------------------------------------------- Bulk Actions Toolbar.
+const BulkActionsToolbar = styled.div`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(135deg, rgba(0, 123, 255, 0.1), rgba(16, 185, 129, 0.1));
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    border: 2px solid rgba(0, 123, 255, 0.2);
+    animation: slideDown 0.3s ease-out;
+    
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+`;
+
+// -------------------------------------------------------- Bulk Actions Info.
+const BulkActionsInfo = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--button-primary);
+    font-weight: 600;
+    font-size: 1rem;
+`;
+
+// -------------------------------------------------------- Bulk Actions Buttons.
+const BulkActionsButtons = styled.div`
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+`;
+
+// -------------------------------------------------------- Bulk Delete Button.
+const BulkDeleteButton = styled.button`
+    font: inherit;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, var(--amount-negative), #c82333);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(220, 53, 69, 0.4);
+    }
+`;
+
+// -------------------------------------------------------- Bulk Clear Button.
+const BulkClearButton = styled.button`
+    font: inherit;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: rgba(108, 117, 125, 0.9);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(108, 117, 125, 0.4);
+    }
+`;
+
+// -------------------------------------------------------- Select All Checkbox.
+const SelectAllCheckbox = styled.div`
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 10;
+    
+    &:hover {
+        transform: scale(1.05);
+    }
+    
+    /* Style the hidden checkbox input */
+    input[type="checkbox"] {
+        position: absolute;
+        opacity: 0;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        cursor: pointer;
+        z-index: 2;
+    }
+    
+    /* Make sure the visual indicator doesn't block clicks */
+    > div {
+        pointer-events: none;
+        position: relative;
+        z-index: 1;
+    }
+`;
+
+// -------------------------------------------------------- Bulk Select All Button.
+const BulkSelectAllButton = styled.button`
+    font: inherit;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, var(--button-primary), #0056b3);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 123, 255, 0.4);
     }
 `;
 

@@ -1,7 +1,13 @@
+// ResultsCard.jsx
+
+// This is the main component of the CentiScore component, it is the component that displays the user's
+// Centi Score data in a card format. It also has a progress section that displays the user's progress
+// in the Centi Score program. 
+
 // Imports.
-import React, { useState, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
 import { keyframes } from 'styled-components';
+import React, { useState, useEffect, useMemo } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronDown } from '@fortawesome/free-solid-svg-icons';
 
@@ -43,7 +49,7 @@ const ResultsCard = ({
     const [infoVisible, setInfoVisible] = useState(false); // State 4 Info Panel Visibility.
     const [progressVisible, setProgressVisible] = useState(false); // State 4 Progress Panel Visibility.
     const [scoreHistory, setScoreHistory] = useState(null); // State 4 Score History Data.
-    const [hasGrowthData, setHasGrowthData] = useState(false);
+    const [hasGrowthData, setHasGrowthData] = useState(false); // State 4 Has Growth Data.
 
     // Function 4 Toggling Info Panel Visibility.
     const toggleInfoPanel = () => setInfoVisible(v => !v);
@@ -51,12 +57,12 @@ const ResultsCard = ({
     // Function 4 Toggling Progress Panel Visibility.
     const toggleProgressPanel = () => setProgressVisible(v => !v);
 
-    // Get personalized insights using the new utility
+    // Get Personalized Insights Using The New Utility.
     const positiveInsight = getPersonalizedPositiveInsights(scoreBreakdown, userStats);
     const growthArea = getPersonalizedGrowthAreas(scoreBreakdown, userStats);
     const actionStep = getPersonalizedActionSteps(scoreBreakdown, userStats);
 
-    // Set score history data from props
+    // Set Score History Data From Props.
     useEffect(() => {
         if (myCentiScoreHistory && myCentiScoreGrowth && myCentiScoreTrend) {
             console.log("Setting score history from props:", {
@@ -73,13 +79,15 @@ const ResultsCard = ({
         }
     }, [myCentiScoreHistory, myCentiScoreGrowth, myCentiScoreTrend]);
 
+    // Set Has Growth Data From Score History.
     useEffect(() => {
         setHasGrowthData(!!scoreHistory?.growth?.has_growth_data);
     }, [scoreHistory]);
 
+    // -------------------------------------------------------- Render.
     return (
         <ResultsCardContainer>
-            {/* Info Panel */}
+            {/* Info Panel. */}
             <ScoreHeader>
                 <InfoPanel $visible={infoVisible}>
                     <InfoPanelContent>
@@ -99,6 +107,7 @@ const ResultsCard = ({
                 >?</QuestionIcon>
             </ScoreHeader>
             
+            {/* Results Grid. */}
             <ResultsGrid>
                 <LeftColumn>
                     <ScoreTitleContainer>
@@ -139,7 +148,8 @@ const ResultsCard = ({
                     
                 </RightColumn>
             </ResultsGrid>
-            {/* Progress Section */}
+
+            {/* Progress Section. */}
             <ProgressSection>
                 <ProgressPrompt>
                     Want to see how your Centi Score has changed?
@@ -161,7 +171,8 @@ const ResultsCard = ({
                     </ButtonText>
                 </ProgressButton>
             </ProgressSection>
-            {/* Progress Panel */}
+
+            {/* Progress Panel. */}
             <ProgressPanel isVisible={progressVisible} onToggle={toggleProgressPanel} scoreHistory={scoreHistory} />
         </ResultsCardContainer>
     );
@@ -542,5 +553,5 @@ const ButtonText = styled.span`
     font-weight: 600;
 `;
 
-// Export Component.
+// Export The ResultsCard Component.
 export default ResultsCard;

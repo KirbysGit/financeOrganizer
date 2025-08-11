@@ -1,8 +1,12 @@
+// main.jsx
+
+// Imports.
 import App from './App.jsx'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
+// Local Imports.
 import { ThemeProvider } from 'styled-components';
 import { GlobalStyles } from './styles/GlobalStyles.js';
 import { theme } from './styles/theme';

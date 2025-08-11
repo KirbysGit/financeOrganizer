@@ -1,3 +1,12 @@
+// MeterGauge.jsx
+
+// This is another sub-component of the CentiScore component, it is the main component that displays
+// the user's Centi Score data in a meter gauge format. It also has a growth indicator that displays
+// the user's Centi Score data when hovering over the gauge. It also has a countdown timer that displays
+// when the next score will be taken. I had this idea for the UI becasue I like the "increase", because
+// no matter the score with the animation upon the load the score is going up to the user's actual score.
+// I also want to smooth this out more too but I think it looks great right now.
+
 // Imports.
 import React from 'react';
 import { format } from 'date-fns';

@@ -1,6 +1,12 @@
+# Scheduler Utils.
+#
+# Functions :
+#   - 'start_scheduler' - Start The Centi Score Scheduler.
+#   - 'stop_scheduler' - Stop The Centi Score Scheduler.
+#   - 'calculate_scores_manually' - Manually Trigger Score Calculation For All Users.
+
 # Imports.
 import time
-import asyncio
 import schedule
 from threading import Thread
 from datetime import datetime, date

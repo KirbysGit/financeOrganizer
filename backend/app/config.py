@@ -1,3 +1,6 @@
+# Config File For The Backend.
+
+
 # Imports.
 import os
 import plaid
@@ -9,36 +12,37 @@ from plaid.configuration import Configuration
 # Load .env Variables.
 load_dotenv()
 
+# -------------------------------------------------------- Settings.
 class Settings:
-    # Database
+    # Database.
     DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./finance_organizer.db")
     
-    # JWT
+    # JWT.
     SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
     ALGORITHM = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES = 30
     
-    # Plaid
+    # Plaid.
     PLAID_CLIENT_ID = os.getenv("PLAID_CLIENT_ID")
     PLAID_SECRET = os.getenv("PLAID_SECRET")
     PLAID_ENV = os.getenv("PLAID_ENV", "sandbox")
     
-    # Environment
+    # Environment.
     ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
     DEBUG = os.getenv("DEBUG", "True").lower() == "true"
     
-    # CORS
+    # CORS.
     ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
 
 settings = Settings()
 
-# Plaid Configuration.
+# -------------------------------------------------------- Plaid Configuration.
 PLAID_CLIENT_ID = os.getenv("PLAID_CLIENT_ID")
 PLAID_SECRET = os.getenv("PLAID_SECRET")
 PLAID_ENV = os.getenv("PLAID_ENV", "sandbox")  # sandbox, development, production
 
 # Plaid Data Retrieval Settings
-PLAID_TRANSACTION_DAYS = int(os.getenv("PLAID_TRANSACTION_DAYS", "30"))  # Default 30 days for sandbox
+PLAID_TRANSACTION_DAYS = int(os.getenv("PLAID_TRANSACTION_DAYS", "90"))  # Default 90 days for production
 
 # Plaid Config Set Up.
 class PlaidConfig:
@@ -57,10 +61,13 @@ class PlaidConfig:
         # Set Plaid Env.
         if self.env == 'sandbox':
             host = plaid.Environment.Sandbox
+            print("🔧 Plaid: Using SANDBOX environment")
         elif self.env == 'development':
             host = plaid.Environment.Development
+            print("🔄 Plaid: Using DEVELOPMENT environment")
         elif self.env == 'production':
             host = plaid.Environment.Production
+            print("🚀 Plaid: Using PRODUCTION environment")
         else:
             raise ValueError(f"Invalid PLAID_ENV: {self.env}. Must be 'sandbox', 'development', or 'production'")
         
@@ -78,8 +85,11 @@ class PlaidConfig:
 
         # Create A Plaid API Client Based On Our API Client.
         self.client = plaid_api.PlaidApi(api_client)
+        
+        # Log configuration details
+        print(f"📊 Plaid Config: Environment={self.env}, Products={self.products}, Countries={self.country_codes}")
 
-# Google OAuth Config Set Up.
+# -------------------------------------------------------- Google OAuth Config Set Up.
 class GoogleConfig:
     def __init__(self):
         self.client_id = os.getenv('GOOGLE_CLIENT_ID')
@@ -89,6 +99,6 @@ class GoogleConfig:
         if not self.client_id or not self.client_secret:
             raise ValueError("GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set in environment variables")
 
-# Create global instances
+# Create Global Instances.
 plaid_config = PlaidConfig()
 google_config = GoogleConfig() 

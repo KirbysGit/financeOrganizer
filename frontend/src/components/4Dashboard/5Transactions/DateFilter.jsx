@@ -758,4 +758,5 @@ const ApplyButton = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Export The DateFilter Component.
 export default DateFilter;

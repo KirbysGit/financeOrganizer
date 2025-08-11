@@ -1,7 +1,14 @@
+// TagFilter.jsx
+
+// This just a sub-component for the filter for the Tag Field, it's just a dropdown that allows the user
+// to select the tags they want to filter by, it provides a select all option, and tells you the amount
+// of tags you have selected within the filter.
+
+// Imports.
 import React, { useState, useEffect } from 'react';
 import { styled } from 'styled-components';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheck, faXmark, faFilter, faTags } from '@fortawesome/free-solid-svg-icons';
+import { faCheck, faTags } from '@fortawesome/free-solid-svg-icons';
 import { getTags } from '../../../services/api';
 
 // Local Imports.
@@ -19,14 +26,14 @@ const TagFilter = ({
     );
     const [isLoading, setIsLoading] = useState(false);
 
-    // Load available tags when component mounts
+    // Load Available Tags When Component Mounts.
     useEffect(() => {
         if (isOpen) {
             loadTags();
         }
     }, [isOpen]);
 
-    // Reset when currentFilter changes
+    // Reset When CurrentFilter Changes.
     useEffect(() => {
         if (currentFilter) {
             setSelectedTags(currentFilter.tagIds || []);
@@ -35,6 +42,7 @@ const TagFilter = ({
         }
     }, [currentFilter]);
 
+    // Load Tags.
     const loadTags = async () => {
         setIsLoading(true);
         try {
@@ -48,6 +56,7 @@ const TagFilter = ({
         }
     };
 
+    // Handle Tag Toggle.
     const handleTagToggle = (tagId) => {
         setSelectedTags(prev => 
             prev.includes(tagId) 
@@ -56,14 +65,17 @@ const TagFilter = ({
         );
     };
 
+    // Handle Select All.
     const handleSelectAll = () => {
         setSelectedTags(availableTags.map(tag => tag.id));
     };
 
+    // Handle Deselect All.
     const handleDeselectAll = () => {
         setSelectedTags([]);
     };
 
+    // Handle Apply.
     const handleApply = () => {
         const filterData = {
             tagIds: selectedTags,
@@ -73,12 +85,14 @@ const TagFilter = ({
         onClose();
     };
 
+    // Handle Clear.
     const handleClear = () => {
         setSelectedTags([]);
         onApplyFilter(null);
         onClose();
     };
 
+    // Get Status Text.
     const getStatusText = () => {
         if (selectedTags.length === 0) return "All Tags";
         if (selectedTags.length === 1) {
@@ -88,13 +102,15 @@ const TagFilter = ({
         return `${selectedTags.length} Tags`;
     };
 
+    // -------------------------------------------------------- Render.
+
     if (!isOpen) return null;
 
     return (
         <FilterContainer>
             <FilterControls />
 
-            {/* Tag Selection Section */}
+            {/* Tag Selection Section. */}
             <TagSelectionSection>
                 <TagSelectionHeader>
                     <TagSelectionTitle>Select Tags</TagSelectionTitle>
@@ -144,7 +160,7 @@ const TagFilter = ({
                 )}
             </TagSelectionSection>
 
-            {/* Status Display */}
+            {/* Status Display. */}
             <StatusDisplay>
                 <StatusLabel>Current Selection</StatusLabel>
                 <StatusValue>{getStatusText()}</StatusValue>
@@ -163,7 +179,9 @@ const TagFilter = ({
     );
 };
 
-// Styled Components
+// ------------------------------------------------------------------------------------------------ Styled Components.
+
+// -------------------------------------------------------- Filter Container.
 const FilterContainer = styled.div`
     background: white;
     border-radius: 16px;
@@ -186,16 +204,19 @@ const FilterContainer = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Filter Controls.
 const FilterControls = styled.div`
     height: 10px;
     background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
 `;
 
+// -------------------------------------------------------- Tag Selection Section.
 const TagSelectionSection = styled.div`
     margin-bottom: 1rem;
     padding: 0 1.25rem;
 `;
 
+// -------------------------------------------------------- Tag Selection Header.
 const TagSelectionHeader = styled.div`
     display: flex;
     justify-content: space-between;
@@ -204,6 +225,7 @@ const TagSelectionHeader = styled.div`
     padding: 1.25rem 0 0 0;
 `;
 
+// -------------------------------------------------------- Tag Selection Title.
 const TagSelectionTitle = styled.h4`
     margin: 0;
     font-size: 1rem;
@@ -211,11 +233,13 @@ const TagSelectionTitle = styled.h4`
     color: var(--text-primary);
 `;
 
+// -------------------------------------------------------- Tag Selection Actions.
 const TagSelectionActions = styled.div`
     display: flex;
     gap: 0.5rem;
 `;
 
+// -------------------------------------------------------- Action Button.
 const ActionButton = styled.button`
     font: inherit;
     padding: 0.5rem 1rem;
@@ -233,6 +257,7 @@ const ActionButton = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Loading Container.
 const LoadingContainer = styled.div`
     display: flex;
     justify-content: center;
@@ -241,11 +266,13 @@ const LoadingContainer = styled.div`
     color: var(--text-secondary);
 `;
 
+// -------------------------------------------------------- Loading Text.
 const LoadingText = styled.div`
     font-size: 0.9rem;
     font-weight: 500;
 `;
 
+// -------------------------------------------------------- Empty Container.
 const EmptyContainer = styled.div`
     display: flex;
     flex-direction: column;
@@ -255,6 +282,7 @@ const EmptyContainer = styled.div`
     text-align: center;
 `;
 
+// -------------------------------------------------------- Empty Icon.
 const EmptyIcon = styled.div`
     font-size: 2rem;
     color: var(--text-secondary);
@@ -262,6 +290,7 @@ const EmptyIcon = styled.div`
     opacity: 0.7;
 `;
 
+// -------------------------------------------------------- Empty Text.
 const EmptyText = styled.div`
     font-size: 1rem;
     font-weight: 600;
@@ -269,11 +298,13 @@ const EmptyText = styled.div`
     margin-bottom: 0.5rem;
 `;
 
+// -------------------------------------------------------- Empty Subtext.
 const EmptySubtext = styled.div`
     font-size: 0.85rem;
     color: var(--text-secondary);
 `;
 
+// -------------------------------------------------------- Tag Grid.
 const TagGrid = styled.div`
     display: flex;
     flex-direction: column;
@@ -302,6 +333,7 @@ const TagGrid = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Tag Checkbox.
 const TagCheckbox = styled.button`
     font: inherit;
     display: flex;
@@ -323,6 +355,7 @@ const TagCheckbox = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Checkbox Icon.
 const CheckboxIcon = styled.div`
     width: 16px;
     height: 16px;
@@ -335,6 +368,7 @@ const CheckboxIcon = styled.div`
     flex-shrink: 0;
 `;
 
+// -------------------------------------------------------- Tag Label.
 const TagLabel = styled.div`
     display: flex;
     align-items: center;
@@ -350,6 +384,7 @@ const TagLabel = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Status Display.
 const StatusDisplay = styled.div`
     display: flex;
     justify-content: space-between;
@@ -360,18 +395,21 @@ const StatusDisplay = styled.div`
     margin: 0 1.25rem 1rem 1.25rem;
 `;
 
+// -------------------------------------------------------- Status Label.
 const StatusLabel = styled.span`
     font-size: 0.9rem;
     color: var(--text-secondary);
     font-weight: 500;
 `;
 
+// -------------------------------------------------------- Status Value.
 const StatusValue = styled.span`
     font-size: 0.9rem;
     color: var(--text-primary);
     font-weight: 600;
 `;
 
+// -------------------------------------------------------- Action Buttons.
 const ActionButtons = styled.div`
     display: flex;
     gap: 1rem;
@@ -379,6 +417,7 @@ const ActionButtons = styled.div`
     padding: 0 1.25rem 1.25rem 1.25rem;
 `;
 
+// -------------------------------------------------------- Clear Button.
 const ClearButton = styled.button`
     font: inherit;
     font-size: 0.8rem;
@@ -397,6 +436,7 @@ const ClearButton = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Apply Button.
 const ApplyButton = styled.button`
     font: inherit;
     font-size: 0.8rem;
@@ -415,4 +455,5 @@ const ApplyButton = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Export The TagFilter Component.
 export default TagFilter; 

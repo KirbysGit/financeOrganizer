@@ -1,3 +1,9 @@
+# Auth Utils.
+#
+# Functions :
+#   - 'verify_token' - Verify And Decode A JWT Token.
+#   - 'get_current_user' - Get The Current Authenticated User From JWT Token In Cookies.
+
 # Imports.
 import jwt
 from typing import Optional
@@ -5,8 +11,8 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException, Depends, status, Request
 
 # Local Imports.
-from app.database import User
-from app.utils.db_utils import get_db
+from ..database import User
+from ..utils.db_utils import get_db
 
 # JWT Settings.
 SECRET_KEY = "your-secret-key-here"  # In Production, Use Environment Variable.

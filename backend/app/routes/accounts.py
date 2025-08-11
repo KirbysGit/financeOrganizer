@@ -1,4 +1,35 @@
 # Account Routes.
+#
+# Router : Prefix w/ "/auth" & Tag w/ "Authentication".
+#
+# Utils :
+#   Password Utils :    
+#       - 'verify_password' - Verify A Password Against A Hashed Password.
+#       - 'get_password_hash' - Get A Password Hash.
+#
+#   JWT Utils :
+#       - 'create_access_token' - Create A JWT Access Token.
+#       - 'create_refresh_token' - Create A JWT Refresh Token.
+#       - 'verify_token' - Verify And Decode A JWT Token.
+#       - 'create_auth_tokens_and_cookies' - Create Auth Tokens & Cookies.
+#
+#   User Utils :
+#       - 'get_user_by_email' - Get A User By Email Address.
+#       - 'authenticate_user' - Authenticate A User With Email And Password.
+#
+#  API Endpoints :
+#    - 'register_user' - Register A New User Account.
+#    - 'login_user' - Authenticate & Login A User.
+#    - 'refresh_token' - Refresh A JWT Token.
+#    - 'logout' - Logout A User.
+#    - 'google_auth_code' - Google OAuth Code.
+#    - 'verify_email' - Verify A User's Email.
+#    - 'resend_verification_email' - Resend Verification Email.
+#    - 'forgot_password' - Send Password Reset Email.
+#    - 'verify_password_reset_token' - Verify Password Reset Token.
+#    - 'reset_password' - Reset User Password With Token.
+#    - 'get_current_user' - Get Current Authenticated User Information.
+#    - 'submit_contact_form' - Submit Contact Form From Users.
 
 # Imports.
 import jwt
@@ -10,11 +41,17 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 
 # Local Imports.
+from app.database import User
 from app.config import google_config
-from app.utils.db_utils import get_db
-from app.database import SessionLocal, User
-from app.utils.auth_utils import get_current_user
+
+# Local Models.
+from app.models import PasswordReset
 from app.models import UserCreate, UserLogin, UserOut, AuthResponse, GoogleAuthCodeRequest
+
+# Local Utils.
+from app.utils.db_utils import get_db
+from app.utils.auth_utils import get_current_user
+from app.utils.email_utils import create_verification_token, verify_verification_token, send_verification_email, send_welcome_email, send_password_reset_email, send_contact_form_email
 
 # Create Router Instance.
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -25,9 +62,12 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # JWT Settings.
 SECRET_KEY = "your-secret-key-here"  # In Production, Use Environment Variable.
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 10080  # 7 days (7 * 24 * 60 = 10080 minutes)
-REFRESH_TOKEN_EXPIRE_DAYS = 30
 
+# Access Token Expires Every Week.
+ACCESS_TOKEN_EXPIRE_MINUTES = 10080
+
+# Refresh Token Expires Every Month.
+REFRESH_TOKEN_EXPIRE_DAYS = 30
 
 # -------------------------------------------------------- Password Utilities.
 def verify_password(
@@ -124,14 +164,15 @@ def create_auth_tokens_and_cookies(
         data={"sub": str(user.id), "email": user.email}
     )
     
-    # Set HTTP-only Cookies. (Updates 'secure' to True in Production.)
+    # Set HTTP-only Cookies. 
+    # Note : 'secure' is set to True in Production.
     response.set_cookie(
         key="access_token",
         value=access_token,
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         httponly=True,
-        secure=True,  # Set to True for HTTPS
-        samesite="none",  # Allow cross-origin requests
+        secure=True,
+        samesite="none",
         path="/"
     )
     
@@ -140,8 +181,8 @@ def create_auth_tokens_and_cookies(
         value=refresh_token,
         max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
         httponly=True,
-        secure=True,  # Set to True for HTTPS
-        samesite="none",  # Allow cross-origin requests
+        secure=True,
+        samesite="none",
         path="/"
     )
     
@@ -178,7 +219,6 @@ def authenticate_user(
     return user
 
 # -------------------------------------------------------- API Endpoints.
-
 @router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
 def register_user(
         user_data: UserCreate, 
@@ -199,11 +239,13 @@ def register_user(
     hashed_password = get_password_hash(user_data.password)
 
     # Create New User Object Based On Provided Data.
+    # Note : User Is Not Verified By Default.
     db_user = User(
         first_name=user_data.first_name,
         last_name=user_data.last_name,
         email=user_data.email,
         hashed_password=hashed_password,
+        is_verified=False,
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow()
     )
@@ -219,6 +261,22 @@ def register_user(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create user account"
         )
+    
+    # Send Verification Email.
+    try:
+        # Create Verification Token.
+        verification_token = create_verification_token(user_data.email)
+
+        # Send Verification Email.
+        email_sent = send_verification_email(user_data.email, user_data.first_name, verification_token)
+        
+        # If Email Fails, Still Create Account But Warn User.
+        if not email_sent:
+            print(f"Failed to send verification email to {user_data.email}")
+
+    except Exception as e:
+        print(f"Error sending verification email: {e}")
+        # Continue With Account Creation Even If Email Fails.
     
     # Create Access Token & Refresh Token.
     access_token, refresh_token = create_auth_tokens_and_cookies(db_user, response)
@@ -237,13 +295,14 @@ def register_user(
             last_name=db_user.last_name,
             email=db_user.email,
             is_active=db_user.is_active,
+            is_verified=db_user.is_verified,
             google_id=db_user.google_id,
             picture=db_user.picture,
             created_at=db_user.created_at,
             updated_at=db_user.updated_at
         ),
         access_token=access_token,
-        message="User Registered Successfully!"
+        message="Your account has been created! Please check your email to verify your account."
     )
 
 # -------------------------------------------------------- Login User.
@@ -284,6 +343,16 @@ def login_user(
             detail="User Account Is Deactivated."
         )
     
+    print(f"Whole User : {user}")
+
+    # Check If User Is Verified.
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Account not yet verified. Please check your email and click the verification link before signing in.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
     # Create Access Token & Refresh Token.
     access_token, refresh_token = create_auth_tokens_and_cookies(user, response)
     
@@ -299,6 +368,7 @@ def login_user(
             last_name=user.last_name,
             email=user.email,
             is_active=user.is_active,
+            is_verified=user.is_verified,
             google_id=user.google_id,
             picture=user.picture,
             created_at=user.created_at,
@@ -356,6 +426,14 @@ def refresh_token(
             detail="User not found or inactive"
         )
     
+    # Check If User Is Verified.
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Account not yet verified. Please check your email and click the verification link before accessing your account.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
     # Create New Access Token & Refresh Token.
     access_token, new_refresh_token = create_auth_tokens_and_cookies(user, response)
     
@@ -367,6 +445,7 @@ def refresh_token(
             last_name=user.last_name,
             email=user.email,
             is_active=user.is_active,
+            is_verified=user.is_verified,
             google_id=user.google_id,
             picture=user.picture,
             created_at=user.created_at,
@@ -455,6 +534,15 @@ def google_auth_code(
             else:
                 # User Exists With Email But No Password - Link Google Account.
                 user = existing_user_by_email
+                
+                # Check if user is verified before allowing Google link
+                if not user.is_verified:
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Account not yet verified. Please check your email and click the verification link before signing in with Google.",
+                        headers={"WWW-Authenticate": "Bearer"},
+                    )
+                
                 user.google_id = google_user_data["google_id"]
                 user.picture = google_user_data["picture"]
                 user.updated_at = datetime.utcnow()
@@ -493,6 +581,7 @@ def google_auth_code(
                 last_name=user.last_name,
                 email=user.email,
                 is_active=user.is_active,
+                is_verified=user.is_verified,
                 google_id=user.google_id,
                 picture=user.picture,
                 created_at=user.created_at,
@@ -517,6 +606,250 @@ def google_auth_code(
             detail=f"Failed to process Google authentication: {str(e)}"
         )
 
+# -------------------------------------------------------- Verify Email.
+@router.get("/verify-email")
+def verify_email(
+        token: str,
+        db: Session = Depends(get_db)
+    ) -> dict:
+    """Verify User Email With Token."""
+    
+    # Verify The Token.
+    email = verify_verification_token(token)
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired verification token"
+        )
+    
+    # Find User By Email.
+    user = get_user_by_email(db, email)
+
+    # If User Not Found, Raise Error.
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Check If Already Verified.
+    if user.is_verified:
+        return {"message": "Email already verified"}
+    
+    # Mark User As Verified.
+    user.is_verified = True
+    user.updated_at = datetime.utcnow()
+    db.commit()
+    
+    # Send Welcome Email.
+    try:
+        send_welcome_email(user.email, user.first_name)
+    except Exception as e:
+        print(f"Error sending welcome email: {e}")
+        # Continue Even If Welcome Email Fails.
+    
+    return {"message": "Email verified successfully! Welcome to Centi!"}
+
+# -------------------------------------------------------- Resend Verification Email.
+@router.post("/resend-verification")
+async def resend_verification_email(
+        request: Request,
+        db: Session = Depends(get_db)
+    ) -> dict:
+    """Resend Verification Email To User."""
+    
+    # Get Email From Request Body.
+    try:
+        body = await request.json()
+        email = body.get("email")
+        if not email:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Email is required"
+            )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid request body"
+        )
+    
+    # Find User By Email.
+    user = get_user_by_email(db, email)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Check If Already Verified.
+    if user.is_verified:
+        return {"message": "Email already verified"}
+    
+    # Send Verification Email.
+    try:
+        # Create Verification Token.
+        verification_token = create_verification_token(user.email)
+
+        # Send Verification Email.
+        email_sent = send_verification_email(user.email, user.first_name, verification_token)
+        
+        # If Email Sent, Return Success Message.
+        if email_sent:
+            return {"message": "Verification email sent!"}
+        else:
+            # If Email Fails, Raise Error.
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to send verification email"
+            )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error sending verification email: {str(e)}"
+        )
+
+# -------------------------------------------------------- Send Password Reset Email.
+@router.post("/forgot-password")
+async def forgot_password(
+        request: Request,
+        db: Session = Depends(get_db)
+    ) -> dict:
+    """Send Password Reset Email To User."""
+    
+    # Get Email From Request Body.
+    try:
+        body = await request.json()
+        email = body.get("email")
+        if not email:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Email is required"
+            )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid request body"
+        )
+    
+    # Find User By Email.
+    user = get_user_by_email(db, email)
+    if not user:
+        # Don't Reveal If User Exists Or Not For Security.
+        return {"message": "If an account with this email exists, a password reset link has been sent."}
+    
+    # Check If User Is Verified.
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Please verify your email before resetting your password."
+        )
+    
+    # Send Password Reset Email.
+    try:
+        # Create Password Reset Token.
+        reset_token = create_verification_token(user.email)
+
+        # Send Password Reset Email.
+        email_sent = send_password_reset_email(user.email, user.first_name, reset_token)
+        
+        # If Email Sent, Return Success Message.
+        if email_sent:
+            return {"message": "Password reset email sent!"}
+        else:
+            # If Email Fails, Raise Error.
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to send password reset email"
+            )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error sending password reset email: {str(e)}"
+        )
+
+# -------------------------------------------------------- Verify Password Reset Token.
+@router.get("/verify-reset-token")
+def verify_password_reset_token(
+        token: str,
+        db: Session = Depends(get_db)
+    ) -> dict:
+    """Verify Password Reset Token."""
+    
+    # Verify The Token.
+    email = verify_verification_token(token)
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token"
+        )
+    
+    # Find User By Email.
+    user = get_user_by_email(db, email)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Check If User Is Verified.
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Please verify your email before resetting your password."
+        )
+    
+    return {"message": "Token is valid", "email": email}
+
+# -------------------------------------------------------- Reset Password.
+@router.post("/reset-password")
+def reset_password(
+        reset_data: PasswordReset,
+        db: Session = Depends(get_db)
+    ) -> dict:
+    """Reset User Password With Token."""
+    
+    # Verify The Token.
+    email = verify_verification_token(reset_data.token)
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token"
+        )
+    
+    # Find User By Email.
+    user = get_user_by_email(db, email)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Check If User Is Verified.
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Please verify your email before resetting your password."
+        )
+    
+    # Hash The New Password.
+    hashed_password = get_password_hash(reset_data.new_password)
+    
+    # Check If New Password Is Same As Old Password.
+    if verify_password(reset_data.new_password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be different from past passwords."
+        )
+    
+    # Update User Password.
+    user.hashed_password = hashed_password
+    user.updated_at = datetime.utcnow()
+    db.commit()
+    
+    print(f"Password reset successfully for user {user.email}")
+    
+    return {"message": "Password reset successfully!"}
+
 # -------------------------------------------------------- Get Current User.
 @router.get("/me", response_model=UserOut)
 def get_current_user(
@@ -526,3 +859,62 @@ def get_current_user(
 
     # Return Current User.
     return current_user
+
+# -------------------------------------------------------- Contact Form Submission.
+@router.post("/contact")
+async def submit_contact_form(
+        request: Request,
+        db: Session = Depends(get_db)
+    ) -> dict:
+    """Submit Contact Form From Users."""
+    
+    try:
+        # Get Contact Form Data From Request Body.
+        body = await request.json()
+        
+        # Extract Form Data.
+        user_id = body.get("user_id")
+        user_email = body.get("user_email")
+        user_name = body.get("user_name")
+        topic = body.get("topic")
+        description = body.get("description")
+        attachments = body.get("attachments", [])
+        
+        # Validate Required Fields.
+        if not all([user_email, topic, description]):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Missing required fields: user_email, topic, description"
+            )
+        
+        # Get User From Database If User ID Provided.
+        user = None
+        if user_id:
+            user = db.query(User).filter(User.id == int(user_id)).first()
+        
+        # Send Contact Form Email.
+        email_sent = send_contact_form_email(
+            user_email=user_email,
+            user_name=user_name or "Anonymous User",
+            topic=topic,
+            description=description,
+            attachments=attachments,
+            user=user
+        )
+        
+        # If Email Sent, Return Success Message.
+        if email_sent:
+            return {"message": "Contact form submitted successfully! We'll get back to you soon."}
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to send contact form email"
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error submitting contact form: {str(e)}"
+        )

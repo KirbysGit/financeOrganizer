@@ -1,3 +1,11 @@
+// FinanceConnect.jsx
+
+// This is the main component that handles the finance connect process, it will show the user the different ways
+// they can connect their finances, and then handle the different methods of connecting. Three options are the 
+// Plaid API, CSV Upload, and Manual Entry, we encourage the user to use the Plaid API, but we also want to give
+// them the option to upload a CSV file, and manually enter transactions. They can also skip the setup process
+// and just explore the site without any data.
+
 // Imports.
 import React, { useState, useEffect } from 'react';
 import { styled, keyframes, css } from 'styled-components';
@@ -12,8 +20,6 @@ import {
     faMagic,
     faArrowRight,
     faStar,
-    faGem,
-    faHandshake,
     faShieldAlt,
     faClock
 } from '@fortawesome/free-solid-svg-icons';
@@ -25,27 +31,11 @@ import FileUploadModal from './Ways2Connect/UploadConnect/FileUploadModal';
 import ManualTxModal from './Ways2Connect/ManualConnect/ManualTxModal';
 import { uploadCSV } from '../../services/api';
 
-// -------------------------------------------------------- Animations.
-const float = keyframes`
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
-`;
+// ------------------------------------------------------------------------------------------------ Animations.
 
 const pulse = keyframes`
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.05); }
-`;
-
-const shimmer = keyframes`
-    0% { background-position: -200px 0; }
-    100% { background-position: calc(200px + 100%) 0; }
-`;
-
-const bounce = keyframes`
-    0%, 20%, 53%, 80%, 100% { transform: translate3d(0,0,0); }
-    40%, 43% { transform: translate3d(0, -30px, 0); }
-    70% { transform: translate3d(0, -15px, 0); }
-    90% { transform: translate3d(0, -4px, 0); }
 `;
 
 const fadeIn = keyframes`
@@ -64,22 +54,23 @@ const slideUp = keyframes`
     }
 `;
 
-// -------------------------------------------------------- FinanceConnect Component.
+// ------------------------------------------------------------------------------------------------ FinanceConnect Component.
 const FinanceConnect = ({ onBack, onComplete, user }) => {
+
+
     // Modal States.
-    const [activeModal, setActiveModal] = useState(null);
     const [hasData, setHasData] = useState(false);
-    const [step, setStep] = useState(1);
+    const [activeModal, setActiveModal] = useState(null);
     const [selectedMethod, setSelectedMethod] = useState(null);
     
-    // Progress tracking
-    const [uploadSuccess, setUploadSuccess] = useState(false);
+    // Progress Tracking.
     const [plaidSuccess, setPlaidSuccess] = useState(false);
     const [manualSuccess, setManualSuccess] = useState(false);
+    const [uploadSuccess, setUploadSuccess] = useState(false);
 
-    // Interactive states
-    const [hoveredMethod, setHoveredMethod] = useState(null);
+    // Interactive States.
     const [isLoading, setIsLoading] = useState(false);
+    const [hoveredMethod, setHoveredMethod] = useState(null);
     const [showWelcomeAnimation, setShowWelcomeAnimation] = useState(true);
 
     // -------------------------------------------------------- Welcome Animation Effect.
@@ -109,7 +100,7 @@ const FinanceConnect = ({ onBack, onComplete, user }) => {
         setUploadSuccess(true);
         setHasData(true);
         setTimeout(() => {
-            onComplete(true); // User actually has data
+            onComplete(true); // User Actually Has Data.
         }, 2000);
     };
 
@@ -118,7 +109,7 @@ const FinanceConnect = ({ onBack, onComplete, user }) => {
         setPlaidSuccess(true);
         setHasData(true);
         setTimeout(() => {
-            onComplete(true); // User actually has data
+            onComplete(true); // User Actually Has Data.
         }, 2000);
     };
 
@@ -127,7 +118,7 @@ const FinanceConnect = ({ onBack, onComplete, user }) => {
         setManualSuccess(true);
         setHasData(true);
         setTimeout(() => {
-            onComplete(true); // User actually has data
+            onComplete(true); // User Actually Has Data.
         }, 2000);
     };
 
@@ -144,16 +135,12 @@ const FinanceConnect = ({ onBack, onComplete, user }) => {
 
     // -------------------------------------------------------- Skip Setup.
     const handleSkip = () => {
-        // Don't set any localStorage flags when skipping - let the user explore without data
-        // This way they can refresh to get back to FinanceConnect
-        onComplete(false); // User skipped, no actual data
+        // Don't Set Any LocalStorage Flags When Skipping - Let The User Explore Without Data.
+        // This Way They Can Refresh To Get Back To FinanceConnect.
+        onComplete(false); // User Skipped, No Actual Data.
     };
 
-    // -------------------------------------------------------- Handle Back Navigation.
-    const handleBack = () => {
-        onBack();
-    };
-
+    // -------------------------------------------------------- Return The Component.
     return (
         <>
             <ConnectContainer>
@@ -359,8 +346,9 @@ const FinanceConnect = ({ onBack, onComplete, user }) => {
     );
 };
 
-// -------------------------------------------------------- Styled Components.
+// ------------------------------------------------------------------------------------------------ Styled Components.
 
+// -------------------------------------------------------- Connect Container.
 const ConnectContainer = styled.div`
     min-height: 100vh;
     background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
@@ -368,6 +356,7 @@ const ConnectContainer = styled.div`
     flex-direction: column;
 `;
 
+// -------------------------------------------------------- Header Container.
 const Header = styled.header`
     padding: 4rem 2.5rem 1rem 2.5rem;
     text-align: center;
@@ -380,6 +369,7 @@ const Header = styled.header`
     }
 `;
 
+// -------------------------------------------------------- Back Button. (Back To Welcome Page)
 const BackButton = styled.button`
     font: inherit;
     position: absolute;
@@ -413,6 +403,7 @@ const BackButton = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Hero Container.
 const Hero = styled.div`
     margin-inline: auto;
     display: flex;
@@ -420,6 +411,7 @@ const Hero = styled.div`
     gap: 1.25rem;
 `;
 
+// -------------------------------------------------------- Small Greeting. (Hello, [User Name])
 const SmallGreeting = styled.div`
     font-size: 2.25rem;
     font-weight: 500;
@@ -431,6 +423,7 @@ const SmallGreeting = styled.div`
     gap: 0.5rem;
 `;
 
+// -------------------------------------------------------- User Name. (User's Name)
 const UserName = styled.span`
     font-size: 1.25em;
   font-weight: 800;
@@ -440,6 +433,7 @@ const UserName = styled.span`
   text-shadow: 0 3px 5px rgba(0, 0, 0, 0.1);
 `;
 
+// -------------------------------------------------------- Waving Hand. (👋)
 const WavingHand = styled.span`
     display: inline-block;
     animation: wave 2.5s infinite;
@@ -460,6 +454,7 @@ const WavingHand = styled.span`
     }
 `;
 
+// -------------------------------------------------------- Hero Title. (Welcome To Centi!)
 const HeroTitle = styled.h1`
     font-size: 3.5rem;
     font-weight: 700;
@@ -467,6 +462,7 @@ const HeroTitle = styled.h1`
     color: white;
 `;
 
+// -------------------------------------------------------- Hero Subtitle. (Select The Connection Style That Suits You Best.)
 const HeroSubtitle = styled.h2`
     font-size: 1.7rem;
     font-weight: 500;
@@ -475,6 +471,7 @@ const HeroSubtitle = styled.h2`
 `;
 
 
+// -------------------------------------------------------- Main Content Container.
 const MainContent = styled.div`
     flex: 1;
     padding: 2rem 4rem 4rem 4rem;
@@ -485,11 +482,13 @@ const MainContent = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Method Section Container.
 const MethodSection = styled.div`
     max-width: 1200px;
     margin: 0 auto;
 `;
 
+// -------------------------------------------------------- Method Grid Container.
 const MethodGrid = styled.div`
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
@@ -497,6 +496,7 @@ const MethodGrid = styled.div`
     margin-bottom: 3rem;
 `;
 
+// -------------------------------------------------------- Method Card Container.
 const MethodCard = styled.div`
     background: white;
     border-radius: 20px;
@@ -534,6 +534,7 @@ const MethodCard = styled.div`
     `}
 `;
 
+// -------------------------------------------------------- Method Header Container.
 const MethodHeader = styled.div`
     display: flex;
     justify-content: space-between;
@@ -541,6 +542,7 @@ const MethodHeader = styled.div`
     margin-bottom: 1.5rem;
 `;
 
+// -------------------------------------------------------- Method Icon Container.
 const MethodIcon = styled.div`
     width: 60px;
     height: 60px;
@@ -555,6 +557,7 @@ const MethodIcon = styled.div`
     transition: all 0.3s ease;
 `;
 
+// -------------------------------------------------------- Recommended Badge Container (Plaid API).
 const RecommendedBadge = styled.div`
     background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
     position: relative;
@@ -589,6 +592,7 @@ const RecommendedBadge = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Card Title.
 const CardTitle = styled.h3`
     font-size: 1.4rem;
     font-weight: 700;
@@ -596,6 +600,7 @@ const CardTitle = styled.h3`
     color: var(--text-primary);
 `;
 
+// -------------------------------------------------------- Method Description.
 const MethodDescription = styled.p`
     color: var(--text-secondary);
     line-height: 1.6;
@@ -604,6 +609,7 @@ const MethodDescription = styled.p`
     font-size: 1rem;
 `;
 
+// -------------------------------------------------------- Method Features.
 const MethodFeatures = styled.div`
     display: flex;
     flex-direction: column;
@@ -611,6 +617,7 @@ const MethodFeatures = styled.div`
     margin-bottom: 2rem;
 `;
 
+// -------------------------------------------------------- Feature Item.
 const FeatureItem = styled.div`
     display: flex;
     align-items: center;
@@ -630,6 +637,7 @@ const FeatureItem = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Method Button.
 const MethodButton = styled.div`
     background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
     color: white;
@@ -666,6 +674,7 @@ const MethodButton = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Skip Section.
 const SkipSection = styled.div`
     text-align: center;
     padding: 2rem;
@@ -673,12 +682,14 @@ const SkipSection = styled.div`
     margin-top: 2rem;
 `;
 
+// -------------------------------------------------------- Skip Text.
 const SkipText = styled.p`
     color: rgba(255, 255, 255, 0.8);
     margin: 0 0 1rem 0;
     font-size: 1.3rem;
 `;
 
+// -------------------------------------------------------- Centi.
 const Centi = styled.span`
     font-weight: 800;
     font-size: 1.1em;
@@ -688,6 +699,7 @@ const Centi = styled.span`
     text-shadow: 0 3px 5px rgba(0, 0, 0, 0.1);
 `;
 
+// -------------------------------------------------------- Skip Button.
 const SkipButton = styled.button`
     font: inherit;
     background: rgba(255, 255, 255, 0.1);
@@ -707,6 +719,7 @@ const SkipButton = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Success Overlay.
 const SuccessOverlay = styled.div`
     position: fixed;
     inset: 0;
@@ -719,6 +732,7 @@ const SuccessOverlay = styled.div`
     animation: ${fadeIn} 0.3s ease-out;
 `;
 
+// -------------------------------------------------------- Success Content.
 const SuccessContent = styled.div`
     background: white;
     border-radius: 24px;
@@ -728,6 +742,7 @@ const SuccessContent = styled.div`
     animation: ${slideUp} 0.4s ease-out;
 `;
 
+// -------------------------------------------------------- Success Icon.
 const SuccessIcon = styled.div`
     width: 80px;
     height: 80px;
@@ -742,6 +757,7 @@ const SuccessIcon = styled.div`
     animation: ${pulse} 2s infinite;
 `;
 
+// -------------------------------------------------------- Success Title.
 const SuccessTitle = styled.h2`
     font-size: 2rem;
     font-weight: 700;
@@ -749,6 +765,7 @@ const SuccessTitle = styled.h2`
     color: var(--text-primary);
 `;
 
+// -------------------------------------------------------- Success Message.
 const SuccessMessage = styled.p`
     font-size: 1.1rem;
     color: var(--text-secondary);
@@ -756,6 +773,7 @@ const SuccessMessage = styled.p`
     line-height: 1.6;
 `;
 
+// -------------------------------------------------------- Success Subtitle.
 const SuccessSubtitle = styled.p`
     font-size: 0.9rem;
     color: var(--text-secondary);
@@ -763,4 +781,5 @@ const SuccessSubtitle = styled.p`
     opacity: 0.8;
 `;
 
+// -------------------------------------------------------- Export FinanceConnect Component.
 export default FinanceConnect;

@@ -1,22 +1,29 @@
+// CentiChart.jsx
+
+// This a sub-component of the CentiScore component, but it is found in the drop down of the CentiScore
+// container, it is a chart that displays the user's Centi Score data in a line chart format, its only
+// vieweable if the user has completed a few weeks of data.
+
 // Imports.
+import 'chart.js/auto';
 import React from "react";
+import { Line } from "react-chartjs-2";
 import { useMemo, useRef } from "react";
 import { styled } from "styled-components";
-
-import { Line } from "react-chartjs-2";
-import 'chart.js/auto';
 
 
 // ------------------------------------------------------------------------------------------------ Centi Chart Component.
 const CentiChart = ({ scoreHistory }) => { 
+    // Get Raw Data From Score History.
     const raw = scoreHistory?.history?.scores || [];
 
-    // Filter out invalid dates and scores
+    // Filter Out Invalid Dates And Scores.
     const validRaw = raw.filter(r => {
         const d = new Date(r.score_date);
         return !isNaN(d) && typeof r.total_score === 'number';
     });
 
+    // If No Valid Data, Return Empty Chart.
     if (!validRaw.length) {
         return (
             <ChartWrapper>
@@ -25,17 +32,16 @@ const CentiChart = ({ scoreHistory }) => {
         );
     }
 
+    // Get Points For Chart.
     const points = useMemo(() => [...validRaw].map(p => ({
         date: new Date(p.score_date),
         score: p.total_score,
     })).sort((a, b) => a.date.valueOf() - b.date.valueOf()), [validRaw]);
 
-    console.log("Raw Data:", raw);
-    
-    console.log("Points:", points);
-
+    // Chart Ref.
     const chartRef = useRef(null);
 
+    // -------------------------------------------------------- Use Memo To Generate Chart Data.
     const data = useMemo(() => {
         
         const toSundayIso = (d) => {
@@ -106,6 +112,7 @@ const CentiChart = ({ scoreHistory }) => {
         return { labels, datasets: [dataset] };
     }, [points]);
 
+    // -------------------------------------------------------- Chart Options.
     const options = {
         responsive: true,
         maintainAspectRatio: false,
@@ -222,6 +229,8 @@ const CentiChart = ({ scoreHistory }) => {
         }
     };
 
+    // -------------------------------------------------------- Render.
+    
     return (
         <ChartWrapper>
             <Line ref={chartRef} data={data} options={options} height={425} />
@@ -229,6 +238,7 @@ const CentiChart = ({ scoreHistory }) => {
     )
 };
 
+// -------------------------------------------------------- Chart Wrapper.
 const ChartWrapper = styled.div`
     transition: all 0.3s ease;
     border: 3px solid transparent;
@@ -239,23 +249,7 @@ const ChartWrapper = styled.div`
     padding: 1rem;
 `;
 
-const ChartTitle = styled.h3`
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin: 0 0 1rem 0;
-    color: var(--text-secondary);
-    text-align: center;
-    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    text-shadow: none;
-    padding-bottom: 0.75rem;
-    width: 70%;
-    margin-left: auto;
-    margin-right: auto;
-`;
-
+// -------------------------------------------------------- Empty Chart Message.
 const EmptyChartMessage = styled.p`
     text-align: center;
     color: var(--text-secondary);
@@ -263,5 +257,5 @@ const EmptyChartMessage = styled.p`
     padding: 2rem;
 `;
 
-
+// Export The CentiChart Component.
 export default CentiChart;

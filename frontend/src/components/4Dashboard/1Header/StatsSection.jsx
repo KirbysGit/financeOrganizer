@@ -1,8 +1,58 @@
+// StatsSection.jsx
+
+// This is the first component of the Dashboard, it provides a personalized welcome message, a bank carousel animation
+// on the right side of the screen just to show the banks we "support", and then 4 basic stat cards to show the user
+// some of their information from our imported data.
+
 // Imports.
 import React from 'react';
-import { styled } from 'styled-components';
+import { styled, keyframes } from 'styled-components';
 import { useEffect, useState } from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+
+// -------------------------------------------------------- Bank Carousel Component.
+const BankCarousel = () => {
+    // Animated Carousel With Bank Logos In Top Right Corner Of Dashboard.
+
+    // Bank Data With Logos And Names.
+    const banks = [
+        { name: 'Bank of America', logo: '/src/images/bankLogos/bankOfAmerica.png', color: '#D70015' },
+        { name: 'Chase', logo: '/src/images/bankLogos/chase.png', color: '#117ACA' },
+        { name: 'Wells Fargo', logo: '/src/images/bankLogos/wellsFargo.png', color: '#D71E28' },
+        { name: 'Citibank', logo: '/src/images/bankLogos/citibank.png', color: '#0066CC' },
+        { name: 'American Express', logo: '/src/images/bankLogos/amex.png', color: '#2E77BB' },
+        { name: 'Capital One', logo: '/src/images/bankLogos/capitalOne.png', color: '#004990' },
+        { name: 'US Bank', logo: '/src/images/bankLogos/usbank.png', color: '#FDB913' },
+        { name: 'PNC Bank', logo: '/src/images/bankLogos/pncbank.png', color: '#F47920' },
+        { name: 'Fifth Third Bank', logo: '/src/images/bankLogos/fifththirdBank.png', color: '#E31837' },
+        { name: 'KeyBank', logo: '/src/images/bankLogos/keybank.png', color: '#FF6600' },
+        { name: 'SoFi', logo: '/src/images/bankLogos/sofi.png', color: '#00A3E0' },
+        { name: 'TD Bank', logo: '/src/images/bankLogos/tdBank.png', color: '#53A51E' },
+        { name: 'Truist', logo: '/src/images/bankLogos/truistLogo.png', color: '#1E3A8A' }
+    ];
+
+    // Duplicate Banks For Seamless Infinite Scroll (Double Duplication For Smoother Loop).
+    const duplicatedBanks = [...banks, ...banks];
+
+    // -------------------------------------------------------- Render.
+    
+    return (
+        <CarouselWrapper>
+            <SliderContainer>
+                <SlideTrack>
+                    {duplicatedBanks.map((bank, index) => (
+                        <Slide 
+                            key={index} 
+                            $position={index % 3}
+                        >
+                            <BankLogo src={bank.logo} alt={bank.name} />
+                        </Slide>
+                    ))}
+                </SlideTrack>
+            </SliderContainer>
+        </CarouselWrapper>
+    );
+};
 
 // -------------------------------------------------------- StatsSection Component.
 const StatsSection = ({ myStats }) => {
@@ -58,7 +108,7 @@ const StatsSection = ({ myStats }) => {
     // -------------------------------------------------------- Use Effect To Import Stats & Accounts.
     useEffect(() => {
         importStats();
-        // Set user name from localStorage
+        // Set User Name From LocalStorage.
         setUserName(getUserName());
     }, [myStats]);
 
@@ -163,24 +213,30 @@ const StatsSection = ({ myStats }) => {
         <StatsWrapper>      
             {/* Interactive Welcome Header. */}
             <WelcomeHeader>
-                <WelcomeContent>
-                    <WelcomeGreeting>
-                        <GreetingText>Hey,</GreetingText>
-                        <UserName>{userName}</UserName>
-                        <WavingHand>👋</WavingHand>
-                    </WelcomeGreeting>
-                    <IntroStatement>
-                        <WelcomeTitle>Welcome to Centi.</WelcomeTitle>
-                        <WelcomeConfetti>🎉</WelcomeConfetti> 
-                    </IntroStatement>
+                <>
+                    <WelcomeContent>
+                        <WelcomeGreeting>
+                            <GreetingText>Hey,</GreetingText>
+                            <UserName>{userName}</UserName>
+                            <WavingHand>👋</WavingHand>
+                        </WelcomeGreeting>
+                        <IntroStatement>
+                            <WelcomeTitle>Welcome to Centi.</WelcomeTitle>
+                            <WelcomeConfetti>🎉</WelcomeConfetti> 
+                        </IntroStatement>
 
-                    <WelcomeSubtitle>We've got your finances lined up—let's take a look.</WelcomeSubtitle>
-                </WelcomeContent>
+                        <WelcomeSubtitle>We've got your finances lined up—let's take a look.</WelcomeSubtitle>
+                    </WelcomeContent>
+                </>
+                <>
+                    <BankCarousel />
+                </>
             </WelcomeHeader>
 
             {/* Stats Cards Grid. */}
             <BasicStats>
                 <StatsGrid>
+                    {/* Net Worth Card. */}
                     <StatCard>
                         <StatQuestionIcon 
                                 onClick={() => toggleExplanation('netWorth')}
@@ -227,6 +283,7 @@ const StatsSection = ({ myStats }) => {
                         </StatExplanation>
                     </StatCard>
 
+                    {/* Total Assets Card. */}
                     <StatCard>
                         <StatQuestionIcon 
                                 onClick={() => toggleExplanation('totalAssets')}
@@ -273,6 +330,7 @@ const StatsSection = ({ myStats }) => {
                         </StatExplanation>
                     </StatCard>
 
+                    {/* Total Liabilities Card. */}
                     <StatCard>
                         <StatQuestionIcon 
                                 onClick={() => toggleExplanation('totalLiabilities')}
@@ -319,6 +377,7 @@ const StatsSection = ({ myStats }) => {
                         </StatExplanation>
                     </StatCard>
 
+                    {/* Monthly Cash Flow Card. */}
                     <StatCard>
                         <StatQuestionIcon 
                                 onClick={() => toggleExplanation('monthlyCashFlow')}
@@ -382,16 +441,17 @@ const StatsWrapper = styled.div`
 `
 // -------------------------------------------------------- Welcome Section.
 const WelcomeHeader = styled.div`
-    position: relative;
-    border-radius: 16px;
-    overflow: hidden;
     transition: all 0.3s ease;
     padding: 0.5rem 0rem 0rem 0rem;
-    
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+
     &:active {
         transform: translateY(0);
     }
 `
+
+// -------------------------------------------------------- Welcome Content.
 const WelcomeContent = styled.div`
     position: relative;
     z-index: 2;
@@ -409,6 +469,7 @@ const WelcomeGreeting = styled.div`
     margin: 0;
     color: rgb(100, 100, 100);
 `
+// -------------------------------------------------------- Greeting Text.
 const GreetingText = styled.span`
     color: var(--text-secondary);
     font-weight: 500;
@@ -707,4 +768,134 @@ const GrowthText = styled.span`
     letter-spacing: 0.5px;
 `;
 
+// -------------------------------------------------------- Bank Carousel Styled Components.
+const CarouselWrapper = styled.div`
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+`;
+
+// -------------------------------------------------------- Slider Container.
+const SliderContainer = styled.div`
+    height: 250px;
+    margin: auto;
+    overflow: hidden;
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    &::before,
+    &::after {
+        background: linear-gradient(to right, rgba(231, 240, 250, 0.9) 0%, rgba(231, 240, 250, 0) 100%);
+        content: "";
+        height: 250px;
+        position: absolute;
+        width: 100px;
+        z-index: 2;
+    }
+    
+    &::after {
+        right: 0;
+        top: 0;
+        transform: rotateZ(180deg);
+    }
+
+    &::before {
+        left: 0;
+        top: 0;
+    }
+`;
+
+// -------------------------------------------------------- Slide Track.
+const SlideTrack = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: calc(200px * 26);
+    animation: scroll 40s linear infinite;
+    gap: 1rem;
+    position: relative;
+
+    @keyframes scroll {
+        0% {
+            transform: translateX(0);
+        }
+        100% {
+            transform: translateX(calc(-200px * 13));
+        }
+    }
+`;
+
+// -------------------------------------------------------- Slide.
+const Slide = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 200px;
+    padding: 1rem;
+    margin: 0 0.5rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    
+    /* Create 3-tier wave-like positioning */
+    transform: translateY(${props => {
+        switch(props.$position) {
+            case 0: return '-40px';  // Top tier
+            case 1: return '0px';     // Middle tier
+            case 2: return '40px';    // Bottom tier
+            default: return '0px';
+        }
+    }}) 
+    scale(${props => {
+        switch(props.$position) {
+            case 0: return '1.1';     // Top tier - slightly larger
+            case 1: return '1.0';     // Middle tier - normal size
+            case 2: return '0.9';     // Bottom tier - slightly smaller
+            default: return '1.0';
+        }
+    }});
+    
+    &:hover {
+        transform: translateY(${props => {
+            switch(props.$position) {
+                case 0: return '-50px';  // Top tier hover
+                case 1: return '-10px';  // Middle tier hover
+                case 2: return '50px';   // Bottom tier hover
+                default: return '0px';
+            }
+        }}) 
+        scale(${props => {
+            switch(props.$position) {
+                case 0: return '1.25';   // Top tier hover - larger
+                case 1: return '1.15';   // Middle tier hover - medium
+                case 2: return '1.05';   // Bottom tier hover - smaller
+                default: return '1.0';
+            }
+        }});
+        filter: brightness(1.3);
+        z-index: 10;
+    }
+`;
+
+// -------------------------------------------------------- Bank Logo.
+const BankLogo = styled.img`
+    width: 150px;
+    height: 150px;
+    object-fit: contain;
+    filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.08));
+    transition: all 0.3s ease;
+    
+    &:hover {
+        filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.15));
+    }
+`;
+
+// Export The StatsSection Component.
 export default StatsSection;

@@ -1,39 +1,51 @@
+// ManualTxModal.jsx
+
+// This component is used to create a new transaction manually offering the user to create a new 
+// transaction with the following fields: date, vendor, description, amount, type, and tags, and
+// attach it to a corresponding account.
+
+// Idea for this is really just for single transactions, the idea is that the user probably won't
+// use this modal much, but its nice to have the option, as we hope the user drifts towards the 
+// Plaid API integration as it can provide much more data for the user about their accounts. 
+
 // Imports.
-import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { styled } from 'styled-components';
+import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes, faSpinner, faExclamationCircle, faTags, faPlus } from '@fortawesome/free-solid-svg-icons';
-import toast from 'react-hot-toast';
 
 // Local Imports.
 import '../../../../styles/colors.css';
+import TagModal from '../../../4Dashboard/5Transactions/TagModal';
 import { createTransaction, getTags } from '../../../../services/api';
 import AccountSelectionModal from '../AccountSelect/AccountSelectionModal';
-import TagModal from '../../../4Dashboard/5Transactions/TagModal';
 
 // -------------------------------------------------------- ManualTxModal Component.
 const ManualTxModal = ({ isOpen, onClose, onSuccess, existingAccounts = [] }) => {
     // Transaction States.
-    const [transactionData, setTransactionData] = useState({
+    const [submitting, setSubmitting] = useState(false);                  // State 4 Whether The Transaction Is Being Submitted.
+    const [amountDigits, setAmountDigits] = useState('');                 // State 4 The Amount Digits.
+    const [transactionData, setTransactionData] = useState({              // State 4 The Transaction Data.
         date: '',
         vendor: '',
         description: '',
         amount: '',
         type: ''
     });
-    const [amountDigits, setAmountDigits] = useState(''); // raw cent string
-    const [submitting, setSubmitting] = useState(false);
-    const [showAccountSelection, setShowAccountSelection] = useState(false);
-    const [selectedAccount, setSelectedAccount] = useState(null);
+
+    // Account States.
+    const [selectedAccount, setSelectedAccount] = useState(null);            // State 4 The Selected Account.
+    const [showAccountSelection, setShowAccountSelection] = useState(false); // State 4 Whether The Account Selection Modal Is Shown.
     
-    // Tag States
-    const [selectedTags, setSelectedTags] = useState([]);
-    const [availableTags, setAvailableTags] = useState([]);
-    const [showTagModal, setShowTagModal] = useState(false);
+    // Tag States.
+    const [selectedTags, setSelectedTags] = useState([]);                 // State 4 The Selected Tags.
+    const [availableTags, setAvailableTags] = useState([]);               // State 4 The Available Tags.
+    const [showTagModal, setShowTagModal] = useState(false);              // State 4 Whether The Tag Modal Is Shown.
     
     // Form Validation States.
-    const [touchedFields, setTouchedFields] = useState({});
-    const [errors, setErrors] = useState({});
+    const [errors, setErrors] = useState({});                            // State 4 The Errors.
+    const [touchedFields, setTouchedFields] = useState({});              // State 4 The Touched Fields.
     
     // -------------------------------------------------------- Load Tags on Modal Open.
     useEffect(() => {
@@ -43,31 +55,34 @@ const ManualTxModal = ({ isOpen, onClose, onSuccess, existingAccounts = [] }) =>
     }, [isOpen]);
 
     // -------------------------------------------------------- Helper Functions.
-    
-    /* turn '1234' -> '12.34'  ---------------------------------------------- */
+
+    // This function converts a string of digits into a dollar amount.
     const formatFromDigits = centsStr => {
         const num = parseInt(centsStr || '0', 10);
-        return (num / 100).toFixed(2);                      // returns "0.01", "1.00"...
+        return (num / 100).toFixed(2);                  
     };
 
-    /* main onChange --------------------------------------------------------- */
+    // This function handles the change in the amount input.
     const handleAmountChange = (raw) => {
-        // keep only digits
-        const digits = raw.replace(/\D/g, '').slice(0, 12); // limit to 999 mio for sanity
+        // Keep Only Digits.
+        const digits = raw.replace(/\D/g, '').slice(0, 12);
         setAmountDigits(digits);
 
+        // Set Amount.
         setTransactionData(prev => ({
             ...prev,
-            amount: formatFromDigits(digits)                  // store cents → dollars
+            amount: formatFromDigits(digits)
         }));
 
-        // clear error while typing
+        // Clear Error While Typing.
         if (errors.amount) {
             setErrors(prev => ({ ...prev, amount: '' }));
         }
     };
     
     // -------------------------------------------------------- Validation Functions.
+
+    // This function validates a single field.
     const validateField = (field, value) => {
         switch (field) {
             case 'date':
@@ -85,25 +100,31 @@ const ManualTxModal = ({ isOpen, onClose, onSuccess, existingAccounts = [] }) =>
         }
     };
 
+    // This function validates the entire form.
     const validateForm = () => {
+        // Initialize New Errors.
         const newErrors = {};
         Object.keys(transactionData).forEach(field => {
-            if (field !== 'description') { // Description is optional
+            if (field !== 'description') {
+                // Validate Field.
                 newErrors[field] = validateField(field, transactionData[field]);
             }
         });
+
+        // Set Errors.
         setErrors(newErrors);
         return !Object.values(newErrors).some(error => error);
     };
 
     // -------------------------------------------------------- Handle Field Changes.
     const handleFieldChange = (field, value) => {
+        // Set Transaction Data.
         setTransactionData(prev => ({
             ...prev,
             [field]: value
         }));
         
-        // Clear error when user starts typing
+        // Clear Error When User Starts Typing.
         if (errors[field]) {
             setErrors(prev => ({
                 ...prev,
@@ -114,11 +135,13 @@ const ManualTxModal = ({ isOpen, onClose, onSuccess, existingAccounts = [] }) =>
 
     // -------------------------------------------------------- Handle Field Blur.
     const handleFieldBlur = (field) => {
+        // Set Touched Fields.
         setTouchedFields(prev => ({
             ...prev,
             [field]: true
         }));
         
+        // Validate Field.
         const error = validateField(field, transactionData[field]);
         setErrors(prev => ({
             ...prev,
@@ -129,9 +152,14 @@ const ManualTxModal = ({ isOpen, onClose, onSuccess, existingAccounts = [] }) =>
     // -------------------------------------------------------- Load Available Tags.
     const loadTags = async () => {
         try {
+            // Get Tags.
             const tags = await getTags();
+
+            // Set Available Tags.
             setAvailableTags(Array.isArray(tags) ? tags : []);
+
         } catch (error) {
+            // Log Error.
             console.error('Error loading tags:', error);
             setAvailableTags([]);
         }
@@ -139,30 +167,35 @@ const ManualTxModal = ({ isOpen, onClose, onSuccess, existingAccounts = [] }) =>
 
     // -------------------------------------------------------- Handle Tag Selection.
     const handleTagSelect = (tag) => {
+        // Check If Tag Is Already Selected.
         if (!selectedTags.find(t => t.id === tag.id)) {
+            // Add Tag To Selected Tags.
             setSelectedTags([...selectedTags, tag]);
         }
     };
 
     // -------------------------------------------------------- Handle Tag Removal.
     const handleTagRemove = (tagId) => {
+        // Remove Tag From Selected Tags.
         setSelectedTags(selectedTags.filter(tag => tag.id !== tagId));
     };
 
     // -------------------------------------------------------- Handle Tag Modal Close.
     const handleTagModalClose = () => {
+        // Close Tag Modal.
         setShowTagModal(false);
     };
 
     // -------------------------------------------------------- Handle Tags Updated.
     const handleTagsUpdated = () => {
-        loadTags(); // Reload tags when they're updated
+        // Reload Tags.
+        loadTags();
     };
 
     // -------------------------------------------------------- Handle Manual Transaction Submission.
     const handleTransactionSubmit = async () => {
         if (!validateForm()) {
-            // Mark all fields as touched to show errors
+            // Mark All Fields As Touched To Show Errors.
             setTouchedFields({
                 date: true,
                 vendor: true,
@@ -172,33 +205,44 @@ const ManualTxModal = ({ isOpen, onClose, onSuccess, existingAccounts = [] }) =>
             return;
         }
 
+        // Show Account Selection.
         setShowAccountSelection(true);
     };
 
     // -------------------------------------------------------- Handle Account Selection.
     const handleAccountSelect = async (account) => {
+        // Set Selected Account.
         setSelectedAccount(account);
+
+        // Close Account Selection.
         setShowAccountSelection(false);
+
+        // Perform Transaction Creation.
         await performTransactionCreation(account);
     };
 
     // -------------------------------------------------------- Perform Actual Transaction Creation.
     const performTransactionCreation = async (account) => {
+        // Get Transaction Data.
         const { date, vendor, amount, type } = transactionData;
 
+        // Create New Transaction.
         const newTransaction = {
             ...transactionData,
             amount: parseFloat(amount),
             file: "manual",
             account_data: account,
-            tag_ids: selectedTags.map(tag => tag.id) // Include selected tag IDs
+            tag_ids: selectedTags.map(tag => tag.id)
         };
 
         try {
+            // Set Submitting.
             setSubmitting(true);
+
+            // Create Transaction.
             await createTransaction(newTransaction);
             
-            // Show success toast with transaction details
+            // Show Success Toast With Transaction Details.
             toast.success(
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <div style={{ 
@@ -278,9 +322,10 @@ const ManualTxModal = ({ isOpen, onClose, onSuccess, existingAccounts = [] }) =>
                 }
             );
             
-            // Close modal first, then call onSuccess to prevent page refresh
+            // Close Modal.
             handleClose();
-            // Call onSuccess after a brief delay to ensure modal is closed
+
+            // Call onSuccess After A Brief Delay To Ensure Modal Is Closed.
             setTimeout(() => {
                 try {
                     onSuccess();
@@ -316,12 +361,14 @@ const ManualTxModal = ({ isOpen, onClose, onSuccess, existingAccounts = [] }) =>
                 }
             );
         } finally {
+            // Set Submitting To False.
             setSubmitting(false);
         }
     };
 
     // -------------------------------------------------------- Close Modal & Clear States.
     const handleClose = () => {
+        // Clear All States.
         setTransactionData({
             date: '',
             vendor: '',
@@ -350,11 +397,17 @@ const ManualTxModal = ({ isOpen, onClose, onSuccess, existingAccounts = [] }) =>
         other: "Other"
     };
 
+    // -------------------------------------------------------- Render.
+
+    // If Modal Is Not Open, Return Null.
     if (!isOpen) return null;
 
     return (
         <>
+            {/* Global Styles. */}
             <GlobalStyles />
+
+            {/* Modal. */}
             <Modal onClick={handleClose}>
                 <ModalContent onClick={e => e.stopPropagation()}>
                     <ModalHeader>
@@ -364,7 +417,9 @@ const ManualTxModal = ({ isOpen, onClose, onSuccess, existingAccounts = [] }) =>
                         </CloseButton>
                     </ModalHeader>
 
+                    {/* Transaction Form. */}
                     <TransactionForm>
+                        {/* Date. */}
                         <FormGroup>
                             <FormLabel>
                                 Date <RequiredAsterisk>*</RequiredAsterisk>
@@ -385,6 +440,7 @@ const ManualTxModal = ({ isOpen, onClose, onSuccess, existingAccounts = [] }) =>
                             )}
                         </FormGroup>
 
+                        {/* Vendor. */}
                         <FormGroup>
                             <FormLabel>
                                 Vendor <RequiredAsterisk>*</RequiredAsterisk>
@@ -406,6 +462,7 @@ const ManualTxModal = ({ isOpen, onClose, onSuccess, existingAccounts = [] }) =>
                             )}
                         </FormGroup>
 
+                        {/* Description. */}
                         <FormGroup>
                             <FormLabel>Description (Optional)</FormLabel>
                             <FormInput
@@ -416,6 +473,7 @@ const ManualTxModal = ({ isOpen, onClose, onSuccess, existingAccounts = [] }) =>
                             />
                         </FormGroup>
 
+                        {/* Amount. */}
                         <FormGroup>
                             <FormLabel>
                                 Amount <RequiredAsterisk>*</RequiredAsterisk>
@@ -437,6 +495,7 @@ const ManualTxModal = ({ isOpen, onClose, onSuccess, existingAccounts = [] }) =>
                             )}
                         </FormGroup>
 
+                        {/* Type. */}
                         <FormGroup>
                             <FormLabel>
                                 Type <RequiredAsterisk>*</RequiredAsterisk>
@@ -463,7 +522,7 @@ const ManualTxModal = ({ isOpen, onClose, onSuccess, existingAccounts = [] }) =>
                             )}
                         </FormGroup>
 
-                        {/* Tags Section */}
+                        {/* Tags. */}
                         <FormGroup>
                             <FormLabel>Tags (Optional)</FormLabel>
                             <TagsContainer>
@@ -490,6 +549,7 @@ const ManualTxModal = ({ isOpen, onClose, onSuccess, existingAccounts = [] }) =>
                             </TagsContainer>
                         </FormGroup>
 
+                        {/* Create Transaction Button. */}
                         <ActionButton 
                             onClick={(e) => {
                                 e.preventDefault();
@@ -513,7 +573,7 @@ const ManualTxModal = ({ isOpen, onClose, onSuccess, existingAccounts = [] }) =>
                 </ModalContent>
             </Modal>
 
-            {/* Account Selection Modal */}
+            {/* Account Selection Modal. */}
             <AccountSelectionModal
                 isOpen={showAccountSelection}
                 onClose={() => setShowAccountSelection(false)}
@@ -521,11 +581,11 @@ const ManualTxModal = ({ isOpen, onClose, onSuccess, existingAccounts = [] }) =>
                 existingAccounts={existingAccounts}
             />
 
-            {/* Tag Selection Modal */}
+            {/* Tag Selection Modal. */}
             <TagModal
                 isOpen={showTagModal}
                 onClose={handleTagModalClose}
-                transaction={null} // No specific transaction for manual creation
+                transaction={null}
                 onTagsUpdated={handleTagsUpdated}
                 onTagSelect={handleTagSelect}
                 selectedTags={selectedTags}
@@ -536,6 +596,8 @@ const ManualTxModal = ({ isOpen, onClose, onSuccess, existingAccounts = [] }) =>
 };
 
 // -------------------------------------------------------- Styled Components.
+
+// -------------------------------------------------------- Modal Container.
 const Modal = styled.div`
     position: fixed;
     inset: 0;
@@ -550,6 +612,7 @@ const Modal = styled.div`
     overflow: hidden;
 `;
 
+// -------------------------------------------------------- Modal Content.
 const ModalContent = styled.div`
     background: white;
     border-radius: 24px;
@@ -581,6 +644,7 @@ const ModalContent = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Modal Header (Title & Close Button).
 const ModalHeader = styled.div`
     display: flex;
     justify-content: space-between;
@@ -589,6 +653,7 @@ const ModalHeader = styled.div`
     border-bottom: 1px solid #eee;
 `;
 
+// -------------------------------------------------------- Modal Title ("Add New Transaction").
 const ModalTitle = styled.h2`
     margin: 0;
     font-size: 1.5rem;
@@ -596,6 +661,7 @@ const ModalTitle = styled.h2`
     color: #333;
 `;
 
+// -------------------------------------------------------- Close Button (Styled X).
 const CloseButton = styled.button`
     background: none;
     border: none;
@@ -617,6 +683,7 @@ const CloseButton = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Transaction Form.
 const TransactionForm = styled.div`
     padding: 2rem;
     display: flex;
@@ -624,6 +691,7 @@ const TransactionForm = styled.div`
     gap: 1.5rem;
 `;
 
+// -------------------------------------------------------- Form Group.
 const FormGroup = styled.div`
     display: flex;
     flex-direction: column;
@@ -631,6 +699,7 @@ const FormGroup = styled.div`
     position: relative;
 `;
 
+// -------------------------------------------------------- Form Label.
 const FormLabel = styled.label`
     font-weight: 600;
     color: #333;
@@ -645,6 +714,7 @@ const FormLabel = styled.label`
     }
 `;
 
+// -------------------------------------------------------- Form Input.
 const FormInput = styled.input`
     padding: 1rem;
     border: 2px solid #eee;
@@ -680,6 +750,7 @@ const FormInput = styled.input`
     ` : ''}
 `;
 
+// -------------------------------------------------------- Form Select.
 const FormSelect = styled.select`
     padding: 1rem;
     border: 2px solid #eee;
@@ -722,6 +793,7 @@ const FormSelect = styled.select`
     ` : ''}
 `;
 
+// -------------------------------------------------------- Action Button.
 const ActionButton = styled.button`
     padding: 1rem 2rem;
     border: none;
@@ -789,6 +861,7 @@ const ActionButton = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Error Message.
 const ErrorMessage = styled.span`
     font-size: 0.8rem;
     color: #dc3545;
@@ -804,12 +877,13 @@ const ErrorMessage = styled.span`
     }
 `;
 
+// -------------------------------------------------------- Required Asterisk.
 const RequiredAsterisk = styled.span`
     color: #dc3545;
     font-weight: bold;
 `;
 
-// -------------------------------------------------------- Tag Styled Components.
+// -------------------------------------------------------- Tags Container.
 const TagsContainer = styled.div`
     display: flex;
     flex-wrap: wrap;
@@ -828,6 +902,7 @@ const TagsContainer = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Empty Tags State.
 const EmptyTagsState = styled.div`
     display: flex;
     align-items: center;
@@ -837,6 +912,7 @@ const EmptyTagsState = styled.div`
     font-size: 0.9rem;
 `;
 
+// -------------------------------------------------------- Tag Pill.
 const TagPill = styled.div`
     display: flex;
     align-items: center;
@@ -858,6 +934,7 @@ const TagPill = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Remove Tag Button.
 const RemoveTagButton = styled.button`
     background: rgba(255, 255, 255, 0.2);
     border: none;
@@ -878,6 +955,7 @@ const RemoveTagButton = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Add Tag Button.
 const AddTagButton = styled.button`
     font: inherit;
     display: flex;
@@ -899,9 +977,9 @@ const AddTagButton = styled.button`
     }
 `;
 
-// -------------------------------------------------------- Global CSS to hide spinner arrows.
+// -------------------------------------------------------- Global CSS To Hide Spinner Arrows.
 const GlobalStyles = styled.div`
-    /* hide ↑↓ spinners everywhere */
+    /* Hide ↑↓ Spinners Everywhere. */
     input[type='number']::-webkit-inner-spin-button,
     input[type='number']::-webkit-outer-spin-button {
         -webkit-appearance: none;

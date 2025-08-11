@@ -1,3 +1,10 @@
+// FileUploadModal.jsx
+
+// This modal is how users can upload a CSV file to parse and import their transactions. This was my original idea
+// for the site, because I wanted to track my own transactions through my bank statements, but I didn't really think
+// about the possibility of things like the Plaid API, but I want to improve the backend of this a lot more to be 
+// a lot more robust, but for now this is a good start.
+
 // Imports.
 import React, { useState } from 'react';
 import { styled } from 'styled-components';
@@ -10,12 +17,12 @@ import AccountSelectionModal from '../AccountSelect/AccountSelectionModal';
 // -------------------------------------------------------- FileUploadModal Component.
 const FileUploadModal = ({ isOpen, onClose, onUpload, onSuccess, existingAccounts = [] }) => {
     // Upload CSV States.
-    const [file, setFile] = useState(null);                 // State 4 File.
-    const [notes, setNotes] = useState('');                 // State 4 Notes.
-    const [uploading, setUploading] = useState(false);      // State 4 Uploading State.
-    const [uploadError, setUploadError] = useState('');     // State 4 Upload Error.
-    const [showAccountSelection, setShowAccountSelection] = useState(false); // State for account selection modal.
-    const [selectedAccount, setSelectedAccount] = useState(null); // State for selected account.
+    const [file, setFile] = useState(null);                                     // State 4 File.
+    const [notes, setNotes] = useState('');                                     // State 4 Notes.
+    const [uploading, setUploading] = useState(false);                          // State 4 Uploading State.
+    const [uploadError, setUploadError] = useState('');                         // State 4 Upload Error.
+    const [showAccountSelection, setShowAccountSelection] = useState(false);    // State 4 Account Selection Modal.
+    const [selectedAccount, setSelectedAccount] = useState(null);               // State 4 Selected Account.
 
     // -------------------------------------------------------- Handle CSV Upload.
     const handleCSVUpload = async () => {
@@ -24,7 +31,7 @@ const FileUploadModal = ({ isOpen, onClose, onUpload, onSuccess, existingAccount
             return;
         }
 
-        // Show account selection first
+        // Show Account Selection First.
         setShowAccountSelection(true);
     };
 
@@ -33,7 +40,7 @@ const FileUploadModal = ({ isOpen, onClose, onUpload, onSuccess, existingAccount
         setSelectedAccount(account);
         setShowAccountSelection(false);
         
-        // Now proceed with upload
+        // Now Proceed With Upload.
         await performUpload(account);
     };
 
@@ -46,7 +53,7 @@ const FileUploadModal = ({ isOpen, onClose, onUpload, onSuccess, existingAccount
         formData.append('file', file);                      // Add File To FormData.
         formData.append('notes', notes);                    // Add Notes To FormData.
         
-        // Add account data if not cash
+        // Add Account Data If Not Cash.
         if (account && account.type !== 'cash') {
             formData.append('account_data', JSON.stringify(account));
         }

@@ -1,3 +1,8 @@
+# Vendor Utils For Simplifying Vendor Names.
+#
+# Functions :
+#   - 'normalize_vendor' - Normalize Vendor Names.
+
 # Imports.
 import re
 import html

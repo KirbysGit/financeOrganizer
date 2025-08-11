@@ -1,3 +1,8 @@
+// FileList.jsx
+
+// This is the file list component that is used on the dashboard. Its unused right now but I want to figure out
+// where I want to put it. 
+
 // Imports.
 import React from 'react';
 import { useState } from 'react';

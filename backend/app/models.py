@@ -1,4 +1,34 @@
+# Models File For The Backend.
+#
 # Note : These Models Are Used For Serializing, Validating, And Returning Data Through The FastAPI Responses.
+#
+# Models :
+#   - 'TransactionCreate' - Transaction Create Model For Requests.
+#   - 'TransactionOut' - Transaction Out Model For Responses.
+#   - 'FileUploadOut' - File Upload Out Model For Responses.
+#   - 'UploadResponse' - Upload Response Model For Detailed Upload Results.
+#   - 'LinkTokenRequest' - Link Token Request Model.
+#   - 'LinkTokenResponse' - Link Token Response Model.
+#   - 'PublicTokenExchangeRequest' - Public Token Exchange Request Model.
+#   - 'AccessTokenResponse' - Access Token Response Model.
+#   - 'AccountOut' - Account Out Model For Responses.
+#   - 'InstitutionOut' - Institution Out Model For Responses.
+#   - 'UserCreate' - User Create Model For Registration.
+#   - 'UserLogin' - User Login Model.
+#   - 'UserOut' - User Out Model For Responses (Excludes Password).
+#   - 'GoogleAuthCodeRequest' - Google Auth Code Model For Auth-Code Flow.
+#   - 'AuthResponse' - Authentication Response Model.
+#   - 'PasswordResetRequest' - Password Reset Request Model.
+#   - 'PasswordReset' - Password Reset Model.
+#   - 'MonthlySnapshot' - Monthly Snapshot Model For Tracking User Financial Metrics Over Time.
+#   - 'MonthlySnapshotCreate' - Monthly Snapshot Create Model.
+#   - 'WeeklyCentiScore' - Weekly Centi Score Model.
+#   - 'WeeklyCentiScoreCreate' - Weekly Centi Score Create Model.
+#   - 'TagCreate' - Tag Create Model.
+#   - 'TagOut' - Tag Out Model For Responses.
+#   - 'TransactionTagOut' - Transaction Tag Out Model For Responses.
+#   - 'AccountBalanceHistory' - Account Balance History Model.
+#   - 'AccountWithGrowth' - Account With Growth Model.
 
 # Imports.
 from pydantic import BaseModel, EmailStr
@@ -161,6 +191,7 @@ class UserOut(BaseModel):
     last_name: str
     email: str
     is_active: bool
+    is_verified: bool
     google_id: Optional[str] = None
     picture: Optional[str] = None
     created_at: datetime

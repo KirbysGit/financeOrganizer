@@ -1,9 +1,17 @@
+// WelcomeScreen.jsx
+
+// Landing Page For The App. Upon Loading, The User Will See This Page.
+// 
+// Idea is to have a clean, modern, and engaging landing page that encourages the user to want to learn more but also 
+// not overwhelm them with too much information. Providing them with a sense of what the app is about and what it can 
+// do for them.
+
 // Imports.
 import React from 'react';
 import { styled } from 'styled-components';
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBank, faFileUpload, faPlus, faChartLine, faShieldAlt, faRocket, faArrowRight, faCheckCircle, faUser, faChartBar, faPiggyBank, faSmile, faArrowRightLong, faCheck } from '@fortawesome/free-solid-svg-icons';
+import { faChartLine, faShieldAlt, faRocket, faArrowRight, faCheckCircle, faUser, faChartBar, faPiggyBank, faSmile, faCheck, faInfoCircle } from '@fortawesome/free-solid-svg-icons';
 
 
 // Image Imports.
@@ -13,15 +21,23 @@ import chaseLogo from '../../images/chaseLogo.png';     // Chase Logo In How It 
 import googleLogo from '../../images/googleLogo.png';   // Google Logo In How It Works Section.
 import centiLogo from '../../images/colorScheme.png';   // Centi Logo In Navbar.
 
+// Video Imports.
+import dashboardVideo from '../../images/vids/uiSnippet.mp4'; // Dashboard UI Preview Video.
+
 // Local Imports.
 import '../../styles/colors.css';
+import AboutCenti from './AboutCenti';
 
 
 // -------------------------------------------------------- WelcomeScreen Component.
 const WelcomeScreen = ({ onShowAccountSetUp }) => {
 
+    // -------------------------------------------------------- State Declarations.
+    
     const [activeStep, setActiveStep] = useState(0);                // State 4 Active Step.
+    const [showAboutCenti, setShowAboutCenti] = useState(false);    // State 4 About Centi Modal.
 
+    // -------------------------------------------------------- Use Effect For Auto-Scrolling In "Your Journey To Financial Freedom" Section.
     useEffect(() => {
         const interval = setInterval(() => {
             setActiveStep((prevStep) => (prevStep + 1) % 3);
@@ -40,6 +56,11 @@ const WelcomeScreen = ({ onShowAccountSetUp }) => {
         onShowAccountSetUp('signup');
     };
 
+    // -------------------------------------------------------- Handle About Centi.
+    const handleAboutCenti = () => {
+        setShowAboutCenti(true);
+    };
+
     // -------------------------------------------------------- Return JSX.
     return (
         <>
@@ -47,6 +68,10 @@ const WelcomeScreen = ({ onShowAccountSetUp }) => {
             <NavBar>
                 <NavLogo src={centiLogo} alt="Centi Logo" />
                 <NavActions>
+                    <AboutCentiButton onClick={handleAboutCenti}>
+                        <FontAwesomeIcon icon={faInfoCircle} />
+                        About Centi
+                    </AboutCentiButton>
                     <SignInButton onClick={handleSignIn}>Sign In</SignInButton>
                 </NavActions>
             </NavBar>
@@ -55,6 +80,7 @@ const WelcomeScreen = ({ onShowAccountSetUp }) => {
             <LandingContainer>
                 {/* Hero Section */}
                 <HeroSection>
+                    {/* Left Side Of Hero */}
                     <HeroContent>
                         <HeroTitle>Take Control of Your Finances</HeroTitle>
                         <HeroSubtitle>
@@ -68,12 +94,31 @@ const WelcomeScreen = ({ onShowAccountSetUp }) => {
                             <HeroSubtext>Free forever • No credit card required</HeroSubtext>
                         </HeroCTA>
                     </HeroContent>
+                    {/* Right Side Of Hero */}
                     <HeroVisual>
-                        <HeroImage src={centiLogo} alt="Centi Dashboard Preview" />
+                        <HeroVideoContainer>
+                            <HeroVideo 
+                                autoPlay 
+                                muted 
+                                loop 
+                                playsInline
+                                poster={centiLogo} // Fallback Image While Video Loads.
+                            >
+                                <source src={dashboardVideo} type="video/mp4" />
+                                {/* Fallback For Browsers That Don't Support Video. */}
+                                <HeroImage src={centiLogo} alt="Centi Dashboard Preview" />
+                            </HeroVideo>
+                            <VideoOverlay>
+                                <PlayIndicator>
+                                    <FontAwesomeIcon icon={faChartLine} />
+                                    <span>Live Dashboard Preview</span>
+                                </PlayIndicator>
+                            </VideoOverlay>
+                        </HeroVideoContainer>
                     </HeroVisual>
                 </HeroSection>
 
-                {/* Features Section */}
+                {/* Wave Divider */}
                 <WaveDivider viewBox="0 0 1440 120" preserveAspectRatio="none">
                     <path d="M0,80 C480,160 960,0 1440,80 L1440,120 L0,120 Z" fill="url(#waveGradient)" />
                     <defs>
@@ -83,6 +128,8 @@ const WelcomeScreen = ({ onShowAccountSetUp }) => {
                         </linearGradient>
                     </defs>
                 </WaveDivider>
+
+                {/* Features Section */}
                 <FeaturesSection>
                     <SectionTitle>
                         Unlock Your Financial Potential with Centi
@@ -122,6 +169,8 @@ const WelcomeScreen = ({ onShowAccountSetUp }) => {
                         </FeatureCard>
                     </FeaturesGrid>
                 </FeaturesSection>
+
+                {/* Wave Divider */}
                 <WaveDivider viewBox="0 0 1440 120" preserveAspectRatio="none" style={{ transform: 'rotate(180deg)' }}> 
                     <path d="M0,80 C480,160 960,0 1440,80 L1440,120 L0,120 Z" fill="url(#waveGradient2)" />
                     <defs>
@@ -132,7 +181,7 @@ const WelcomeScreen = ({ onShowAccountSetUp }) => {
                     </defs>
                 </WaveDivider>
 
-                {/* How It Works Section */}
+                {/* How It Works Section With Auto-Scrolling Steps. */}
                 <HowItWorksSection>
                     <SectionTitle>
                         Your Journey to Financial Freedom
@@ -233,7 +282,7 @@ const WelcomeScreen = ({ onShowAccountSetUp }) => {
                     </StepsContainer>
                 </HowItWorksSection>
 
-                {/* CTA Section */}
+                {/* Wave Divider */}
                 <WaveDivider viewBox="0 0 1440 120" preserveAspectRatio="none">
                     <path d="M0,80 C480,160 960,0 1440,80 L1440,120 L0,120 Z" fill="url(#ctaWaveGradient)" />
                     <defs>
@@ -243,6 +292,8 @@ const WelcomeScreen = ({ onShowAccountSetUp }) => {
                         </linearGradient>
                     </defs>
                 </WaveDivider>
+
+                {/* CTA Section */}
                 <CTASection>
                     <CTAContent>
                         <CTATitle>Ready to Transform Your Finances?</CTATitle>
@@ -270,6 +321,12 @@ const WelcomeScreen = ({ onShowAccountSetUp }) => {
                     </CTAContent>
                 </CTASection>
             </LandingContainer>
+
+            {/* About Centi Modal */}
+            <AboutCenti 
+                isOpen={showAboutCenti}
+                onClose={() => setShowAboutCenti(false)}
+            />
         </>
     );
 };
@@ -395,6 +452,76 @@ const HeroVisual = styled.div`
     display: flex;
     justify-content: center;
     align-items: center;
+`;
+const VideoOverlay = styled.div`
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    background: linear-gradient(135deg, rgba(0, 123, 255, 0.9), rgba(40, 167, 69, 0.9));
+    border-radius: 12px;
+    padding: 0.75rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    z-index: 10;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+`;
+const HeroVideoContainer = styled.div`
+    position: relative;
+    width: 100%;
+    max-width: 700px;
+    height: auto;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    
+    &:hover {
+        transform: translateY(-5px) scale(1.02);
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+    }
+    
+    &:hover ${VideoOverlay} {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+`;
+const HeroVideo = styled.video`
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+    border-radius: 20px;
+`;
+const PlayIndicator = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    
+    svg {
+        font-size: 1.2rem;
+        animation: pulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { 
+            transform: scale(1);
+            opacity: 1;
+        }
+        50% { 
+            transform: scale(1.1);
+            opacity: 0.8;
+        }
+    }
 `;
 const HeroImage = styled.img`
     width: 100%;
@@ -626,53 +753,6 @@ const Step2LinesSVG = styled.svg`
     z-index: 0;
 `;
 
-// -------------------------------------------------------- Step 3 Flow Components.
-const Step3FlowWrapper = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    width: 100%;
-    height: 120px;
-`;
-const Step3FlowSVG = styled.svg`
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 120px;
-    pointer-events: none;
-    z-index: 0;
-`;
-const Step3Container = styled.div`
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-    gap: 3rem;
-`;
-const Step3Icon = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
-    color: white;
-    box-shadow: 0 8px 20px rgba(0, 123, 255, 0.3);
-    font-size: 1.25rem;
-    position: relative;
-    z-index: 2;
-    border: 3px solid rgba(255, 255, 255, 0.9);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-
-    &:hover {
-        transform: scale(1.1);
-        box-shadow: 0 12px 30px rgba(0, 123, 255, 0.4);
-    }
-`;
-
 // -------------------------------------------------------- Step 1 Flow Components.
 const Step1FlowWrapper = styled.div`
     display: flex;
@@ -807,6 +887,53 @@ const StepDescription = styled.p`
     line-height: 1.5;
 `;
 
+// -------------------------------------------------------- Step 3 Flow Components.
+const Step3FlowWrapper = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    width: 100%;
+    height: 120px;
+`;
+const Step3FlowSVG = styled.svg`
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 120px;
+    pointer-events: none;
+    z-index: 0;
+`;
+const Step3Container = styled.div`
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    gap: 3rem;
+`;
+const Step3Icon = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
+    color: white;
+    box-shadow: 0 8px 20px rgba(0, 123, 255, 0.3);
+    font-size: 1.25rem;
+    position: relative;
+    z-index: 2;
+    border: 3px solid rgba(255, 255, 255, 0.9);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+    &:hover {
+        transform: scale(1.1);
+        box-shadow: 0 12px 30px rgba(0, 123, 255, 0.4);
+    }
+`;
+
 // -------------------------------------------------------- CTA Section.
 const CTASection = styled.div`
     padding: 6rem 0;
@@ -911,6 +1038,29 @@ const NavActions = styled.div`
     align-items: center;
     gap: 1.5rem;
 `;
+const AboutCentiButton = styled.button`
+    font: inherit;
+    background: rgba(255, 255, 255, 0.2);
+    color: var(--text-primary);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    padding: 0.7em 1.6em;
+    font-size: 1.05rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    
+    &:hover {
+        background: rgba(255, 255, 255, 0.3);
+        border-color: rgba(255, 255, 255, 0.5);
+        transform: translateY(-2px) scale(1.04);
+    }
+`;
+
 const SignInButton = styled.button`
     font: inherit;
     background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));

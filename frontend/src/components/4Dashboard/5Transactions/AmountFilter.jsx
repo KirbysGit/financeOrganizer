@@ -1,8 +1,15 @@
+// AmountFilter.jsx
+
+// This just a sub-component for the filter for the Amount Field, it's just a dropdown that allows the user
+// to select the amount they want to filter by, it provides a minimum and maximum amount input, and a clear
+// button that allows the user to clear the filter. Also, like a translator at the bottom telling the user
+// what their current inputs filter by.
+
 // Imports.
-import React, { useState, useEffect } from 'react';
 import { styled } from 'styled-components';
+import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faDollarSign, faXmark, faFilter } from '@fortawesome/free-solid-svg-icons';
+import { faDollarSign } from '@fortawesome/free-solid-svg-icons';
 
 // Local Imports.
 import '../../../styles/colors.css';
@@ -341,4 +348,5 @@ const ApplyButton = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Export The AmountFilter Component.
 export default AmountFilter;

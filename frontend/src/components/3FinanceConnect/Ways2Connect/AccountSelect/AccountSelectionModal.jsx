@@ -1,3 +1,10 @@
+// AccountSelectionModal.jsx
+//
+// This is the modal that appears when you are creating a new transaction manually, or attaching a file of transactions
+// to your account, this allows you to select how you want to attach the transactions to your account, like using an
+// existing account, creating a new account, or simply just a cash transaction. This is a nice way to allow the user to
+// attach transactions to their account in a way that is easy and intuitive. 
+
 // Imports.
 import React, { useState } from 'react';
 import { styled } from 'styled-components';
@@ -6,44 +13,55 @@ import { faTimes, faPlus, faCreditCard, faMoneyBillWave, faHandshake, faUserFrie
 
 // -------------------------------------------------------- AccountSelectionModal Component.
 const AccountSelectionModal = ({ isOpen, onClose, onAccountSelect, existingAccounts = [] }) => {
-    const [selectedOption, setSelectedOption] = useState(existingAccounts.length > 0 ? 'existing' : 'new');
-    const [selectedAccount, setSelectedAccount] = useState('');
-    const [newAccountData, setNewAccountData] = useState({
-        name: '',
-        type: 'depository',
-        subtype: 'checking'
-    });
+
+    // -------------------------------------------------------- State Declarations.
+    const [selectedAccount, setSelectedAccount] = useState('');             // State 4 Selected Account.
+    const [selectedOption, setSelectedOption] = useState(existingAccounts.length > 0 ? 'existing' : 'new'); // State 4 Selected Option.
+    const [newAccountData, setNewAccountData] = useState({name: '', type: 'depository', subtype: 'checking'}); // State 4 New Account Data.
 
     // -------------------------------------------------------- Handle Account Selection.
     const handleAccountSelect = () => {
+
         if (selectedOption === 'cash') {
+            // Handle Cash Selection.
             onAccountSelect({ type: 'cash', name: 'Cash Transaction' });
         } else if (selectedOption === 'existing' && selectedAccount) {
+            // Handle Existing Account Selection.
             const account = existingAccounts.find(acc => acc.account_id === selectedAccount);
             onAccountSelect(account);
         } else if (selectedOption === 'new' && newAccountData.name) {
+            // Handle New Account Selection.
             onAccountSelect({
                 ...newAccountData,
                 account_id: `manual_${Date.now()}`,
                 is_new: true
             });
         }
+
+        // Close The Modal.
         onClose();
     };
 
     // -------------------------------------------------------- Handle Close Modal.
     const handleClose = () => {
+        // Reset The State Variables.
         setSelectedOption(existingAccounts.length > 0 ? 'existing' : 'new');
         setSelectedAccount('');
         setNewAccountData({ name: '', type: 'depository', subtype: 'checking' });
+
+        // Close The Modal.
         onClose();
     };
 
     // -------------------------------------------------------- Handle Option Selection.
     const handleOptionSelect = (option) => {
+
+        // Don't Allow Selection If No Accounts.
         if (option === 'existing' && existingAccounts.length === 0) {
-            return; // Don't allow selection if no accounts
+            return;
         }
+
+        // Set The Selected Option.
         setSelectedOption(option);
     };
 
@@ -78,36 +96,49 @@ const AccountSelectionModal = ({ isOpen, onClose, onAccountSelect, existingAccou
         }
     };
 
+    // If The Modal Is Not Open, Return Null.
     if (!isOpen) return null;
 
+    // -------------------------------------------------------- Return The Entire Modal.
     return (
+        // Modal Container.
         <Modal onClick={handleClose}>
             <ModalContent onClick={e => e.stopPropagation()}>
+                {/* Modal Header. */}
                 <ModalHeader>
                     <HeaderContent>
+                        {/* Welcome Icon. */}
                         <WelcomeIcon>
                             <FontAwesomeIcon icon={faHandshake} />
                         </WelcomeIcon>
+
+                        {/* Header Text. */}
                         <HeaderText>
                             <ModalTitle>Organize Your Transactions</ModalTitle>
                             <ModalSubtitle>Choose how to categorize your transactions</ModalSubtitle>
                         </HeaderText>
                     </HeaderContent>
+
+                    {/* Close Button. */}
                     <CloseButton onClick={handleClose}>
                         <FontAwesomeIcon icon={faTimes} />
                     </CloseButton>
                 </ModalHeader>
 
+                {/* Selection Section. */}
                 <SelectionSection>
-                    {/* Existing Accounts Option */}
+                    {/* Existing Accounts Option. */}
                     <OptionCard 
                         $selected={selectedOption === 'existing'}
                         $disabled={existingAccounts.length === 0}
                         onClick={() => handleOptionSelect('existing')}
                     >
+                        {/* Option Icon. */}
                         <OptionIcon $color="#007bff" $disabled={existingAccounts.length === 0}>
                             <FontAwesomeIcon icon={faCreditCard} />
                         </OptionIcon>
+
+                        {/* Option Content. */}
                         <OptionContent>
                             <OptionTitle $disabled={existingAccounts.length === 0}>Use Existing Account</OptionTitle>
                             <OptionDescription $disabled={existingAccounts.length === 0}>
@@ -119,14 +150,17 @@ const AccountSelectionModal = ({ isOpen, onClose, onAccountSelect, existingAccou
                         </OptionContent>
                     </OptionCard>
 
-                    {/* New Account Option */}
+                    {/* New Account Option. */}
                     <OptionCard 
                         $selected={selectedOption === 'new'}
                         onClick={() => handleOptionSelect('new')}
                     >
+                        {/* Option Icon. */}
                         <OptionIcon $color="#ffc107">
                             <FontAwesomeIcon icon={faPlus} />
                         </OptionIcon>
+
+                        {/* Option Content. */}
                         <OptionContent>
                             <OptionTitle>Create New Account</OptionTitle>
                             <OptionDescription>
@@ -135,14 +169,17 @@ const AccountSelectionModal = ({ isOpen, onClose, onAccountSelect, existingAccou
                         </OptionContent>
                     </OptionCard>
 
-                    {/* Cash Option */}
+                    {/* Cash Option. */}
                     <OptionCard 
                         $selected={selectedOption === 'cash'}
                         onClick={() => handleOptionSelect('cash')}
                     >
+                        {/* Option Icon. */}
                         <OptionIcon $color="#28a745">
                             <FontAwesomeIcon icon={faMoneyBillWave} />
                         </OptionIcon>
+
+                        {/* Option Content. */}
                         <OptionContent>
                             <OptionTitle>Cash Transaction</OptionTitle>
                             <OptionDescription>
@@ -151,19 +188,27 @@ const AccountSelectionModal = ({ isOpen, onClose, onAccountSelect, existingAccou
                         </OptionContent>
                     </OptionCard>
 
-                    {/* Selection Details */}
+                    {/* Selection Details. */}
                     {selectedOption === 'existing' && (
                         <SelectionDetails>
+                            {/* Detail Header. */}
                             <DetailHeader>
                                 <FontAwesomeIcon icon={faUserFriends} />
                                 <span>Select Your Account</span>
                             </DetailHeader>
+
+                            {/* Form Label. */}
                             <FormLabel>Choose from your connected accounts</FormLabel>
+
+                            {/* Form Select. */}
                             <FormSelect 
                                 value={selectedAccount} 
                                 onChange={(e) => setSelectedAccount(e.target.value)}
                             >
+                                {/* Option. */}
                                 <option value="">Choose an account...</option>
+
+                                {/* Existing Accounts. */}
                                 {existingAccounts.map(account => (
                                     <option key={account.account_id} value={account.account_id}>
                                         {account.name} - {account.official_name || account.type}
@@ -175,10 +220,13 @@ const AccountSelectionModal = ({ isOpen, onClose, onAccountSelect, existingAccou
 
                     {selectedOption === 'new' && (
                         <SelectionDetails>
+                            {/* Detail Header. */}
                             <DetailHeader>
                                 <FontAwesomeIcon icon={faPlus} />
                                 <span>Create New Account</span>
                             </DetailHeader>
+
+                            {/* Form Group. */}
                             <FormGroup>
                                 <FormLabel>Account Name</FormLabel>
                                 <FormInput
@@ -192,6 +240,7 @@ const AccountSelectionModal = ({ isOpen, onClose, onAccountSelect, existingAccou
                                 />
                             </FormGroup>
                             
+                            {/* Form Group. */}
                             <FormGroup>
                                 <FormLabel>Account Type</FormLabel>
                                 <FormSelect 
@@ -208,6 +257,7 @@ const AccountSelectionModal = ({ isOpen, onClose, onAccountSelect, existingAccou
                                 </FormSelect>
                             </FormGroup>
                             
+                            {/* Form Group. */}
                             <FormGroup>
                                 <FormLabel>Account Subtype</FormLabel>
                                 <FormSelect 
@@ -229,10 +279,13 @@ const AccountSelectionModal = ({ isOpen, onClose, onAccountSelect, existingAccou
 
                     {selectedOption === 'cash' && (
                         <SelectionDetails>
+                            {/* Detail Header. */}
                             <DetailHeader>
                                 <FontAwesomeIcon icon={faMoneyBillWave} />
                                 <span>Cash Transaction</span>
                             </DetailHeader>
+
+                            {/* Cash Info. */}
                             <CashInfo>
                                 <FontAwesomeIcon icon={faMoneyBillWave} />
                                 <span>This transaction will be marked as a cash transaction and won't be associated with any bank account. Perfect for tracking cash flow!</span>
@@ -240,6 +293,7 @@ const AccountSelectionModal = ({ isOpen, onClose, onAccountSelect, existingAccou
                         </SelectionDetails>
                     )}
 
+                    {/* Action Button. */}
                     <ActionButton 
                         onClick={handleAccountSelect}
                         disabled={
@@ -258,6 +312,8 @@ const AccountSelectionModal = ({ isOpen, onClose, onAccountSelect, existingAccou
 };
 
 // -------------------------------------------------------- Styled Components.
+
+// -------------------------------------------------------- Modal.
 const Modal = styled.div`
     position: fixed;
     inset: 0;
@@ -270,6 +326,7 @@ const Modal = styled.div`
     padding: 2rem;
 `;
 
+// -------------------------------------------------------- Modal Content.
 const ModalContent = styled.div`
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.98));
     border-radius: 20px;
@@ -302,6 +359,7 @@ const ModalContent = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Modal Header.
 const ModalHeader = styled.div`
     position: relative;
     display: flex;
@@ -313,12 +371,14 @@ const ModalHeader = styled.div`
     border-radius: 20px 20px 0 0;
 `;
 
+// -------------------------------------------------------- Header Content.
 const HeaderContent = styled.div`
     display: flex;
     align-items: center;
     gap: 1rem;
 `;
 
+// -------------------------------------------------------- Welcome Icon.
 const WelcomeIcon = styled.div`
     width: 50px;
     height: 50px;
@@ -332,12 +392,14 @@ const WelcomeIcon = styled.div`
     box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
 `;
 
+// -------------------------------------------------------- Header Text.
 const HeaderText = styled.div`
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
 `;
 
+// -------------------------------------------------------- Modal Title.
 const ModalTitle = styled.h2`
     margin: 0;
     font-size: 1.4rem;
@@ -349,6 +411,7 @@ const ModalTitle = styled.h2`
     color: var(--button-primary);
 `;
 
+// -------------------------------------------------------- Modal Subtitle.
 const ModalSubtitle = styled.p`
     margin: 0;
     font-size: 0.9rem;
@@ -356,6 +419,7 @@ const ModalSubtitle = styled.p`
     font-weight: 500;
 `;
 
+// -------------------------------------------------------- Close Button.
 const CloseButton = styled.button`
     position: absolute;
     top: 1.5rem;
@@ -381,6 +445,7 @@ const CloseButton = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Selection Section.
 const SelectionSection = styled.div`
     padding: 2rem;
     display: flex;
@@ -388,6 +453,7 @@ const SelectionSection = styled.div`
     gap: 1.25rem;
 `;
 
+// -------------------------------------------------------- Option Card.
 const OptionCard = styled.div`
     display: flex;
     align-items: center;
@@ -424,6 +490,7 @@ const OptionCard = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Option Icon.
 const OptionIcon = styled.div`
     width: 45px;
     height: 45px;
@@ -446,10 +513,12 @@ const OptionIcon = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Option Content.
 const OptionContent = styled.div`
     flex: 1;
 `;
 
+// -------------------------------------------------------- Option Title.
 const OptionTitle = styled.h4`
     margin: 0 0 0.25rem 0;
     font-size: 1rem;
@@ -457,6 +526,7 @@ const OptionTitle = styled.h4`
     color: ${props => props.$disabled ? 'var(--text-secondary)' : 'var(--text-primary)'};
 `;
 
+// -------------------------------------------------------- Option Description.
 const OptionDescription = styled.p`
     margin: 0;
     font-size: 0.85rem;
@@ -464,26 +534,7 @@ const OptionDescription = styled.p`
     line-height: 1.4;
 `;
 
-const OptionBenefit = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
-    color: var(--amount-positive);
-    font-size: 0.8rem;
-    font-weight: 500;
-
-    svg {
-        font-size: 0.9rem;
-        animation: sparkle 2s ease-in-out infinite;
-    }
-    
-    @keyframes sparkle {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.7; transform: scale(1.1); }
-    }
-`;
-
+// -------------------------------------------------------- Selection Details.
 const SelectionDetails = styled.div`
     background: linear-gradient(135deg, rgba(248, 249, 250, 0.8), rgba(255, 255, 255, 0.9));
     border-radius: 12px;
@@ -493,6 +544,7 @@ const SelectionDetails = styled.div`
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 `;
 
+// -------------------------------------------------------- Detail Header.
 const DetailHeader = styled.div`
     display: flex;
     align-items: center;
@@ -511,6 +563,7 @@ const DetailHeader = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Form Group.
 const FormGroup = styled.div`
     display: flex;
     flex-direction: column;
@@ -522,12 +575,14 @@ const FormGroup = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Form Label.
 const FormLabel = styled.label`
     font-weight: 600;
     color: var(--text-primary);
     font-size: 0.9rem;
 `;
 
+// -------------------------------------------------------- Form Input.
 const FormInput = styled.input`
     padding: 0.75rem;
     border: 2px solid rgba(0, 0, 0, 0.08);
@@ -545,6 +600,7 @@ const FormInput = styled.input`
     }
 `;
 
+// -------------------------------------------------------- Form Select.
 const FormSelect = styled.select`
     max-width: 100%;
     overflow: hidden;
@@ -565,6 +621,7 @@ const FormSelect = styled.select`
     }
 `;
 
+// -------------------------------------------------------- Cash Info.
 const CashInfo = styled.div`
     display: flex;
     align-items: center;
@@ -581,6 +638,7 @@ const CashInfo = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Action Button.
 const ActionButton = styled.button`
     padding: 1rem 2rem;
     border: none;
@@ -644,4 +702,5 @@ const ActionButton = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Export AccountSelectionModal Component.
 export default AccountSelectionModal; 

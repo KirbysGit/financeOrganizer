@@ -1,16 +1,52 @@
+# Transaction Routes.
+#
+# Note : During API Doc Dev, I'm probably going to clear out a lot of these, but for now just leaving it.
+#        Also, need to probably modularize a lot of these, like need tags, stats, accounts, etc.
+#
+# Router : Prefix w/ "/transactions" & Tag w/ "Transactions".
+#
+# API Endpoints :
+#   - 'get_transactions' - Get All Transactions For The Current User.
+#   - 'get_detailed_transactions' - Get All Transactions With Account Info For The Current User.
+#   - 'get_accounts' - Get All Accounts For The Current User.
+#   - 'get_enhanced_accounts' - Get Accounts With Enhanced Data Including Growth, Financial Impact, And Health Indicators.
+#   - 'get_account_analysis' - Get Comprehensive Analysis Of The User's Account Portfolio.
+#   - 'create_snapshot' - Create A Balance Snapshot For All User Accounts.
+#   - 'clear_database' - Clear The Database.
+#   - 'create_transaction' - Create A New Transaction.
+#   - 'recalculate_account_balances' - Recalculate The Balances For All Accounts.
+#   - 'bulk_delete_transactions' - Bulk Delete Transactions.
+#   - 'delete_transaction' - Delete A Specific Transaction.
+#   - 'debug_account_balance' - Debug Account Balance.
+#   - 'fix_account_balance' - Fix Account Balance.
+#   - 'recalculate_all_account_balances' - Recalculate All Account Balances.
+#   - 'get_stats' - Get Statistics For The Current User.
+#   - 'update_transaction_details' - Update Transaction Details.
+#   - 'debug_cash_flow' - Debug Cash Flow.
+#   - 'get_tags' - Get All Tags For The Current User.
+#   - 'create_tag' - Create A New Tag For The Current User.
+#   - 'update_tag' - Update An Existing Tag.
+#   - 'delete_tag' - Delete A Tag And Remove All Associations.
+#   - 'add_tag_to_transaction' - Add A Tag To A Transaction.
+#   - 'remove_tag_from_transaction' - Remove A Tag From A Transaction.
+#   - 'get_transaction_tags' - Get All Tags For A Specific Transaction.
+#   - 'get_tag_transaction_count' - Get The Number Of Transactions Associated With A Tag.
+#   - 'initialize_default_tags' - Initialize Default Tags For The Current User.
+
 # Imports.
 from sqlalchemy import func, text
 from sqlalchemy.orm import Session
-from app.database import SessionLocal
 from datetime import datetime, timedelta, date
 from fastapi import APIRouter, Depends, HTTPException
 
 # Local Imports.
-from app.utils.db_utils import get_db, check_db_connection
-from app.utils.auth_utils import get_current_user
-from app.models import TransactionOut, TransactionCreate, AccountWithGrowth, TagCreate, TagOut
-from app.utils.type_label_map import NEGATIVE_TYPES, POSITIVE_TYPES
 from app.database import Transaction, FileUpload, Account, Institution, User, MonthlySnapshot, AccountBalanceHistory, Tag, TransactionTag
+
+# Local Utils.
+from app.utils.auth_utils import get_current_user
+from app.utils.tag_utils import create_default_tags
+from app.utils.db_utils import get_db, check_db_connection
+from app.utils.type_label_map import NEGATIVE_TYPES, POSITIVE_TYPES
 from app.utils.snapshot_utils import (create_monthly_snapshot, get_previous_month_snapshot, get_growth_context)
 from app.utils.account_utils import (
     create_account_balance_snapshot, 
@@ -20,7 +56,9 @@ from app.utils.account_utils import (
     get_account_percentage_contributions,
     analyze_account_portfolio
 )
-from app.utils.tag_utils import create_default_tags
+
+# Local Models.
+from app.models import TransactionOut, TransactionCreate, AccountWithGrowth, TagCreate, TagOut
 
 # Create Router Instance.
 router = APIRouter(tags=["Transactions"])
@@ -31,7 +69,9 @@ def get_transactions(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Check database connection
+    """Get All Transactions For The Current User."""
+    
+    # Check Database Connection.
     db = check_db_connection(db)
     
     # Query For All Transactions With Account And Institution Details For This User.
@@ -64,7 +104,7 @@ def get_transactions(
                 "is_active": tx.account.is_active
             }
         elif tx.account_id is None:
-            # Handle cash transactions
+            # Handle Cash Transactions.
             account_details = {
                 "id": None,
                 "account_id": None,
@@ -83,12 +123,13 @@ def get_transactions(
         # Get Institution Details.
         institution_details = None
         if tx.account and tx.account.item_id:
-            # Query for institution using item_id (must belong to current user)
+            # Query For Institution Using Item ID (Must Belong To Current User).
             institution = db.query(Institution).filter(
                 Institution.item_id == tx.account.item_id,
                 Institution.user_id == current_user.id
             ).first()
             
+            # If Institution Found, Return Institution Details.
             if institution:
                 institution_details = {
                     "id": institution.id,
@@ -99,7 +140,7 @@ def get_transactions(
                     "last_sync": institution.last_sync
                 }
         
-        # Get Tags for this transaction
+        # Get Tags For This Transaction.
         transaction_tags = db.query(Tag).join(TransactionTag).filter(
             TransactionTag.transaction_id == tx.id,
             Tag.user_id == current_user.id
@@ -165,7 +206,7 @@ def get_detailed_transactions(
     # Create Result List.
     result = []
     for tx in transactions:
-        # Handle account details for cash transactions
+        # Handle Account Details For Cash Transactions.
         account_info = None
         if tx.account:
             account_info = {
@@ -214,7 +255,7 @@ def get_accounts(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Check database connection
+    # Check Database Connection.
     db = check_db_connection(db)
     
     # Query For All Accounts For This User, And Filter For Only Active Accounts.
@@ -226,7 +267,7 @@ def get_accounts(
     # Create Result List.
     result = []
     for account in accounts:
-        # Count Transactions For This Account (must belong to current user).
+        # Count Transactions For This Account (Must Belong To Current User).
         tx_count = db.query(Transaction).filter(
             Transaction.account_id == account.account_id,
             Transaction.user_id == current_user.id
@@ -251,13 +292,13 @@ def get_accounts(
         # Add Account To Result List.
         result.append(account_dict)
     
-    # Add Cash Account If User Has Cash Transactions
+    # Add Cash Account If User Has Cash Transactions.
     cash_balance = db.query(func.sum(Transaction.amount)).filter(
-        Transaction.account_id.is_(None),  # Cash transactions have account_id = None
+        Transaction.account_id.is_(None),  # Cash Transactions Have Account ID = None.
         Transaction.user_id == current_user.id
     ).scalar() or 0
     
-    if cash_balance != 0:  # Only add cash account if there are cash transactions
+    if cash_balance != 0:  # Only Add Cash Account If There Are Cash Transactions.
         cash_tx_count = db.query(Transaction).filter(
             Transaction.account_id.is_(None),
             Transaction.user_id == current_user.id
@@ -289,41 +330,43 @@ def get_enhanced_accounts(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get accounts with enhanced data including growth, financial impact, and health indicators."""
+    """Get Accounts With Enhanced Data Including Growth, Financial Impact, And Health Indicators."""
     
-    # Check database connection
+    # Check Database Connection.
     db = check_db_connection(db)
     
-    # Create balance snapshot for today
+    # Create Balance Snapshot For Today.
     create_account_balance_snapshot(db, current_user.id)
     
-    # Get all accounts
+    # Get All Accounts.
     accounts = db.query(Account).filter(
         Account.user_id == current_user.id,
         Account.is_active == True
     ).all()
     
-    # Calculate financial impact for percentages
+    # Calculate Financial Impact For Percentages.
     financial_impact = calculate_account_financial_impact(db, current_user.id)
     
+    # Create Result List.
     result = []
     
+    # Per Account,
     for account in accounts:
-        # Get transaction count
+        # Get Transaction Count.
         tx_count = db.query(Transaction).filter(
             Transaction.account_id == account.account_id,
             Transaction.user_id == current_user.id
         ).count()
         
-        # Get growth data
+        # Get Growth Data.
         growth_30d = get_account_growth_data(db, current_user.id, account.account_id, 30)
         growth_90d = get_account_growth_data(db, current_user.id, account.account_id, 90)
         growth_1y = get_account_growth_data(db, current_user.id, account.account_id, 365)
         
-        # Get health indicators
+        # Get Health Indicators.
         health_indicators = calculate_account_health_indicators(db, current_user.id, account)
         
-        # Calculate financial impact
+        # Calculate Financial Impact.
         balance = account.current_balance or 0
         if account.type in ['depository', 'investment']:
             asset_contribution = balance
@@ -338,7 +381,7 @@ def get_enhanced_accounts(
             liability_contribution = 0
             net_worth_contribution = balance
         
-        # Get percentage contributions
+        # Get Percentage Contributions.
         percentages = get_account_percentage_contributions(db, current_user.id, balance, account.type)
         
         account_dict = {
@@ -356,7 +399,7 @@ def get_enhanced_accounts(
             "transaction_count": tx_count,
             "updated_at": account.updated_at,
             
-            # Growth data
+            # Growth Data.
             "balance_change_30d": growth_30d["balance_change"],
             "balance_change_90d": growth_90d["balance_change"],
             "balance_change_1y": growth_1y["balance_change"],
@@ -364,21 +407,21 @@ def get_enhanced_accounts(
             "growth_percentage_90d": growth_90d["growth_percentage"],
             "growth_percentage_1y": growth_1y["growth_percentage"],
             
-            # Financial impact
+            # Financial Impact.
             "net_worth_contribution": net_worth_contribution,
             "asset_contribution": asset_contribution,
             "liability_contribution": liability_contribution,
             "percentage_of_total_assets": percentages.get("percentage_of_total_assets"),
             "percentage_of_total_liabilities": percentages.get("percentage_of_total_liabilities"),
             
-            # Health indicators
+            # Health Indicators.
             "utilization_rate": health_indicators.get("utilization_rate"),
             "days_since_last_transaction": health_indicators.get("days_since_last_transaction")
         }
         
         result.append(account_dict)
     
-    # Add cash account if user has cash transactions
+    # Add Cash Account If User Has Cash Transactions.
     cash_balance = db.query(func.sum(Transaction.amount)).filter(
         Transaction.account_id.is_(None),
         Transaction.user_id == current_user.id
@@ -390,12 +433,12 @@ def get_enhanced_accounts(
             Transaction.user_id == current_user.id
         ).count()
         
-        # Get cash growth data
+        # Get Cash Growth Data.
         cash_growth_30d = get_account_growth_data(db, current_user.id, None, 30)
         cash_growth_90d = get_account_growth_data(db, current_user.id, None, 90)
         cash_growth_1y = get_account_growth_data(db, current_user.id, None, 365)
         
-        # Get cash percentages
+        # Get Cash Percentages.
         cash_percentages = get_account_percentage_contributions(db, current_user.id, cash_balance, "cash")
         
         cash_account = {
@@ -413,7 +456,7 @@ def get_enhanced_accounts(
             "transaction_count": cash_tx_count,
             "updated_at": datetime.now(),
             
-            # Growth data
+            # Growth Data.
             "balance_change_30d": cash_growth_30d["balance_change"],
             "balance_change_90d": cash_growth_90d["balance_change"],
             "balance_change_1y": cash_growth_1y["balance_change"],
@@ -421,14 +464,14 @@ def get_enhanced_accounts(
             "growth_percentage_90d": cash_growth_90d["growth_percentage"],
             "growth_percentage_1y": cash_growth_1y["growth_percentage"],
             
-            # Financial impact
+            # Financial Impact.
             "net_worth_contribution": cash_balance,
             "asset_contribution": cash_balance,
             "liability_contribution": 0,
             "percentage_of_total_assets": cash_percentages.get("percentage_of_total_assets"),
             "percentage_of_total_liabilities": None,
             
-            # Health indicators
+            # Health Indicators.
             "utilization_rate": None,
             "days_since_last_transaction": None
         }
@@ -443,18 +486,18 @@ def get_account_analysis(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get comprehensive analysis of the user's account portfolio."""
+    """Get Comprehensive Analysis Of The User's Account Portfolio."""
     
-    # Create balance snapshot
+    # Create Balance Snapshot.
     create_account_balance_snapshot(db, current_user.id)
     
-    # Get portfolio analysis
+    # Get Portfolio Analysis.
     portfolio_analysis = analyze_account_portfolio(db, current_user.id)
     
-    # Get financial impact
+    # Get Financial Impact.
     financial_impact = calculate_account_financial_impact(db, current_user.id)
     
-    # Add financial summary
+    # Add Financial Summary.
     portfolio_analysis["financial_summary"] = financial_impact
     
     return portfolio_analysis
@@ -465,7 +508,7 @@ def create_snapshot(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Create a balance snapshot for all user accounts."""
+    """Create A Balance Snapshot For All User Accounts."""
     
     snapshots = create_account_balance_snapshot(db, current_user.id)
     
@@ -481,6 +524,8 @@ def clear_database(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    """Clear The Database For The Current User."""
+    
     try:
         # Disable Foreign Key Checks Temporarily.
         if "sqlite" in str(db.bind.url):
@@ -546,6 +591,8 @@ def create_transaction(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    """Manually Add A New Transaction."""
+    
     # Get Transaction Data From Request.
     tx_data = transaction.dict()
 
@@ -561,16 +608,18 @@ def create_transaction(
     elif tx_type in POSITIVE_TYPES and amount < 0:
         tx_data["amount"] = -amount
 
-    # Handle Account Selection
+    # Handle Account Selection.
     selected_account = None
     account_data = tx_data.get("account_data")
+
+    # If Account Data Is Provided, Handle Account Selection.
     
     if account_data:
         if account_data.get('type') == 'cash':
-            # Cash transactions don't need an account
+            # Cash Transactions Don't Need An Account.
             selected_account = None
         elif account_data.get('is_new'):
-            # Create new manual account
+            # Create New Manual Account.
             selected_account = Account(
                 user_id=current_user.id,
                 account_id=account_data['account_id'],
@@ -588,7 +637,7 @@ def create_transaction(
             db.commit()
             db.refresh(selected_account)
         else:
-            # Use existing account (must belong to current user)
+            # Use Existing Account (Must Belong To Current User).
             selected_account = db.query(Account).filter_by(
                 account_id=account_data['account_id'],
                 user_id=current_user.id
@@ -611,11 +660,11 @@ def create_transaction(
         "updated_at": tx_data.get("updated_at")
     }
 
-    # Add account info if not cash transaction
+    # Add Account Info If Not Cash Transaction.
     if selected_account:
         new_tx_data['account_id'] = selected_account.account_id
     else:
-        # Cash transaction - no account_id
+        # Cash Transaction - No Account ID.
         new_tx_data['account_id'] = None
 
     # Create New Transaction.
@@ -626,18 +675,18 @@ def create_transaction(
     db.commit()
     db.refresh(new_tx)
 
-    # Handle Tags if provided
+    # Handle Tags If Provided.
     tag_ids = tx_data.get("tag_ids", [])
     if tag_ids:
         for tag_id in tag_ids:
-            # Verify tag belongs to current user
+            # Verify Tag Belongs To Current User.
             tag = db.query(Tag).filter(
                 Tag.id == tag_id,
                 Tag.user_id == current_user.id
             ).first()
             
             if tag:
-                # Create transaction-tag relationship
+                # Create Transaction-Tag Relationship.
                 transaction_tag = TransactionTag(
                     transaction_id=new_tx.id,
                     tag_id=tag_id
@@ -646,8 +695,98 @@ def create_transaction(
         
         db.commit()
 
+    # Recalculate Account Balance If Not Cash Transaction.
+    if selected_account:
+        updated_accounts = recalculate_account_balances(db, current_user.id, [selected_account.account_id])
+        print(f"Updated balance for account {selected_account.account_id} after transaction creation")
+
     # Return New Transaction.
     return new_tx
+
+# ----------------------------------------------------------------------- Helper function to recalculate account balances.
+def recalculate_account_balances(db: Session, user_id: int, affected_account_ids: list = None):
+    """
+    Recalculate Account Balances Based On Current Transactions.
+    If Affected Account IDs Is Provided, Only Recalculate Those Accounts.
+    If None, Recalculate All Accounts For The User.
+    """
+    if affected_account_ids:
+        # Only Recalculate Specific Accounts.
+        accounts_to_update = db.query(Account).filter(
+            Account.user_id == user_id,
+            Account.account_id.in_(affected_account_ids),
+            Account.is_active == True
+        ).all()
+    else:
+        # Recalculate All Accounts.
+        accounts_to_update = db.query(Account).filter(
+            Account.user_id == user_id,
+            Account.is_active == True
+        ).all()
+    
+    for account in accounts_to_update:
+        # Calculate New Balance Based On Remaining Transactions.
+        total_balance = db.query(func.sum(Transaction.amount)).filter(
+            Transaction.account_id == account.account_id,
+            Transaction.user_id == user_id
+        ).scalar() or 0
+        
+        # Update Account Balance.
+        account.current_balance = total_balance
+        account.available_balance = total_balance  # For Simplicity, Assume Available = Current.
+        account.updated_at = datetime.now()
+    
+    return accounts_to_update
+
+# ----------------------------------------------------------------------- Bulk Delete Transactions.
+@router.delete("/transactions/bulk")
+def bulk_delete_transactions(
+    request: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Bulk Delete Transactions."""
+    
+    transaction_ids = request.get("transaction_ids", [])
+    
+    if not transaction_ids:
+        return {"error": "No transaction IDs provided"}
+    
+    # Find All Transactions That Belong To The Current User.
+    transactions = db.query(Transaction).filter(
+        Transaction.id.in_(transaction_ids),
+        Transaction.user_id == current_user.id
+    ).all()
+    
+    if not transactions:
+        return {"error": "No transactions found"}
+    
+    # Collect Affected Account IDs For Balance Recalculation.
+    affected_account_ids = set()
+    for transaction in transactions:
+        if transaction.account_id:  # Skip Cash Transactions (Account ID = None).
+            affected_account_ids.add(transaction.account_id)
+    
+    deleted_count = len(transactions)
+    
+    # Delete All Found Transactions.
+    for transaction in transactions:
+        db.delete(transaction)
+    
+    # Recalculate Balances For Affected Accounts.
+    if affected_account_ids:
+        updated_accounts = recalculate_account_balances(db, current_user.id, list(affected_account_ids))
+        print(f"Updated balances for {len(updated_accounts)} accounts after bulk delete")
+    
+    # Commit To Database.
+    db.commit()
+    
+    # Return Success Message.
+    return {
+        "message": f"Successfully deleted {deleted_count} transaction{'s' if deleted_count != 1 else ''}",
+        "deleted_count": deleted_count,
+        "updated_accounts": len(affected_account_ids) if affected_account_ids else 0
+    }
 
 # ----------------------------------------------------------------------- Delete Individual Transaction.
 @router.delete("/transactions/{transaction_id}")
@@ -656,7 +795,9 @@ def delete_transaction(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Find Transaction By ID (must belong to current user).
+    """Delete A Specific Transaction."""
+    
+    # Find Transaction By ID (Must Belong To Current User).
     transaction = db.query(Transaction).filter(
         Transaction.id == transaction_id,
         Transaction.user_id == current_user.id
@@ -665,8 +806,16 @@ def delete_transaction(
     if not transaction:
         return {"error": "Transaction not found"}
     
+    # Store Account ID For Balance Recalculation.
+    affected_account_id = transaction.account_id
+    
     # Delete Transaction.
     db.delete(transaction)
+    
+    # Recalculate Balance For Affected Account (If Not Cash Transaction).
+    if affected_account_id:
+        updated_accounts = recalculate_account_balances(db, current_user.id, [affected_account_id])
+        print(f"Updated balance for account {affected_account_id} after transaction delete")
 
     # Commit To Database.
     db.commit()
@@ -674,13 +823,156 @@ def delete_transaction(
     # Return Success Message.
     return {"message": f"Transaction {transaction_id} deleted successfully"}
 
+# ----------------------------------------------------------------------- Debug Account Balance Calculation.
+@router.get("/debug/account/{account_id}")
+def debug_account_balance(
+    account_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Debug Endpoint To Check Account Balance Calculation."""
+    
+    # Get The Account.
+    account = db.query(Account).filter(
+        Account.account_id == account_id,
+        Account.user_id == current_user.id
+    ).first()
+    
+    if not account:
+        raise HTTPException(status_code=404, detail="Account not found")
+    
+    # Get All Transactions For This Account.
+    transactions = db.query(Transaction).filter(
+        Transaction.account_id == account_id,
+        Transaction.user_id == current_user.id
+    ).all()
+    
+    # Calculate Balance Manually.
+    manual_balance = sum(tx.amount for tx in transactions)
+    
+    # Calculate Balance Using The Query.
+    query_balance = db.query(func.sum(Transaction.amount)).filter(
+        Transaction.account_id == account_id,
+        Transaction.user_id == current_user.id
+    ).scalar() or 0
+    
+    return {
+        "account_info": {
+            "account_id": account.account_id,
+            "name": account.name,
+            "type": account.type,
+            "current_balance": account.current_balance,
+            "is_active": account.is_active
+        },
+        "transaction_count": len(transactions),
+        "transactions": [
+            {
+                "id": tx.id,
+                "amount": tx.amount,
+                "date": tx.date.isoformat() if tx.date else None,
+                "vendor": tx.vendor,
+                "account_id": tx.account_id
+            } for tx in transactions
+        ],
+        "balance_calculation": {
+            "manual_sum": manual_balance,
+            "query_result": query_balance,
+            "account_current_balance": account.current_balance
+        }
+    }
+
+# ----------------------------------------------------------------------- Fix Specific Account Balance.
+@router.post("/accounts/{account_id}/fix-balance")
+def fix_account_balance(
+    account_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Fix The Balance For A Specific Account."""
+    
+    # Get The Account.
+    account = db.query(Account).filter(
+        Account.account_id == account_id,
+        Account.user_id == current_user.id
+    ).first()
+    
+    if not account:
+        raise HTTPException(status_code=404, detail="Account not found")
+    
+    # Store Old Balance For Comparison.
+    old_balance = account.current_balance
+    
+    # Recalculate Balance For This Specific Account.
+    updated_accounts = recalculate_account_balances(db, current_user.id, [account_id])
+    
+    # Get The Updated Balance.
+    db.refresh(account)
+    new_balance = account.current_balance
+    
+    # Commit The Changes.
+    db.commit()
+    
+    return {
+        "message": f"Fixed balance for account {account_id}",
+        "account_name": account.name,
+        "account_type": account.type,
+        "old_balance": old_balance,
+        "new_balance": new_balance,
+        "balance_change": new_balance - (old_balance or 0)
+    }
+
+# ----------------------------------------------------------------------- Manually Recalculate All Account Balances.
+@router.post("/accounts/recalculate-balances")
+def recalculate_all_account_balances(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Manually Recalculate All Account Balances Based On Transactions."""
+    
+    try:
+        # Get All Accounts For The User.
+        accounts = db.query(Account).filter(
+            Account.user_id == current_user.id,
+            Account.is_active == True
+        ).all()
+        
+        updated_accounts = recalculate_account_balances(db, current_user.id)
+        
+        # Get Updated Balances For Response.
+        balance_summary = []
+        for account in updated_accounts:
+            balance_summary.append({
+                "account_id": account.account_id,
+                "name": account.name,
+                "type": account.type,
+                "old_balance": "N/A",  # We don't track the old value
+                "new_balance": account.current_balance
+            })
+        
+        db.commit()
+        
+        return {
+            "message": f"Successfully recalculated balances for {len(updated_accounts)} accounts",
+            "accounts_updated": len(updated_accounts),
+            "balance_summary": balance_summary
+        }
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error recalculating account balances: {str(e)}"
+        )
+
 # ----------------------------------------------------------------------- Get Stats.
 @router.get("/stats")
 def get_stats(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Check database connection
+    """Get Statistics For The Current User."""
+    
+    # Check Database Connection.
     db = check_db_connection(db)
     
     # Get Current Date & Calculate Time Periods.
@@ -1090,6 +1382,8 @@ def update_transaction_details(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    """Update Existing Transactions With Account/Institution Details."""
+    
     try:
         # Get All Transactions That Don't Have Account Details Populated For Current User.
         transactions = db.query(Transaction).filter(Transaction.user_id == current_user.id).all()
@@ -1215,15 +1509,14 @@ def debug_cash_flow(
         }
     }
 
-# ================================================================= TAG OPERATIONS
-
-# ----------------------------------------------------------------------- Get All Tags for User
+# ----------------------------------------------------------------------- Get All Tags For User.
 @router.get("/tags", response_model=list[TagOut])
 def get_tags(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get all tags for the current user."""
+    """Get All Tags For The Current User."""
+    
     tags = db.query(Tag).filter(Tag.user_id == current_user.id).all()
     return tags
 
@@ -1234,21 +1527,22 @@ def create_tag(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Create a new tag for the current user."""
+    """Create A New Tag For The Current User."""
     
-    # Check if tag name already exists for this user
+    # Check If Tag Name Already Exists For This User.
     existing_tag = db.query(Tag).filter(
         Tag.user_id == current_user.id,
         Tag.name == tag_data.name
     ).first()
     
+    # If Tag Name Already Exists, Raise Error.
     if existing_tag:
         raise HTTPException(
             status_code=400,
             detail=f"Tag '{tag_data.name}' already exists"
         )
     
-    # Create new tag
+    # Create New Tag Object.
     new_tag = Tag(
         user_id=current_user.id,
         name=tag_data.name,
@@ -1257,10 +1551,12 @@ def create_tag(
         is_default=False
     )
     
+    # Add New Tag To Database & Refresh.
     db.add(new_tag)
     db.commit()
     db.refresh(new_tag)
     
+    # Return New Tag.
     return new_tag
 
 # ----------------------------------------------------------------------- Update Tag
@@ -1271,9 +1567,9 @@ def update_tag(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Update an existing tag."""
+    """Update An Existing Tag."""
     
-    # Find tag (must belong to current user)
+    # Find Tag (Must Belong To Current User).
     tag = db.query(Tag).filter(
         Tag.id == tag_id,
         Tag.user_id == current_user.id
@@ -1282,7 +1578,7 @@ def update_tag(
     if not tag:
         raise HTTPException(status_code=404, detail="Tag not found")
     
-    # Check if new name conflicts with existing tag
+    # Check If New Name Conflicts With Existing Tag.
     if tag_data.name != tag.name:
         existing_tag = db.query(Tag).filter(
             Tag.user_id == current_user.id,
@@ -1296,12 +1592,13 @@ def update_tag(
                 detail=f"Tag '{tag_data.name}' already exists"
             )
     
-    # Update tag
+    # Update Tag.
     tag.name = tag_data.name
     tag.emoji = tag_data.emoji
     tag.color = tag_data.color
     tag.updated_at = datetime.now()
     
+    # Commit Changes & Refresh Tag.
     db.commit()
     db.refresh(tag)
     
@@ -1314,9 +1611,9 @@ def delete_tag(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Delete a tag and remove all associations."""
+    """Delete A Tag And Remove All Associations."""
     
-    # Find tag (must belong to current user)
+    # Find Tag (Must Belong To Current User).
     tag = db.query(Tag).filter(
         Tag.id == tag_id,
         Tag.user_id == current_user.id
@@ -1325,15 +1622,15 @@ def delete_tag(
     if not tag:
         raise HTTPException(status_code=404, detail="Tag not found")
     
-    # Count transactions associated with this tag
+    # Count Transactions Associated With This Tag.
     transaction_count = db.query(TransactionTag).filter(
         TransactionTag.tag_id == tag_id
     ).count()
     
-    # Delete all transaction associations first
+    # Delete All Transaction Associations First.
     db.query(TransactionTag).filter(TransactionTag.tag_id == tag_id).delete()
     
-    # Delete the tag
+    # Delete The Tag.
     db.delete(tag)
     db.commit()
     
@@ -1350,9 +1647,9 @@ def add_tag_to_transaction(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Add a tag to a transaction."""
+    """Add A Tag To A Transaction."""
     
-    # Verify transaction belongs to current user
+    # Verify Transaction Belongs To Current User.
     transaction = db.query(Transaction).filter(
         Transaction.id == transaction_id,
         Transaction.user_id == current_user.id
@@ -1361,7 +1658,7 @@ def add_tag_to_transaction(
     if not transaction:
         raise HTTPException(status_code=404, detail="Transaction not found")
     
-    # Verify tag belongs to current user
+    # Verify Tag Belongs To Current User.
     tag = db.query(Tag).filter(
         Tag.id == tag_id,
         Tag.user_id == current_user.id
@@ -1370,7 +1667,7 @@ def add_tag_to_transaction(
     if not tag:
         raise HTTPException(status_code=404, detail="Tag not found")
     
-    # Check if association already exists
+    # Check If Association Already Exists.
     existing_association = db.query(TransactionTag).filter(
         TransactionTag.transaction_id == transaction_id,
         TransactionTag.tag_id == tag_id
@@ -1382,15 +1679,17 @@ def add_tag_to_transaction(
             detail="Tag is already associated with this transaction"
         )
     
-    # Create association
+    # Create Association.
     transaction_tag = TransactionTag(
         transaction_id=transaction_id,
         tag_id=tag_id
     )
     
+    # Add Association To Database & Commit.
     db.add(transaction_tag)
     db.commit()
     
+    # Return Success Message.
     return {"message": f"Tag '{tag.name}' added to transaction"}
 
 # ----------------------------------------------------------------------- Remove Tag from Transaction
@@ -1401,9 +1700,9 @@ def remove_tag_from_transaction(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Remove a tag from a transaction."""
+    """Remove A Tag From A Transaction."""
     
-    # Verify transaction belongs to current user
+    # Verify Transaction Belongs To Current User.
     transaction = db.query(Transaction).filter(
         Transaction.id == transaction_id,
         Transaction.user_id == current_user.id
@@ -1412,7 +1711,7 @@ def remove_tag_from_transaction(
     if not transaction:
         raise HTTPException(status_code=404, detail="Transaction not found")
     
-    # Find and delete association
+    # Find And Delete Association.
     association = db.query(TransactionTag).filter(
         TransactionTag.transaction_id == transaction_id,
         TransactionTag.tag_id == tag_id
@@ -1424,9 +1723,11 @@ def remove_tag_from_transaction(
             detail="Tag is not associated with this transaction"
         )
     
+    # Delete Association.
     db.delete(association)
     db.commit()
     
+    # Return Success Message.
     return {"message": "Tag removed from transaction"}
 
 # ----------------------------------------------------------------------- Get Transaction Tags
@@ -1436,9 +1737,9 @@ def get_transaction_tags(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get all tags for a specific transaction."""
+    """Get All Tags For A Specific Transaction."""
     
-    # Verify transaction belongs to current user
+    # Verify Transaction Belongs To Current User.
     transaction = db.query(Transaction).filter(
         Transaction.id == transaction_id,
         Transaction.user_id == current_user.id
@@ -1447,12 +1748,13 @@ def get_transaction_tags(
     if not transaction:
         raise HTTPException(status_code=404, detail="Transaction not found")
     
-    # Get tags for this transaction
+    # Get Tags For This Transaction.
     tags = db.query(Tag).join(TransactionTag).filter(
         TransactionTag.transaction_id == transaction_id,
         Tag.user_id == current_user.id
     ).all()
     
+    # Return Tags.
     return tags
 
 # ----------------------------------------------------------------------- Get Tag Transaction Count
@@ -1462,9 +1764,9 @@ def get_tag_transaction_count(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get the number of transactions associated with a tag."""
+    """Get The Number Of Transactions Associated With A Tag."""
     
-    # Verify tag belongs to current user
+    # Verify Tag Belongs To Current User.
     tag = db.query(Tag).filter(
         Tag.id == tag_id,
         Tag.user_id == current_user.id
@@ -1473,11 +1775,12 @@ def get_tag_transaction_count(
     if not tag:
         raise HTTPException(status_code=404, detail="Tag not found")
     
-    # Count transactions associated with this tag
+    # Count Transactions Associated With This Tag.
     transaction_count = db.query(TransactionTag).filter(
         TransactionTag.tag_id == tag_id
     ).count()
     
+    # Return Tag Transaction Count.
     return {
         "tag_id": tag_id,
         "tag_name": tag.name,
@@ -1490,7 +1793,7 @@ def initialize_default_tags(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Initialize default tags for the current user."""
+    """Initialize Default Tags For The Current User."""
     
     try:
         created_tags = create_default_tags(db, current_user.id)

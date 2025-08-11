@@ -1,17 +1,31 @@
+# Upload Routes.
+#
+# Note : Want to simplify this function a ton, way too long, def needs to be modularized.
+#
+# Router : Tag w/ "Upload".
+#
+# API Endpoints :
+#   - 'upload_csv' - Upload A CSV File And Process Transactions.
+
 # Imports.
-import hashlib
 import csv
+import time
+import hashlib
 from io import StringIO
 from datetime import datetime
 from sqlalchemy.orm import Session
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Form
 from sqlalchemy.exc import IntegrityError
-import time
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Form
 
 # Local Imports.
+from app.database import FileUpload, Account, Transaction, User
+from app.routes.transactions import recalculate_account_balances
+
+# Local Utils.
 from app.utils.db_utils import get_db
 from app.utils.auth_utils import get_current_user
-from app.database import Transaction, FileUpload, Account, User
+
+# Local Models.
 from app.models import UploadResponse
 
 # Create Router Instance.
@@ -74,7 +88,7 @@ async def upload_csv(
     db.commit()
     db.refresh(uploaded_file)
     
-    # Handle Account Selection
+    # Handle Account Selection.
     import json
     selected_account = None
     
@@ -83,10 +97,10 @@ async def upload_csv(
             account_info = json.loads(account_data)
             
             if account_info.get('type') == 'cash':
-                # Cash transactions don't need an account
+                # Cash Transactions Don't Need An Account.
                 selected_account = None
             elif account_info.get('is_new'):
-                # Create new manual account
+                # Create New Manual Account.
                 selected_account = Account(
                     user_id=current_user.id,
                     account_id=account_info['account_id'],
@@ -104,7 +118,7 @@ async def upload_csv(
                 db.commit()
                 db.refresh(selected_account)
             else:
-                # Use existing account (must belong to current user)
+                # Use Existing Account (Must Belong To Current User).
                 selected_account = db.query(Account).filter_by(
                     account_id=account_info['account_id'],
                     user_id=current_user.id
@@ -129,7 +143,7 @@ async def upload_csv(
             
             # Parse Date With Explicit Format.
             try:
-                # Try multiple date formats
+                # Try Multiple Date Formats.
                 date_formats = ['%Y-%m-%d', '%m/%d/%Y', '%m/%d/%y', '%Y/%m/%d', '%d/%m/%Y', '%d/%m/%y']
                 date = None
                 for fmt in date_formats:
@@ -186,7 +200,7 @@ async def upload_csv(
                 'iso_currency_code': 'USD'
             }
             
-            # Add account info if not cash transaction
+            # Add Account Info If Not Cash Transaction.
             if selected_account:
                 transaction_data['account_id'] = selected_account.account_id
             else:
@@ -208,11 +222,11 @@ async def upload_csv(
         except Exception as e:
             errors.append(f"Row {index + 1}: {str(e)}")
     
-    # Update Account Balance if account exists and not cash
+    # Update Account Balance If Account Exists And Not Cash.
     if selected_account:
-        selected_account.current_balance = total_amount
-        selected_account.available_balance = total_amount
-        selected_account.updated_at = datetime.now()
+        # Use Proper Balance Calculation Based On All Transactions For This Account.
+        updated_accounts = recalculate_account_balances(db, current_user.id, [selected_account.account_id])
+        print(f"Recalculated balance for account {selected_account.account_id} after CSV upload")
     
     # Update FileUpload With Enhanced Results.
     processing_completed_at = datetime.now()
@@ -231,10 +245,10 @@ async def upload_csv(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error saving transactions: {str(e)}")
     
-    # Calculate processing duration.
+    # Calculate Processing Duration.
     processing_duration_ms = int((time.time() - start_time) * 1000)
     
-    # Create detailed success message.
+    # Create Detailed Success Message.
     upload_timestamp = processing_completed_at
     account_name = selected_account.name if selected_account else "Cash"
     

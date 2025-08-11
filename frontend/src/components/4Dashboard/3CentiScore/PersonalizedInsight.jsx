@@ -1,3 +1,9 @@
+// PersonalizedInsight.jsx
+
+// This just serves as a util type of file for the Personalized Insight based on the provided
+// user's data, I really want to put more time into this, but right now its just a bunch of 
+// AI generated code that I'm going to make more personal.
+
 // Imports.
 import React from 'react';
 

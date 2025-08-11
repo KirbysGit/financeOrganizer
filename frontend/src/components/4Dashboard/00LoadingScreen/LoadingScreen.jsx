@@ -1,7 +1,14 @@
+// LoadingScreen.jsx
 
-import React, { useState, useEffect, useRef, useMemo, useLayoutEffect } from 'react';
+// This is the loading screen component used for loading the user's information into the Dashboard.
+// Had the idea of like a stock chart as the loading aniamtion, so I made it, some weird behaviors with it,
+// but I think the current result looks really good, and its a very unique loading screen. Maybe in future
+// smooth it out more and get a more exact seeded random walk, but for now this is good enough.
+
+// Imports.
 import { styled } from 'styled-components';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import React, { useState, useEffect, useRef, useMemo, useLayoutEffect } from 'react';
 import { 
     faUser, 
     faDatabase, 
@@ -39,20 +46,17 @@ const LOADING_STEPS = [
     },
 ];
 
-// =============================================================================
-// HELPER FUNCTIONS
-// =============================================================================
+// ------------------------------------------------------------------------------------------------ Helper Functions.
 
-/**
- * Custom hook to get viewport dimensions
- * Returns the current window width and height, updating on resize
- */
+// Custom Hook To Get Viewport Dimensions.
 function useViewportDimensions() {
+    // Get Window Width & Height.
     const [dimensions, setDimensions] = useState({
         width: window.innerWidth,
         height: window.innerHeight
     });
 
+    // Handle Resize.
     useEffect(() => {
         function handleResize() {
             setDimensions({
@@ -61,19 +65,22 @@ function useViewportDimensions() {
             });
         }
 
+        // Add Event Listener For Resize.
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    // Return Dimensions.
     return dimensions;
 }
 
-// helper — reflects y back inside the current band so it never sits
-// exactly on min or max.  `bounce` is 0-1: 0 = stick to edge, 1 = full reflect
+// Soft Clamp Function.
+// Helper — Reflects Y Back Inside The Current Band So It Never Sits Exactly On Min Or Max.
+// `Bounce` Is 0-1: 0 = Stick To Edge, 1 = Full Reflect.
 function softClamp(y, min, max, bounce = 0.6) {
   if (y < min) {
     const over = min - y;
-    y = min + over * bounce + Math.random() * over * 0.2;  // tiny jitter
+    y = min + over * bounce + Math.random() * over * 0.2;  // Tiny Jitter.
   } else if (y > max) {
     const over = y - max;
     y = max - over * bounce - Math.random() * over * 0.2;
@@ -81,37 +88,28 @@ function softClamp(y, min, max, bounce = 0.6) {
   return y;
 }
 
-/**
- * Generates a sector-constrained random-walk stock chart SVG path.
- * - Chart is split into 5 horizontal sectors, each with increasing y-bands.
- * - The walk is volatile but always trends upward, never regressing to a previous sector's min.
- * - The last sector allows a final pop, but not an out-of-place spike.
- * @param {number} numPoints
- * @param {number} width
- * @param {number} height
- * @returns {string} SVG path string
- */
+// Generate Stock Chart Path.
 function generateStockChartPath(numPoints = 100, width = 800, height = 200) {
-    const minY   = 30;               // top of chart
-    const maxY   = height - 20;      // bottom of chart
+    const minY   = 30;               // Top Of Chart.
+    const maxY   = height - 20;      // Bottom Of Chart.
     const xStep  = width / (numPoints - 1);
     const points = [];
     const sectors = 5;
   
-    /* ----- sector helpers -------------------------------------------------- */
+    // Sector Helpers.
     const sectorHeight = (maxY - minY) / sectors;
     const sectorBands = Array.from({ length: sectors }, (_, i) => ({
-      // little side-margins so the line never touches band edges
+      // Little Side-Margins So The Line Never Touches Band Edges.
       min: minY + i * sectorHeight + sectorHeight * 0.08,
       max: minY + (i + 1) * sectorHeight - sectorHeight * 0.08,
     }));
   
-    /* ---------- start at the very bottom band (sector #4 for 5 sectors) ---- */
+    // Start At The Very Bottom Band (Sector #4 For 5 Sectors).
     let y = sectorBands[sectors - 1].max;
   
-    /* ---------- random-walk parameters ------------------------------------- */
+    // Random-Walk Parameters.
     const volatility = 60;
-    const bias       = 0.3;                    // positive → y decreases → visual “up”
+    const bias       = 0.3;                    // Positive → Y Decreases → Visual “Up”.
     const numShocks  = 1 + Math.floor(Math.random() * 3);
   
     const shockIndices = new Set();
@@ -120,36 +118,36 @@ function generateStockChartPath(numPoints = 100, width = 800, height = 200) {
       if (idx > 0 && idx < numPoints - 1) shockIndices.add(idx);
     }
   
-    /* ---------- main loop --------------------------------------------------- */
+    // Main Loop.
     for (let i = 0; i < numPoints; i++) {
-      /* ❶  Flip the sector mapping: i = 0 → bottom sector, i = last → top */
+      // Flip The Sector Mapping: i = 0 → Bottom Sector, i = Last → Top.
       const sectorIdx =
         sectors - 1 - Math.min(sectors - 1, Math.floor((i / (numPoints - 1)) * sectors));
       const { min, max } = sectorBands[sectorIdx];
   
       if (i > 0) {
-        // small random jump with slight upward pressure
+        // Small Random Jump With Slight Upward Pressure.
         const jump = (Math.random() - 0.5) * volatility * 2 + bias;
-        y -= jump;                              // subtract → smaller y → higher on screen
+        y -= jump;                              // Subtract → Smaller Y → Higher On Screen.
   
-        // occasional big “news” shock
+        // Occasional Big “News” Shock.
         if (shockIndices.has(i)) {
           const shock = volatility * 4 * (Math.random() > 0.5 ? 1 : -1);
           y -= shock;
         }
       }
   
-      // keep y inside the current sector *without* flat clamping
+      // Keep Y Inside The Current Sector *Without* Flat Clamping.
       y = softClamp(y, min, max, 0.6);
 
-      // Optional: mean-reversion toward sector center
+      // Optional: Mean-Reversion Toward Sector Center.
       const center = (min + max) / 2;
       y += (center - y) * 0.05;
   
       points.push({ x: i * xStep, y });
     }
   
-    /* ---------- finish near the top-right corner --------------------------- */
+    // Finish Near The Top-Right Corner.
     points[points.length - 1].y = minY + 3;
   
     return points.reduce(
@@ -159,19 +157,7 @@ function generateStockChartPath(numPoints = 100, width = 800, height = 200) {
   }
   
 
-// =============================================================================
-// LOADING SCREEN COMPONENT
-// =============================================================================
-
-/**
- * LoadingScreen Component
- * 
- * Props:
- * - loading: boolean - Whether to show the loading screen
- * - loadingProgress: number - Current loading progress (0-1)
- * - loadingStep: number - Current loading step index
- * - isTransitioning: boolean - Whether a step transition is in progress
- */
+// ------------------------------------------------------------------------------------------------ LoadingScreen Component.
 const LoadingScreen = ({ 
     loading = false, 
     loadingProgress = 0, 
@@ -179,33 +165,29 @@ const LoadingScreen = ({
     isTransitioning = false 
 }) => {
     
-    // =============================================================================
-    // VIEWPORT DIMENSIONS
-    // =============================================================================
+    // ------------------------------------------------------------------------------------------------ Viewport Dimensions.
     
-    // Get actual screen dimensions
+    // Get Actual Screen Dimensions.
     const { width: screenWidth, height: screenHeight } = useViewportDimensions();
     
-    // =============================================================================
-    // CHART CONFIGURATION
-    // =============================================================================
+    // ------------------------------------------------------------------------------------------------ Chart Configuration.
     
-    // Chart dimensions - use actual screen dimensions
+    // Chart Dimensions - Use Actual Screen Dimensions.
     const chartWidth = screenWidth;
     const chartHeight = screenHeight;
     
-    // Generate the stock chart path once
+    // Generate The Stock Chart Path Once.
     const chartPath = useMemo(() => {
         return generateStockChartPath(100, chartWidth, chartHeight);
     }, [chartWidth, chartHeight]);
     
-    // Add these hooks and refs at the top of the LoadingScreen component
+    // Add These Hooks And Refs At The Top Of The LoadingScreen Component.
     const svgRef = useRef();
     const pathRef = useRef();
     const [pathLen, setPathLen] = useState(0);
     const [endPt, setEndPt] = useState(null);
 
-    // Measure path length and update on chartPath or size change
+    // Measure Path Length And Update On ChartPath Or Size Change.
     useLayoutEffect(() => {
         if (pathRef.current) {
             const len = pathRef.current.getTotalLength();
@@ -213,13 +195,13 @@ const LoadingScreen = ({
         }
     }, [chartPath, chartWidth, chartHeight]);
 
-    // Update the glowing ball position as loading progresses
-    const strokeWidth = 6; // or whatever your actual stroke width is
+    // Update The Glowing Ball Position As Loading Progresses.
+    const strokeWidth = 6; // Or Whatever Your Actual Stroke Width Is.
     useEffect(() => {
         if (!pathRef.current || !pathLen) return;
 
-        const ballR = 20;              // keep in sync with <circle r="10">
-        const cap   = strokeWidth / 2; // 3 px for a 6-px stroke
+        const ballR = 20;              // Keep In Sync With <circle r="10">.
+        const cap   = strokeWidth / 2; // 3 Px For A 6-Px Stroke.
         const centreLen = Math.min(
             pathLen,
             Math.max(0, pathLen * loadingProgress + cap + ballR)
@@ -227,26 +209,15 @@ const LoadingScreen = ({
         setEndPt(pathRef.current.getPointAtLength(centreLen));
     }, [loadingProgress, pathLen, strokeWidth]);
     
-    // =============================================================================
-    // RENDER
-    // =============================================================================
+    // ------------------------------------------------------------------------------------------------ Render.
     
-    // Don't render anything if not loading
+    // Don't Render Anything If Not Loading.
     if (!loading) {
         return null;
     }
     
     return (
         <LoadingScreenContainer>
-            {/* =============================================================================
-                STATIC STOCK CHART BACKGROUND
-                =============================================================================
-                This creates a static background with a stock chart that:
-                - Shows a complete stock chart line
-                - Has a gradient stroke
-                - Includes axis labels for context
-                - Serves as a decorative background
-            */}
             <StockChartBackground>
                 <svg
                     width="100%"
@@ -262,12 +233,7 @@ const LoadingScreen = ({
                     }}
                     ref={svgRef}
                 >
-                    {/* =============================================================================
-                        SVG DEFINITIONS - GRADIENTS
-                        =============================================================================
-                        Define the gradient used for the stock chart line
-                        Creates a smooth transition from blue to green
-                    */}
+                    {/* Gradient For The Stock Chart Line. */}
                     <defs>
                         <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
                             <stop offset="0%" stopColor="#b6e0fe" /> {/* Light blue */}
@@ -275,13 +241,7 @@ const LoadingScreen = ({
                         </linearGradient>
                     </defs>
                     
-                    {/* =============================================================================
-                        CHART AXIS LABELS
-                        =============================================================================
-                        Add descriptive labels to make the chart more meaningful
-                        Y-axis is rotated 90 degrees for vertical text
-                    */}
-                    {/* Y-axis label - "Your Money" */}
+                    {/* Chart Axis Labels. */}
                     <text 
                         x={20} 
                         y={chartHeight/2 + 120} 
@@ -306,16 +266,7 @@ const LoadingScreen = ({
                         Your Time
                     </text>
                     
-                    {/* =============================================================================
-                        STATIC STOCK CHART LINE
-                        =============================================================================
-                        This is the complete stock chart line:
-                        - Uses the generated path
-                        - Has a gradient stroke and glow effect
-                        - Shows the complete line (no animation)
-                        - vectorEffect="non-scaling-stroke" keeps line width consistent
-                    */}
-                    {/* Animated stock chart line */}
+                    {/* Animated Stock Chart Line. */}
                     <path
                         ref={pathRef}
                         d={chartPath}
@@ -329,7 +280,8 @@ const LoadingScreen = ({
                         strokeDasharray={pathLen}
                         strokeDashoffset={pathLen * (1 - loadingProgress)}
                     />
-                    {/* Glowing ball at the end of the animated line */}
+
+                    {/* Glowing Ball At The End Of The Animated Line. */}
                     {pathLen > 0 && endPt && (
                         <>
                             {/* Halo */}
@@ -355,69 +307,28 @@ const LoadingScreen = ({
                     )}
                     
                 </svg>
-                
-                {/* =============================================================================
-                    FAST FORWARD DATE DISPLAY
-                    =============================================================================
-                    Shows dates progressing from today to 6 months from now
-                    Creates the illusion of time passing as money grows
-                */}
+
             </StockChartBackground>
             
-            {/* =============================================================================
-                LOADING CONTENT CONTAINER
-                =============================================================================
-                This contains all the loading UI elements:
-                - Animated icon circle
-                - Loading message
-                - Progress bar
-                - Step indicators
-            */}
             <LoadingContainer>
-                {/* =============================================================================
-                    ANIMATED LOADING CIRCLE
-                    =============================================================================
-                    The main loading indicator with:
-                    - Pulsing animation
-                    - Ripple effect
-                    - Current step icon
-                    - Smooth transitions between steps
-                */}
+                {/* Animated Loading Circle. */}
                 <LoadingCircle>
                     <LoadingIcon $transitioning={isTransitioning ? 'out' : 'in'}>
                         <FontAwesomeIcon icon={LOADING_STEPS[loadingStep].icon} />
                     </LoadingIcon>
                 </LoadingCircle>
                 
-                {/* =============================================================================
-                    LOADING MESSAGE
-                    =============================================================================
-                    Displays the current step's message
-                    Updates as the loading progresses through different phases
-                */}
+                {/* Loading Message. */}
                 <LoadingMessage>
                     {LOADING_STEPS[loadingStep].message}
                 </LoadingMessage>
                 
-                {/* =============================================================================
-                    PROGRESS BAR
-                    =============================================================================
-                    Visual representation of overall loading progress
-                    Includes shimmer animation for visual appeal
-                */}
+                {/* Progress Bar. */}
                 <LoadingProgress>
                     <ProgressBar $progress={loadingProgress} />
                 </LoadingProgress>
                 
-                {/* =============================================================================
-                    STEP INDICATORS
-                    =============================================================================
-                    Shows all loading steps with visual feedback:
-                    - Completed steps are green
-                    - Current step is blue and scaled up
-                    - Future steps are gray
-                    - Each step has its own icon
-                */}
+                {/* Step Indicators. */}
                 <LoadingSteps>
                     {LOADING_STEPS.map((step, index) => (
                         <StepIndicator 
@@ -434,14 +345,9 @@ const LoadingScreen = ({
     );
 };
 
-// =============================================================================
-// STYLED COMPONENTS
-// =============================================================================
+// ------------------------------------------------------------------------------------------------ Styled Components.
 
-/**
- * Main loading screen container
- * Covers the full viewport with a gradient background
- */
+// -------------------------------------------------------- Main Loading Screen Container.
 const LoadingScreenContainer = styled.div`
     display: flex;
     justify-content: center;
@@ -450,10 +356,7 @@ const LoadingScreenContainer = styled.div`
     background: linear-gradient(135deg, rgb(231, 240, 250) 0%, #e9ecef 100%);
 `;
 
-/**
- * Container for the static stock chart background
- * Positioned absolutely to fill the entire loading screen
- */
+// -------------------------------------------------------- Stock Chart Background Container.
 const StockChartBackground = styled.div`
     position: absolute;
     top: 0;
@@ -468,10 +371,7 @@ const StockChartBackground = styled.div`
     align-items: center;
 `;
 
-/**
- * Main loading content container
- * Contains all the loading UI elements with glass-morphism effect
- */
+// -------------------------------------------------------- Main Loading Content Container.
 const LoadingContainer = styled.div`
     display: flex;
     flex-direction: column;
@@ -497,10 +397,7 @@ const LoadingContainer = styled.div`
     }
 `;
 
-/**
- * Animated loading circle with pulsing and ripple effects
- * Contains the current step's icon
- */
+// -------------------------------------------------------- Animated Loading Circle.
 const LoadingCircle = styled.div`
     width: 120px;
     height: 120px;
@@ -535,10 +432,7 @@ const LoadingCircle = styled.div`
     }
 `;
 
-/**
- * Icon container with smooth transitions between steps
- * Handles the slide animations when switching between loading steps
- */
+// -------------------------------------------------------- Loading Icon.
 const LoadingIcon = styled.div`
     color: white;
     font-size: 2.5rem;
@@ -595,10 +489,7 @@ const LoadingMessage = styled.h2`
     }
 `;
 
-/**
- * Progress bar container
- * Provides the background for the animated progress bar
- */
+// -------------------------------------------------------- Progress Bar.
 const LoadingProgress = styled.div`
     width: 300px;
     height: 8px;
@@ -608,10 +499,7 @@ const LoadingProgress = styled.div`
     position: relative;
 `;
 
-/**
- * Animated progress bar with shimmer effect
- * Shows the overall loading progress with smooth width animation
- */
+// -------------------------------------------------------- Animated Progress Bar.
 const ProgressBar = styled.div`
     height: 100%;
     background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
@@ -639,20 +527,14 @@ const ProgressBar = styled.div`
     }
 `;
 
-/**
- * Container for step indicators
- * Displays all loading steps in a horizontal row
- */
+// -------------------------------------------------------- Loading Steps.
 const LoadingSteps = styled.div`
     display: flex;
     gap: 1rem;
     align-items: center;
 `;
 
-/**
- * Individual step indicator with state-based styling
- * Shows different colors and animations based on step status
- */
+// -------------------------------------------------------- Step Indicator.
 const StepIndicator = styled.div`
     width: 40px;
     height: 40px;
@@ -682,23 +564,5 @@ const StepIndicator = styled.div`
     }
 `;
 
-/**
- * Date display styled to match the chart theme
- * Positioned in the top-right corner
- */
-const DateDisplay = styled.div`
-    display: flex;
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    top: 20px;
-    padding: 8px 12px;
-    font-size: 3rem;
-    font-weight: bold;
-    color: white;
-    transition: opacity 0.3s ease;
-    z-index: 10; /* Ensure it's above the chart */
-    pointer-events: none; /* Prevent interference with other elements */
-`;
-
+// Export The LoadingScreen Component.
 export default LoadingScreen;

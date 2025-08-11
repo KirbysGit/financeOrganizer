@@ -1,3 +1,8 @@
+// MiniSidebar.jsx
+
+// This is the mini sidebar component that is used on the dashboard. It contains the navigation items for the dashboard.
+// It also contains the smooth scroll functionality for the dashboard.
+
 // Imports.
 import React, { useState, useEffect, useRef } from 'react';
 import { styled, keyframes, css } from 'styled-components';
@@ -37,14 +42,15 @@ const pulse = keyframes`
 
 // -------------------------------------------------------- MiniSidebar Component.
 const MiniSidebar = () => {
+    // States.
     const [isVisible, setIsVisible] = useState(false);
     const [activeSection, setActiveSection] = useState('recent-section');
     
-    // Race-free observer control using refs
-    const ignoreObserverRef = useRef(false);      // true = ignore IO events
-    const scrollingRef = useRef(false);           // true while smooth-scroll is running
+    // Race-Free Observer Control Using Refs.
+    const ignoreObserverRef = useRef(false);      // True = Ignore IO Events.
+    const scrollingRef = useRef(false);           // True While Smooth-Scroll Is Running.
     const observerRef = useRef(null);
-    let settleTimer = null;                       // debounce for "scroll stopped"
+    let settleTimer = null;                       // Debounce For "Scroll Stopped".
 
     // -------------------------------------------------------- Scroll Detection.
     useEffect(() => {
@@ -70,8 +76,8 @@ const MiniSidebar = () => {
         ];
 
         const handleIntersection = (entries) => {
-            // Bail early if observer should be ignored
-            if (ignoreObserverRef.current) return;       // bail while programme-scrolling
+            // Bail Early If Observer Should Be Ignored.
+            if (ignoreObserverRef.current) return;       // Bail While Programme-Scrolling.
             
             let bestSection = null;
             let highestRatio = 0;
@@ -87,7 +93,7 @@ const MiniSidebar = () => {
                 }
             });
             
-            // Only update if we found a section with significant intersection
+            // Only Update If We Found A Section With Significant Intersection.
             if (bestSection && highestRatio > 0.1) {
                 const sectionMap = {
                     'recent-section': 'recent-section',
@@ -103,14 +109,14 @@ const MiniSidebar = () => {
             }
         };
 
-        // Create single observer that lives for the lifetime of the component
+        // Create Single Observer That Lives For The Lifetime Of The Component.
         observerRef.current = new IntersectionObserver(handleIntersection, {
             root: null,
             rootMargin: '-10% 0px -10% 0px',
             threshold: 0.1
         });
 
-        // Observe all section elements
+        // Observe All Section Elements.
         sections.forEach(sectionId => {
             const element = document.getElementById(sectionId);
             if (element) {
@@ -123,7 +129,7 @@ const MiniSidebar = () => {
                 observerRef.current.disconnect();
             }
         };
-    }, []); // No dependencies - observer lives for component lifetime
+    }, []); // No Dependencies - Observer Lives For Component Lifetime.
 
 
 
@@ -132,35 +138,35 @@ const MiniSidebar = () => {
         const element = document.getElementById(sectionId);
         if (!element) return;
 
-        // Short-circuit if already active
+        // Short-Circuit If Already Active.
         if (activeSection === sectionId) return;
 
-        // Tell the observer to ignore everything
+        // Tell The Observer To Ignore Everything.
         ignoreObserverRef.current = true;           // freeze highlight
         scrollingRef.current = true;
         
-        // Highlight the pill immediately for snappier UI
+        // Highlight The Pill Immediately For Snappier UI.
         setActiveSection(sectionId);
 
-        // Calculate scroll position
+        // Calculate Scroll Position.
         const offset = sectionId === 'centi-score-section'
             ? (window.innerHeight - element.getBoundingClientRect().height) / 2
             : 30;
 
-        // Scroll to target position
+        // Scroll To Target Position.
         window.scrollTo({
             top: element.offsetTop - offset,
             behavior: 'smooth'
         });
 
-        // ---------- wait until scrolling stops -------------
+        // Wait Until Scrolling Stops.
         const onScroll = () => {
             clearTimeout(settleTimer);
             settleTimer = setTimeout(() => {
                 window.removeEventListener('scroll', onScroll);
-                ignoreObserverRef.current = false;      // let IO run again
+                ignoreObserverRef.current = false;      // Let IO Run Again.
                 scrollingRef.current = false;
-            }, 120);                                  // 120 ms of no scroll → settled
+            }, 120);                                  // 120 Ms Of No Scroll → Settled.
         };
         window.addEventListener('scroll', onScroll);
     };
@@ -217,6 +223,7 @@ const MiniSidebar = () => {
 
 // -------------------------------------------------------- Styled Components.
 
+// -------------------------------------------------------- Sidebar Container.
 const SidebarContainer = styled.div`
     position: fixed;
     left: 20px;
@@ -229,6 +236,7 @@ const SidebarContainer = styled.div`
     animation: ${props => props.$isVisible ? slideIn : slideOut} 0.3s ease-out;
 `;
 
+// -------------------------------------------------------- Sidebar Content.
 const SidebarContent = styled.div`
     display: flex;
     flex-direction: column;
@@ -242,6 +250,7 @@ const SidebarContent = styled.div`
     position: relative;
 `;
 
+// -------------------------------------------------------- Nav Item.
 const NavItem = styled.div`
     display: flex;
     align-items: center;
@@ -293,6 +302,7 @@ const NavItem = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Icon Wrapper.
 const IconWrapper = styled.div`
     display: flex;
     align-items: center;
@@ -307,6 +317,7 @@ const IconWrapper = styled.div`
     `}
 `;
 
+// -------------------------------------------------------- Label Wrapper.
 const LabelWrapper = styled.div`
     position: absolute;
     left: 25px;
@@ -338,7 +349,7 @@ const LabelWrapper = styled.div`
         font-weight: 600;
     `}
     
-    /* Expand tooltip on parent hover */
+    /* Expand Tooltip On Parent Hover. */
     ${NavItem}:hover & {
         opacity: 1;
         visibility: visible;
@@ -347,6 +358,5 @@ const LabelWrapper = styled.div`
     }
 `;
 
-
-
+// -------------------------------------------------------- Export The MiniSidebar Component.
 export default MiniSidebar; 

@@ -1,8 +1,12 @@
+// AccountFilter.jsx
+
+// This just a sub-component for the filter for the Account Field, it's just a dropdown that allows the user
+// to select the accounts they want to filter by, it provides a select all option, and tells you the amount
+// of accounts you have selected within the filter.
+
 // Imports.
-import React, { useState, useEffect } from 'react';
 import { styled } from 'styled-components';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCreditCard, faXmark, faFilter, faCheck } from '@fortawesome/free-solid-svg-icons';
+import React, { useState, useEffect } from 'react';
 
 // Local Imports.
 import '../../../styles/colors.css';
@@ -71,6 +75,8 @@ const AccountFilter = ({ isOpen, onClose, onApplyFilter, currentFilter, existing
         return `${currentFilter.length} Accounts`;
     };
 
+    // -------------------------------------------------------- Render.
+
     if (!isOpen) return null;
 
     return (
@@ -84,6 +90,7 @@ const AccountFilter = ({ isOpen, onClose, onApplyFilter, currentFilter, existing
         >
             <FilterControls />
 
+            {/* Filter Content. */}
             <FilterContent>
                 <SelectAllSection>
                     <SelectAllButton 
@@ -127,6 +134,7 @@ const AccountFilter = ({ isOpen, onClose, onApplyFilter, currentFilter, existing
                     ))}
                 </AccountsList>
 
+                {/* Filter Status. */}
                 <FilterStatus>
                     {selectedAccounts.length > 0 ? (
                         <StatusText>
@@ -142,6 +150,7 @@ const AccountFilter = ({ isOpen, onClose, onApplyFilter, currentFilter, existing
                 </FilterStatus>
             </FilterContent>
 
+            {/* Account Filter Actions. */}
             <AccountFilterActions>
                 <ClearButton onClick={handleClearFilter}>
                     Clear
@@ -447,4 +456,5 @@ const ApplyButton = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Export The AccountFilter Component.
 export default AccountFilter;

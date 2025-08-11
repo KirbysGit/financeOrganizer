@@ -1,3 +1,16 @@
+# File Routes.
+#
+# Note : Haven't really updated this in a while, still working minimally, but not w/ a lot
+#        of robustness, will update this in future.
+#
+# Router : Prefix w/ "/files" & Tag w/ "Files".
+#
+# API Endpoints :
+#   - 'get_files' - Get All Files For The Current User.
+#   - 'get_file_transactions' - Get All Transactions From A Specific File.
+#   - 'delete_file' - Delete A Specific File.
+#   - 'rename_file' - Rename A Specific File.
+
 # Imports.
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, HTTPException, Body
@@ -12,7 +25,7 @@ from app.database import FileUpload, Transaction, User
 router = APIRouter(prefix="/files", tags=["Files"])
 
 # -------------------------------------------------------- Get All Files.
-@router.get("/files", response_model=list[FileUploadOut])
+@router.get("/", response_model=list[FileUploadOut])
 def get_files(
     db: Session = Depends(get_db), 
     current_user: User = Depends(get_current_user)
@@ -21,13 +34,13 @@ def get_files(
     return db.query(FileUpload).filter(FileUpload.user_id == current_user.id).all()
 
 # -------------------------------------------------------- Get Transactions From File.
-@router.get("/files/{file_id}/transactions", response_model=list[TransactionOut])
+@router.get("/{file_id}/transactions", response_model=list[TransactionOut])
 def get_file_transactions(
     file_id: int, 
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Get File By File Id (must belong to current user).
+    # Get File By File Id (Must Belong To Current User).
     file = db.query(FileUpload).filter(
         FileUpload.id == file_id,
         FileUpload.user_id == current_user.id
@@ -47,13 +60,13 @@ def get_file_transactions(
     return transactions
 
 # ----------------------------------------------------------------------- Delete File.
-@router.delete("/files/{file_id}")
+@router.delete("/{file_id}")
 def delete_file(
     file_id: int, 
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Get Uploaded File By File Id (must belong to current user).
+    # Get Uploaded File By File Id (Must Belong To Current User).
     file = db.query(FileUpload).filter(
         FileUpload.id == file_id,
         FileUpload.user_id == current_user.id
@@ -79,14 +92,14 @@ def delete_file(
     return {"message": f"File {file_id} and its transactions deleted successfully"}
 
 # ----------------------------------------------------------------------- Rename File By File Id.
-@router.patch("/files/{file_id}")
+@router.patch("/{file_id}")
 def rename_file(
     file_id: int, 
     new_name: str = Body(..., embed=True), 
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Get Uploaded File By File Id (must belong to current user).
+    # Get Uploaded File By File Id (Must Belong To Current User).
     file = db.query(FileUpload).filter(
         FileUpload.id == file_id,
         FileUpload.user_id == current_user.id

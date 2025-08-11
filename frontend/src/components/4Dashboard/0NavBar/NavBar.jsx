@@ -1,8 +1,16 @@
+// NavBar.jsx
+
+// This is the navigation bar component for the Dashboard, it is a simple navigation bar with a logo,
+// a user info section, and a settings button. It also has a dropdown menu for the user to sign out.
+// I want to add more to it, like specific settings, more links as we expand the site, and some more
+// features, but I also don't want to leave a bunch of placeholders for V1, so I'm going to keep it 
+// there for right now.
+
 // Imports.
 import React, { useState, useRef, useEffect } from 'react';
 import { styled, keyframes, css } from 'styled-components';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCog, faSignOutAlt, faChevronDown, faUser, faSpinner } from '@fortawesome/free-solid-svg-icons';
+import { faCog, faSignOutAlt, faUser, faSpinner } from '@fortawesome/free-solid-svg-icons';
 
 // Local Imports.
 import '../../../styles/colors.css';
@@ -12,11 +20,6 @@ import centiLogo from '../../../images/colorSchemeIcon.png';
 const spin = keyframes`
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
-`;
-
-const pulse = keyframes`
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
 `;
 
 const slideIn = keyframes`
@@ -38,10 +41,10 @@ const shake = keyframes`
 
 // -------------------------------------------------------- NavBar Component.
 const NavBar = ({ onLogout }) => {
-    // State for dropdown menu.
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const [isLoggingOut, setIsLoggingOut] = useState(false);
-    const dropdownRef = useRef(null);
+    // State For Dropdown Menu.
+    const dropdownRef = useRef(null);                               // Dropdown Ref.
+    const [isLoggingOut, setIsLoggingOut] = useState(false);        // State 4 Logging Out.
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);    // State 4 Dropdown Open.
 
     // -------------------------------------------------------- Close Dropdown When Clicking Outside.
     useEffect(() => {
@@ -51,6 +54,7 @@ const NavBar = ({ onLogout }) => {
             }
         };
 
+        // Add Event Listener For Click Outside.
         document.addEventListener('mousedown', handleClickOutside);
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
@@ -61,7 +65,7 @@ const NavBar = ({ onLogout }) => {
     const scrollToSection = (sectionId) => {
         const element = document.getElementById(sectionId);
         if (element) {
-            // Special handling for Centi Score to center it on screen
+            // Special Handling For Centi Score To Center It On Screen.
             if (sectionId === 'centi-score-section') {
                 const elementRect = element.getBoundingClientRect();
                 const elementHeight = elementRect.height;
@@ -73,7 +77,7 @@ const NavBar = ({ onLogout }) => {
                     behavior: 'smooth'
                 });
             } else {
-                // Standard offset for other sections
+                // Standard Offset For Other Sections.
                 const offset = 30;
                 const elementPosition = element.offsetTop - offset;
             window.scrollTo({
@@ -91,7 +95,7 @@ const NavBar = ({ onLogout }) => {
 
     // -------------------------------------------------------- Handle Logout.
     const handleLogout = async () => {
-        if (isLoggingOut) return; // Prevent multiple clicks
+        if (isLoggingOut) return; // Prevent Multiple Clicks.
         
         console.log('Logout button clicked');
         setIsLoggingOut(true);
@@ -102,52 +106,68 @@ const NavBar = ({ onLogout }) => {
             }
         } catch (error) {
             console.error('Logout error:', error);
-            // Reset loading state on error
+            // Reset Loading State On Error.
             setIsLoggingOut(false);
         } finally {
             setIsDropdownOpen(false);
         }
     };
 
-    // Get user info from localStorage
+    // Get User Info From LocalStorage.
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const userInitials = user.first_name ? user.first_name.charAt(0).toUpperCase() : 'U';
 
+    // -------------------------------------------------------- Render.
+    
     return (
         <NavBarWrapper data-navbar>
+            {/* Left Section. */}
             <LeftSection>
-            <Logo src={centiLogo} alt="Centi Logo" />
-                <NavLinks>
-                    <NavLink onClick={() => scrollToSection('recent-section')}>
-                        Recent
-                    </NavLink>
-                    <NavLink onClick={() => scrollToSection('centi-score-section')}>
-                        Centi Score
-                    </NavLink>
-                    <NavLink onClick={() => scrollToSection('accounts-section')}>
-                        Accounts
-                    </NavLink>
-                    <NavLink onClick={() => scrollToSection('transactions-section')}>
-                        Transactions
-                    </NavLink>
-                </NavLinks>
+                {/* Logo. */}
+                <Logo src={centiLogo} alt="Centi Logo" />
+
+                    {/* Nav Links. */}
+                    <NavLinks>
+                        <NavLink onClick={() => scrollToSection('recent-section')}>
+                            Recent
+                        </NavLink>
+                        <NavLink onClick={() => scrollToSection('centi-score-section')}>
+                            Centi Score
+                        </NavLink>
+                        <NavLink onClick={() => scrollToSection('accounts-section')}>
+                            Accounts
+                        </NavLink>
+                        <NavLink onClick={() => scrollToSection('transactions-section')}>
+                            Transactions
+                        </NavLink>
+                    </NavLinks>
             </LeftSection>
             
+            {/* Right Section. */}
             <RightSection ref={dropdownRef}>
+                {/* User Info. */}
                 <UserInfo>
+                    {/* User Avatar. */}
                     <UserAvatar>
+                        {/* User Image. */}
                         {user.picture ? (
                             <UserImage src={user.picture} alt={`${user.first_name || 'User'}'s profile`} />
                         ) : (
                             <FontAwesomeIcon icon={faUser} />
                         )}
                     </UserAvatar>
+
+                    {/* User Details. */}
                     <UserDetails>
+                        {/* User Name. */}
                         <UserName>{user.first_name || 'User'}</UserName>
+
+                        {/* User Email. */}
                         <UserEmail>{user.email || 'user@example.com'}</UserEmail>
                     </UserDetails>
                 </UserInfo>
                 
+                {/* Settings Button. */}
                 <SettingsButton 
                     onClick={handleSettingsClick}
                     aria-label="Settings"
@@ -157,21 +177,30 @@ const NavBar = ({ onLogout }) => {
                     <GearIcon icon={faCog} $isOpen={isDropdownOpen} />
                 </SettingsButton>
                 
+                {/* Dropdown Menu. */}
                 {isDropdownOpen && (
                     <DropdownMenu>
+                        {/* Dropdown Item. */}
                         <DropdownItem 
                             onClick={handleLogout}
                             $isLoggingOut={isLoggingOut}
                             disabled={isLoggingOut}
                         >
+                            {/* Logging Out. */}
                             {isLoggingOut ? (
                                 <>
+                                    {/* Signing Out Icon. */}
                                     <FontAwesomeIcon icon={faSpinner} spin />
+
+                                    {/* Signing Out Text. */}
                                     <span>Signing Out...</span>
                                 </>
                             ) : (
                                 <>
+                                    {/* Sign Out Icon. */}
                                     <FontAwesomeIcon icon={faSignOutAlt} />
+
+                                    {/* Sign Out Text. */}
                                     <span>Sign Out</span>
                                 </>
                             )}
@@ -200,6 +229,7 @@ const NavBarWrapper = styled.div`
     width: 100%;
 `
 
+// -------------------------------------------------------- Left Section.
 const LeftSection = styled.div`
     display: flex;
     align-items: center;
@@ -207,6 +237,7 @@ const LeftSection = styled.div`
     height: 100%;
 `
 
+// -------------------------------------------------------- Right Section.
 const RightSection = styled.div`
     display: flex;
     align-items: center;
@@ -214,6 +245,7 @@ const RightSection = styled.div`
     position: relative;
 `
 
+// -------------------------------------------------------- Nav Links.
 const NavLinks = styled.div`
     height: 100%;
     display: flex;
@@ -221,6 +253,7 @@ const NavLinks = styled.div`
     justify-content: center;
 `
 
+// -------------------------------------------------------- Nav Link.
 const NavLink = styled.div`
     height: 100%;
     font-family: 'DM Sans', serif;
@@ -271,6 +304,7 @@ const NavLink = styled.div`
     }
 `
 
+// -------------------------------------------------------- User Info.
 const UserInfo = styled.div`
     display: flex;
     align-items: center;
@@ -287,6 +321,7 @@ const UserInfo = styled.div`
     }
 `
 
+// -------------------------------------------------------- User Avatar.
 const UserAvatar = styled.div`
     width: 36px;
     height: 36px;
@@ -301,6 +336,7 @@ const UserAvatar = styled.div`
     box-shadow: 0 2px 8px rgba(0, 123, 255, 0.2);
 `
 
+// -------------------------------------------------------- User Image.
 const UserImage = styled.img`
     width: 100%;
     height: 100%;
@@ -308,12 +344,14 @@ const UserImage = styled.img`
     object-fit: cover;
 `;
 
+// -------------------------------------------------------- User Details.
 const UserDetails = styled.div`
     display: flex;
     flex-direction: column;
     gap: 0.1rem;
 `
 
+// -------------------------------------------------------- User Name.
 const UserName = styled.span`
     font-size: 0.9rem;
     font-weight: 600;
@@ -321,12 +359,14 @@ const UserName = styled.span`
     line-height: 1;
 `
 
+// -------------------------------------------------------- User Email.
 const UserEmail = styled.span`
     font-size: 0.75rem;
     color: #666;
     line-height: 1;
 `
 
+// -------------------------------------------------------- Settings Button.
 const SettingsButton = styled.button`
     background: rgba(0, 0, 0, 0.04);
     border: 1px solid rgba(0, 0, 0, 0.08);
@@ -356,11 +396,13 @@ const SettingsButton = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Gear Icon.
 const GearIcon = styled(FontAwesomeIcon)`
     transition: all 0.3s ease;
     animation: ${props => props.$isOpen ? css`${spin} 0.6s ease-in-out` : 'none'};
 `;
 
+// -------------------------------------------------------- Dropdown Menu.
 const DropdownMenu = styled.div`
     position: absolute;
     top: 100%;
@@ -375,6 +417,7 @@ const DropdownMenu = styled.div`
     overflow: hidden;
 `;
 
+// -------------------------------------------------------- Dropdown Item.
 const DropdownItem = styled.div`
     width: 100%;
     padding: 0.875rem 1.25rem;
@@ -437,6 +480,6 @@ const Logo = styled.img`
     }
 `
 
-// Export Component.
+// Export The NavBar Component.
 export default NavBar;
 

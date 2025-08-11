@@ -1,3 +1,18 @@
+# Centi Score Utils.
+#
+# Functions :
+#   - 'calculate_centi_score' - Calculate Centi Score Based On Financial Metrics.
+#   - 'get_user_financial_data' - Get Current Financial Data For A User To Calculate Their Score.
+#   - 'create_weekly_score' - Create A Weekly Centi Score For A User.
+#   - 'get_weekly_score' - Get A Specific Weekly Score For A User.
+#   - 'get_latest_weekly_score' - Get The Most Recent Weekly Score For A User.
+#   - 'get_weekly_score_history' - Get The Last N Weekly Scores For A User.
+#   - 'get_monday_of_week' - Get The Monday Of The Week Containing The Target Date.
+#   - 'calculate_score_trend' - Calculate Trend Information From A List Of Scores.
+#   - 'get_detailed_growth_analysis' - Get Detailed Growth Analysis Including Monthly Comparisons And Streaks.
+#   - 'get_score_growth_summary' - Get A Quick Summary Of Score Growth For Display In UI.
+#   - 'check_user_centi_score_status' - Check If A User Has Centi Score Data And Provide A Comprehensive Status.
+
 # Imports.
 import math
 from sqlalchemy import func

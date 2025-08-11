@@ -1,3 +1,12 @@
+# Snapshot Utils.
+#
+# Functions :
+#   - 'create_monthly_snapshot' - Create A Monthly Snapshot For A User.
+#   - 'get_monthly_snapshot' - Get A Specific Monthly Snapshot For A User.
+#   - 'get_previous_month_snapshot' - Get The Previous Month's Snapshot For Comparison.
+#   - 'get_snapshots_for_user' - Get The Last N Monthly Snapshots For A User.
+#   - 'calculate_growth_from_snapshots' - Calculate Growth Percentages Between Two Snapshots.
+#   - 'get_growth_context' - Get Growth Context With Both Percentages And Absolute Values.
 # Imports.
 from sqlalchemy.orm import Session
 from datetime import datetime, date

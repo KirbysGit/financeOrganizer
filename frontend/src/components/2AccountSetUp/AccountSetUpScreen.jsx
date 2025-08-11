@@ -1,3 +1,13 @@
+// AccountSetUpScreen.jsx
+//
+// This is the screen that contains the modal for signing in, signing up, and forgot password functionalities.
+//
+// The goal with this screen is to keep all of the major sign up functions on the same screen so the user isn't
+// being directed around per modal. I added the reviews section on the right just becasue I think its a nice
+// touch to have for the users to read positive reviews while signing up to approach the site with a more positive
+// view. The reviews are just placeholders for now, but I'd love to set up a proper pipeline for real recent positive
+// reviews to be shown on here.
+
 // Imports.
 import React, { useState } from 'react';
 import { styled } from 'styled-components';
@@ -8,18 +18,29 @@ import { faArrowLeft, faStar } from '@fortawesome/free-solid-svg-icons';
 import '../../styles/colors.css';
 import LoginModal from './Auth/LoginModal';
 import SignUpModal from './Auth/SignUpModal';
+import ForgotPasswordModal from './Auth/ForgotPasswordModal';
+import EmailVerificationModal from './Auth/EmailVerificationModal';
 
 // -------------------------------------------------------- AccountSetUpScreen Component.
-const AccountSetUpScreen = ({ onBack, onSignUpSuccess, onLoginSuccess, modalType }) => {
+const AccountSetUpScreen = ({ onBack, onSignUpSuccess, onLoginSuccess, onEmailVerificationComplete, modalType }) => {
     
     // States 4 Screen.
-    const [activeAuthModal, setActiveAuthModal] = useState(modalType);
-    const [isTransitioning, setIsTransitioning] = useState(false);
+    const [userEmail, setUserEmail] = useState('');                             // State 4 User Email.
+    const [isTransitioning, setIsTransitioning] = useState(false);              // State 4 Whether The Screen Is Transitioning.
+    const [activeAuthModal, setActiveAuthModal] = useState(modalType);          // State 4 The Active Auth Modal.
+    const [showForgotPassword, setShowForgotPassword] = useState(false);        // State 4 Whether The Forgot Password Modal Is Shown.
+    const [showEmailVerification, setShowEmailVerification] = useState(false);  // State 4 Whether The Email Verification Modal Is Shown.
 
     // -------------------------------------------------------- Handle Sign Up Success.
-    const handleSignUpSuccess = () => {
-        console.log('AccountSetUpScreen: handleSignUpSuccess called, calling onSignUpSuccess...');
-        onSignUpSuccess();
+    const handleSignUpSuccess = (email) => {
+        console.log('AccountSetUpScreen: handleSignUpSuccess called with email:', email);
+        setIsTransitioning(true);
+        setTimeout(() => {
+            setUserEmail(email);
+            setShowEmailVerification(true);
+            setIsTransitioning(false);
+        }, 400); // Match the CSS transition duration
+        // Don't call onSignUpSuccess yet - wait for email verification
     };
 
     // -------------------------------------------------------- Handle Login Success.
@@ -28,35 +49,93 @@ const AccountSetUpScreen = ({ onBack, onSignUpSuccess, onLoginSuccess, modalType
         onLoginSuccess();
     };
 
-    // -------------------------------------------------------- Handle Modal Switch with Animation.
-    const handleSwitchToLogin = () => {
+    // -------------------------------------------------------- Handle Email Verification Complete.
+    const handleEmailVerificationComplete = () => {
+        console.log('AccountSetUpScreen: Email verification complete, calling onEmailVerificationComplete...');
         setIsTransitioning(true);
         setTimeout(() => {
+            setShowEmailVerification(false);
+            setActiveAuthModal('login');
+            setIsTransitioning(false);
+        }, 400); // Match the CSS transition duration
+        onEmailVerificationComplete();
+    };
+
+    // -------------------------------------------------------- Handle Show Login from Email Verification.
+    const handleShowLoginFromVerification = () => {
+        setIsTransitioning(true);
+        setTimeout(() => {
+            setShowEmailVerification(false);
             setActiveAuthModal('login');
             setIsTransitioning(false);
         }, 400); // Match the CSS transition duration
     };
 
+    // -------------------------------------------------------- Handle Show Forgot Password.
+    const handleShowForgotPassword = () => {
+        setIsTransitioning(true);
+        setTimeout(() => {
+            setShowForgotPassword(true);
+            setIsTransitioning(false);
+        }, 400); // Match The CSS Transition Duration.
+    };
+
+    // -------------------------------------------------------- Handle Back from Forgot Password.
+    const handleBackFromForgotPassword = () => {
+        setIsTransitioning(true);
+        setTimeout(() => {
+            setShowForgotPassword(false);
+            setIsTransitioning(false);
+        }, 400); // Match The CSS Transition Duration.
+    };
+
+    // -------------------------------------------------------- Handle Modal Switch With Animation.
+    const handleSwitchToLogin = () => {
+        setIsTransitioning(true);
+        setTimeout(() => {
+            setActiveAuthModal('login');
+            setIsTransitioning(false);
+        }, 400); // Match The CSS Transition Duration.
+    };
+
+    // -------------------------------------------------------- Handle Modal Switch With Animation.
     const handleSwitchToSignUp = () => {
         setIsTransitioning(true);
         setTimeout(() => {
             setActiveAuthModal('signup');
             setIsTransitioning(false);
-        }, 400); // Match the CSS transition duration
+        }, 400); // Match The CSS Transition Duration.
     };
 
+    // -------------------------------------------------------- Return The Entire Screen.
     return (
         <ScreenContainer>
+            {/* Back Button. */}
             <BackButton onClick={onBack}>
                 <FontAwesomeIcon icon={faArrowLeft} />
-                Back to Home
+                Back to Welcome Page
             </BackButton>
-            
+        
+            {/* Auth Container. */}
             <AuthContainer>
-                {/* Left Side - Auth Form */}
+                {/* Left Side - Auth Form. */}
                 <LeftGrid>
                     <ModalWrapper $isTransitioning={isTransitioning}>
-                        {activeAuthModal === 'signup' ? (
+                        {showEmailVerification ? (
+                            <EmailVerificationModal 
+                                userEmail={userEmail}
+                                onShowLogin={handleShowLoginFromVerification}
+                                onEmailVerificationComplete={handleEmailVerificationComplete}
+                            />
+                        ) : showForgotPassword ? (
+                            <ForgotPasswordModal 
+                                onBack={handleBackFromForgotPassword}
+                                onSuccess={(email) => {
+                                    console.log('Password reset email sent to:', email);
+                                    // Could show a success message or redirect
+                                }}
+                            />
+                        ) : modalType === 'signup' || activeAuthModal === 'signup' ? (
                             <SignUpModal 
                                 onSignUpSuccess={handleSignUpSuccess}
                                 onShowLogin={handleSwitchToLogin}
@@ -65,16 +144,18 @@ const AccountSetUpScreen = ({ onBack, onSignUpSuccess, onLoginSuccess, modalType
                             <LoginModal 
                                 onLoginSuccess={handleLoginSuccess}
                                 onShowSignUp={handleSwitchToSignUp}
+                                onShowForgotPassword={handleShowForgotPassword}
                             />
                         )}
                     </ModalWrapper>
                 </LeftGrid>
                 
-                {/* Right Side - Reviews */}
+                {/* Right Side - Reviews. */}
                 <ReviewsSection>
                     <ReviewsContainer>
                         <ReviewsTitle>What Our Users Say</ReviewsTitle>
                         <ReviewsSubtitle>Join thousands of satisfied customers</ReviewsSubtitle>
+                        <ReviewsDisclaimer>* Sample reviews for demonstration purposes</ReviewsDisclaimer>
                         
                         <ReviewsList>
                             <ReviewCard $align="start" $index={0}>
@@ -157,6 +238,8 @@ const AccountSetUpScreen = ({ onBack, onSignUpSuccess, onLoginSuccess, modalType
 };
 
 // -------------------------------------------------------- Styled Components.
+
+// -------------------------------------------------------- Screen Container.
 const ScreenContainer = styled.div`
     display: flex;
     align-items: center;
@@ -168,6 +251,7 @@ const ScreenContainer = styled.div`
     z-index: 1000;
 `;
 
+// -------------------------------------------------------- Back Button.
 const BackButton = styled.button`
     font: inherit;
     position: absolute;
@@ -200,6 +284,7 @@ const BackButton = styled.button`
     }
 `;
 
+// -------------------------------------------------------- Auth Container.
 const AuthContainer = styled.div`
     width: 100%;
     display: grid;
@@ -216,6 +301,7 @@ const AuthContainer = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Left Grid.
 const LeftGrid = styled.div`
     display: flex;
     width: 100%;
@@ -224,6 +310,7 @@ const LeftGrid = styled.div`
     align-self: flex-start;
 `;
 
+// -------------------------------------------------------- Modal Wrapper.
 const ModalWrapper = styled.div`
     width: 100%;
     display: flex;
@@ -234,6 +321,7 @@ const ModalWrapper = styled.div`
     opacity: ${props => props.$isTransitioning ? '0.8' : '1'};
 `;
 
+// -------------------------------------------------------- Reviews Section.
 const ReviewsSection = styled.div`
     width: 100%;
     display: flex;
@@ -259,6 +347,7 @@ const ReviewsSection = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Reviews Container.
 const ReviewsContainer = styled.div`
     max-width: 800px;
     width: 100%;
@@ -266,6 +355,7 @@ const ReviewsContainer = styled.div`
     z-index: 1;
 `;
 
+// -------------------------------------------------------- Reviews Title.
 const ReviewsTitle = styled.h2`
     font-size: 2.5rem;
     font-weight: 700;
@@ -274,13 +364,24 @@ const ReviewsTitle = styled.h2`
     text-align: center;
 `;
 
+// -------------------------------------------------------- Reviews Subtitle.
 const ReviewsSubtitle = styled.p`
     color: rgba(255, 255, 255, 0.9);
     text-align: center;
-    margin: 0 0 3rem 0;
+    margin: 0 0 0.5rem 0;
     font-size: 1.1rem;
 `;
 
+// -------------------------------------------------------- Reviews Disclaimer.
+const ReviewsDisclaimer = styled.p`
+    color: rgba(255, 255, 255, 0.6);
+    text-align: center;
+    margin: 0 0 3rem 0;
+    font-size: 0.8rem;
+    font-style: italic;
+`;
+
+// -------------------------------------------------------- Reviews List.
 const ReviewsList = styled.div`
     display: flex;
     flex-direction: column;
@@ -288,6 +389,7 @@ const ReviewsList = styled.div`
     margin-bottom: 3rem;
 `;
 
+// -------------------------------------------------------- Review Card.
 const ReviewCard = styled.div`
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
@@ -316,6 +418,7 @@ const ReviewCard = styled.div`
     }
 `;
 
+// -------------------------------------------------------- Review Header.
 const ReviewHeader = styled.div`
     display: flex;
     align-items: center;
@@ -323,6 +426,7 @@ const ReviewHeader = styled.div`
     margin-bottom: 1rem;
 `;
 
+// -------------------------------------------------------- Reviewer Avatar.
 const ReviewerAvatar = styled.div`
     width: 50px;
     height: 50px;
@@ -336,10 +440,12 @@ const ReviewerAvatar = styled.div`
     font-size: 1.1rem;
 `;
 
+// -------------------------------------------------------- Reviewer Info.
 const ReviewerInfo = styled.div`
     flex: 1;
 `;
 
+// -------------------------------------------------------- Reviewer Name.
 const ReviewerName = styled.h4`
     color: white;
     margin: 0;
@@ -347,12 +453,14 @@ const ReviewerName = styled.h4`
     font-weight: 600;
 `;
 
+// -------------------------------------------------------- Reviewer Title.
 const ReviewerTitle = styled.p`
     color: rgba(255, 255, 255, 0.8);
     margin: 0;
     font-size: 0.9rem;
 `;
 
+// -------------------------------------------------------- Stars Container.
 const StarsContainer = styled.div`
     display: flex;
     gap: 0.25rem;
@@ -360,6 +468,7 @@ const StarsContainer = styled.div`
     font-size: 0.9rem;
 `;
 
+// -------------------------------------------------------- Review Text.
 const ReviewText = styled.p`
     color: rgba(255, 255, 255, 0.9);
     line-height: 1.6;
@@ -367,4 +476,5 @@ const ReviewText = styled.p`
     font-style: italic;
 `;
 
+// -------------------------------------------------------- Export AccountSetUpScreen Component.
 export default AccountSetUpScreen;

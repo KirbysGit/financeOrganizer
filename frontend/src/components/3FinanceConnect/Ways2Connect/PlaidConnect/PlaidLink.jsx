@@ -1,3 +1,10 @@
+// PlaidLink.jsx
+//
+// This is the component that is used to create the Plaid Link for the Plaid API.
+//
+// This button exists at the bottom of the PlaidModal component, this is how we trigger the actual Plaid
+// functionality to connect the user's bank account.
+
 // Imports.
 import { styled } from 'styled-components';
 import React, { useEffect, useState } from 'react';
@@ -19,7 +26,7 @@ const PlaidLink = ({ onSuccess, onError }) => {
         initializePlaidLink();
     }, []);
 
-    // Initialize The Link For Plaid API.
+    // -------------------------------------------------------- Initialize The Link For Plaid API.
     const initializePlaidLink = async () => {
         try {
             // Create UserID, Set Up Response For Plaid Link Token.
@@ -37,7 +44,7 @@ const PlaidLink = ({ onSuccess, onError }) => {
         }
     };
 
-    // Handle Successful Plaid Connection.
+    // -------------------------------------------------------- Handle Successful Plaid Connection.
     const handlePlaidSuccess = async (publicToken, metadata) => {
         try {
             console.log('\n🎉 PLAID LINK SUCCESS!');
@@ -83,19 +90,15 @@ const PlaidLink = ({ onSuccess, onError }) => {
         }
     };
 
-    // Fetch Transactions With Retry Logic.
+    // -------------------------------------------------------- Fetch Transactions With Retry Logic.
     const fetchTransactionsWithRetry = async (accessToken, metadata, retryCount = 0) => {
-        const maxRetries = 3;
-        
-        console.log(`\n🔄 FETCH ATTEMPT ${retryCount + 1}/${maxRetries + 1}`);
-        console.log('🔑 Using Access Token:', accessToken.substring(0, 20) + '...');
-        
+        const maxRetries = 3; // State 4 The Maximum Number Of Retries.
+
         try {
+            // Fetch Transactions.
             const transactionsResponse = await fetchPlaidTransactions(accessToken);
-            console.log('✅ TRANSACTION FETCH SUCCESS!');
-            console.log('📊 Response Data:', transactionsResponse.data);
             
-            // Success! Show results
+            // Success! Show Results.
             if (onSuccess) {
                 const successData = {
                     accessToken,
@@ -107,37 +110,27 @@ const PlaidLink = ({ onSuccess, onError }) => {
                     accountCount: metadata.accounts?.length || 0
                 };
                 
-                console.log('🎯 Calling onSuccess with data:', successData);
                 onSuccess(successData);
             }
             
         } catch (error) {
-            console.log(`❌ FETCH ATTEMPT ${retryCount + 1} FAILED`);
-            console.log('   - Error:', error.message);
-            console.log('   - Status:', error.response?.status);
-            console.log('   - Response Data:', error.response?.data);
-            
             const errorData = error.response?.data?.detail;
             
-            // Check if this is a PRODUCT_NOT_READY error (status 202)
+            // Check If This Is A PRODUCT_NOT_READY Error (Status 202).
             if (error.response?.status === 202 && errorData?.error === 'PRODUCT_NOT_READY') {
-                console.log('⏰ PRODUCT_NOT_READY detected');
-                
                 if (retryCount < maxRetries) {
-                    // Show user-friendly message about the delay
+                    // Show User-Friendly Message About The Delay.
                     const message = `Processing your bank data... This may take a moment in sandbox mode. Attempt ${retryCount + 1}/${maxRetries + 1}`;
-                    console.log('📢 User message:', message);
                     setError(message);
                     
-                    // Wait and retry
-                    console.log('⏳ Waiting 5 seconds before retry...');
+                    // Wait And Retry.
                     setTimeout(() => {
                         fetchTransactionsWithRetry(accessToken, metadata, retryCount + 1);
-                    }, 5000); // Wait 5 seconds before retry
+                    }, 5000); // Wait 5 Seconds Before Retry.
                     
-                    return; // Don't proceed to error handling
+                    return; // Don't Proceed To Error Handling.
                 } else {
-                    // Max retries reached
+                    // Max Retries Reached.
                     console.log('🏁 Max retries reached - showing partial success');
                     if (onSuccess) {
                         const partialSuccessData = {
@@ -150,31 +143,28 @@ const PlaidLink = ({ onSuccess, onError }) => {
                             isProcessing: true
                         };
                         
-                        console.log('🎯 Calling onSuccess with partial data:', partialSuccessData);
                         onSuccess(partialSuccessData);
                     }
                     return;
                 }
             }
             
-            // Other errors
-            console.log('💥 Non-retryable error - throwing');
+            // Other Errors.
             throw error;
         }
     };
 
-    // Handle Plaid Exit.
+    // -------------------------------------------------------- Handle Plaid Exit.
     const handlePlaidExit = (error, metadata) => {
         if (error) {
             // Display Error & Exit Properly.
-            console.error('Plaid Link exit with error:', error);
             if (onError) {
                 onError('Bank connection was cancelled or failed.');
             }
         }
     };
 
-    // Open Plaid Link.
+    // -------------------------------------------------------- Open Plaid Link.
     const openPlaidLink = () => {
         // If No Link Token, Error & Exit.
         if (!linkToken) {
@@ -195,7 +185,7 @@ const PlaidLink = ({ onSuccess, onError }) => {
         handler.open();
     };
 
-    // Load Plaid Script If Not Loaded.
+    // -------------------------------------------------------- Load Plaid Script If Not Loaded.
     useEffect(() => {
         if (!window.Plaid) {
             const script = document.createElement('script');
@@ -204,6 +194,8 @@ const PlaidLink = ({ onSuccess, onError }) => {
             document.body.appendChild(script);
         }
     }, []);
+
+    // -------------------------------------------------------- Render.
 
     return (
         <PlaidContainer>
@@ -302,4 +294,5 @@ const ErrorMessage = styled.div`
     max-width: 300px;
 `;
 
+// -------------------------------------------------------- Export PlaidLink Component.
 export default PlaidLink; 

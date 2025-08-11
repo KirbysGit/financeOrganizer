@@ -1,3 +1,10 @@
+// AccountCard.jsx
+
+// This is a sub-component of our Accounts component, this just modularizes the account cards into its own file
+// because we have specific functions for the account cards that we want to reuse throughout the project, and 
+// furthermore, in the future handling the various types of accounts I know will be a pain, so I'm just starting
+// out with a modularized file for the account cards.
+
 // Imports.
 import React from 'react';
 import styled from 'styled-components';
@@ -9,7 +16,7 @@ import {
 
 // ------------------------------------------------------------------------------------------------ Helper Functions.
 
-// Formats Currency For Display Taking In 'amount' As A Parameter.
+// -------------------------------------------------------- Formats USD Currecy.
 const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
         style: 'currency',
@@ -17,18 +24,7 @@ const formatCurrency = (amount) => {
     }).format(amount);
 };
 
-// Gets Account Type Color Based On The Type Of Account.
-const getAccountTypeColor = (type) => {
-    const colors = {
-        depository: 'rgb(40, 167, 69)',
-        credit: 'rgb(220, 53, 69)',
-        loan: 'rgb(255, 193, 7)',
-        investment: 'rgb(13, 110, 253)'
-    };
-    return colors[type] || 'rgb(100, 100, 100)';
-};
-
-// Gets Account Type Icon Based On The Type Of Account.
+// -------------------------------------------------------- Gets Account Type Icon.
 const getAccountTypeIcon = (type) => {
     const icons = {
     depository: <Building2 size={24} />,
@@ -39,7 +35,7 @@ const getAccountTypeIcon = (type) => {
   return icons[type] || <Wallet size={24} />;
 };
 
-// Gets Account Type Label Based On The Type Of Account.
+// -------------------------------------------------------- Gets Account Type Label.
 const getAccountTypeLabel = (type) => {
     const labels = {
         depository: 'Bank Account',
@@ -51,7 +47,7 @@ const getAccountTypeLabel = (type) => {
     return labels[type] || 'Account';
 };
 
-// Gets Account Subtype Label Based On The Subtype.
+// -------------------------------------------------------- Gets Account Subtype Label.
 const getAccountSubtypeLabel = (subtype) => {
     const labels = {
         checking: 'Checking',
@@ -70,13 +66,13 @@ const getAccountSubtypeLabel = (subtype) => {
     return labels[subtype] || subtype;
 };
 
-// Formats Account Mask For Display.
+// -------------------------------------------------------- Formats Account Mask.
 const formatAccountMask = (mask) => {
     if (!mask) return null;
     return `****${mask}`;
 };
 
-// Gets Account Status Based On Available Balance.
+// -------------------------------------------------------- Gets Account Status.
 const getAccountStatus = (currentBalance, availableBalance, type) => {
     if (type === 'credit') {
         return {
@@ -106,7 +102,7 @@ const getAccountStatus = (currentBalance, availableBalance, type) => {
     };
 };
 
-// Formats Last Updated Time.
+// -------------------------------------------------------- Formats Last Updated Time.
 const formatLastUpdated = (updatedAt) => {
     const date = new Date(updatedAt);
     const now = new Date();
@@ -128,9 +124,9 @@ const AccountCard = ({ account, isExpanded, onToggle }) => {
             $type={account.type}
             $expanded={isExpanded}
         >
-            {/* Collapsed State - Summary View */}
+            {/* Collapsed State - Summary View. */}
             <CardSummary onClick={() => onToggle(account.id)}>
-                {/* Left Side - Account Info */}
+                {/* Left Side - Account Info. */}
                 <AccountInfoSection>
                     <AccountIcon $type={account.type}>{getAccountTypeIcon(account.type)}</AccountIcon>
                     <AccountDetails>
@@ -140,7 +136,7 @@ const AccountCard = ({ account, isExpanded, onToggle }) => {
                     </AccountDetails>
                 </AccountInfoSection>
                 
-                {/* Right Side - Balance & Status */}
+                {/* Right Side - Balance & Status. */}
                 <AccountSummary>
                     <BalanceSection>
                         <BalanceAmount>{formatCurrency(account.current_balance)}</BalanceAmount>
@@ -159,7 +155,7 @@ const AccountCard = ({ account, isExpanded, onToggle }) => {
                     </StatusSection>
                 </AccountSummary>
                 
-                {/* Expand Toggle */}
+                {/* Expand Toggle. */}
                 <ExpandToggle $expanded={isExpanded}>
                     <ChevronIcon $expanded={isExpanded}>
                         <FaChevronDown />   
@@ -167,12 +163,12 @@ const AccountCard = ({ account, isExpanded, onToggle }) => {
                 </ExpandToggle>
             </CardSummary>
             
-            {/* Expanded State - Detailed View */}
+            {/* Expanded State - Detailed View. */}
             {isExpanded && (
                 <CardExpanded onClick={(e) => e.stopPropagation()}>
-                    {/* Left Column - Balance Details & Account Info */}
+                    {/* Left Column - Balance Details & Account Info. */}
                     <LeftColumn>
-                        {/* Balance Details Section */}
+                        {/* Balance Details Section. */}
                         <BalanceDetailsSection>
                             <MetadataTitle>Balance Details</MetadataTitle>
                             <TitleDivider />
@@ -203,7 +199,7 @@ const AccountCard = ({ account, isExpanded, onToggle }) => {
                             </BalanceDetailsGrid>
                         </BalanceDetailsSection>
                         
-                        {/* Account Information Section */}
+                        {/* Account Information Section. */}
                         <MetadataSection>
                             <MetadataTitle>Account Information</MetadataTitle>
                             <TitleDivider />
@@ -250,15 +246,15 @@ const AccountCard = ({ account, isExpanded, onToggle }) => {
                         </MetadataSection>
                     </LeftColumn>
                     
-                    {/* Right Column - Chart & Financial Impact */}
+                    {/* Right Column - Chart & Financial Impact. */}
                     <RightColumn>
-                        {/* Chart Placeholder */}
+                        {/* Chart Placeholder. */}
                         <ChartSection>
                             <EmptyChartContainer>
                                 <YAxisTitle>Value ($)</YAxisTitle>
                                 <XAxisTitle>Month / Time</XAxisTitle>
                                 <EmptyChartGrid>
-                                    {/* Y-axis labels */}
+                                    {/* Y-axis labels. */}
                                     <YAxisLabels>
                                         <YAxisLabel>100</YAxisLabel>
                                         <YAxisLabel>80</YAxisLabel>
@@ -268,7 +264,7 @@ const AccountCard = ({ account, isExpanded, onToggle }) => {
                                         <YAxisLabel>0</YAxisLabel>
                                     </YAxisLabels>
                                     
-                                    {/* Chart area with grid */}
+                                    {/* Chart area with grid. */}
                                     <ChartArea>
                                         <GridLines>
                                             <GridLine />
@@ -278,14 +274,14 @@ const AccountCard = ({ account, isExpanded, onToggle }) => {
                                             <GridLine />
                                         </GridLines>
                                         
-                                        {/* Empty tooltip in center */}
+                                        {/* Empty tooltip in center. */}
                                         <EmptyTooltip>
                                             <TooltipIcon>📊</TooltipIcon>
                                             <TooltipText>No growth data available from this account</TooltipText>
                                         </EmptyTooltip>
                                     </ChartArea>
                                     
-                                    {/* X-axis labels */}
+                                    {/* X-axis labels. */}
                                     <XAxisLabels>
                                         <XAxisLabel>Jan</XAxisLabel>
                                         <XAxisLabel>Feb</XAxisLabel>
@@ -297,7 +293,7 @@ const AccountCard = ({ account, isExpanded, onToggle }) => {
                             </EmptyChartContainer>
                         </ChartSection>
                         
-                        {/* Enhanced Data Section */}
+                        {/* Enhanced Data Section. */}
                         {(account.balance_change_30d !== null || account.growth_percentage_30d !== null || 
                           account.net_worth_contribution !== null || account.percentage_of_total_assets !== null) && (
                             <EnhancedDataSection>
@@ -342,7 +338,7 @@ const AccountCard = ({ account, isExpanded, onToggle }) => {
                                     </GrowthDataGrid>
                                 )}
                                 
-                                {/* Financial Impact */}
+                                {/* Financial Impact. */}
                                 <FinancialImpactGrid>
                                     <FinancialImpactItem>
                                         <FinancialImpactLabel>Net Worth Impact</FinancialImpactLabel>
@@ -370,7 +366,7 @@ const AccountCard = ({ account, isExpanded, onToggle }) => {
                                     )}
                                 </FinancialImpactGrid>
                                 
-                                {/* Health Indicators */}
+                                {/* Health Indicators. */}
                                 {(account.utilization_rate !== null || account.days_since_last_transaction !== null) && (
                                     <HealthIndicatorsGrid>
                                         {account.utilization_rate !== null && (
@@ -1086,4 +1082,5 @@ const HealthIndicatorValue = styled.span`
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 `;
 
+// -------------------------------------------------------- Export The AccountCard Component.
 export default AccountCard;

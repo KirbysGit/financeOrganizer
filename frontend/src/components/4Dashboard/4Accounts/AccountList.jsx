@@ -1,3 +1,13 @@
+// AccountList.jsx
+
+// This is the main component of the Accounts component, it is the component that displays the user's
+// accounts in a list format. It also has a type filter that allows the user to filter the accounts
+// by type, and an account card that displays the user's account data in a card format. It also has
+// a refresh button that allows the user to refresh the accounts, and a plaid modal that allows the
+// user to connect their bank accounts. Idea is to just have them listed, but in the future I want
+// to figure out a way to simplify the display a bit more, maybe a grid option instead of the listed
+// cards but for now I think its good.
+
 // Imports.
 import React from 'react';
 import styled, { keyframes, css } from 'styled-components';
@@ -115,11 +125,11 @@ const AccountList = ({ myStats, myAccounts, onUpload, onRefresh, id }) => {
     const handleAccountToggle = (accountId) => {
         console.log('Toggle account:', accountId, 'Current expanded:', expandedAccount);
         
-        // Handle Cash account (null ID) with a special identifier
+        // Handle Cash Account (Null ID) W/ A Special Identifier.
         if (accountId === null) {
             setExpandedAccount(expandedAccount === 'CASH_ACCOUNT' ? null : 'CASH_ACCOUNT');
         } else {
-            // For regular accounts, use the account ID
+            // For Regular Accounts, Use The Account ID.
             setExpandedAccount(expandedAccount === accountId ? null : accountId);
         }
     };
@@ -131,16 +141,16 @@ const AccountList = ({ myStats, myAccounts, onUpload, onRefresh, id }) => {
         setIsAnimating(true);
         setSelectedType(newType);
         
-        // Reset animation after a short delay
+        // Reset Animation After A Short Delay.
         setTimeout(() => {
             setIsAnimating(false);
-        }, 200); // Slightly longer than the animation duration
+        }, 200); // Slightly Longer Than The Animation Duration.
     };
 
-    // Get Unique Account Types, properly handling Cash account
+    // Get Unique Account Types, Properly Handling Cash Account.
     const uniqueTypes = [...new Set(accounts.map(acc => acc.type).filter(type => type && type !== ''))];
     
-    // Helper function to get account type label with special handling for Cash
+    // Helper Function To Get Account Type Label W/ Special Handling For Cash.
     const getAccountTypeLabelWithCount = (type) => {
         const count = accounts.filter(acc => acc.type === type).length;
         const label = getAccountTypeLabel(type);
@@ -155,6 +165,8 @@ const AccountList = ({ myStats, myAccounts, onUpload, onRefresh, id }) => {
             return 'there';
         }
     };
+
+    // -------------------------------------------------------- Render.
 
     // If Loading, Return Loading Message.
     if (loading) {
@@ -177,7 +189,7 @@ const AccountList = ({ myStats, myAccounts, onUpload, onRefresh, id }) => {
     
     return (
         <AccountListWrapper id={id}>
-            {/* Section Header */}
+            {/* Section Header. */}
             <SectionHeader>
                 <HeaderGrid>
                     <TitleRow>
@@ -220,7 +232,7 @@ const AccountList = ({ myStats, myAccounts, onUpload, onRefresh, id }) => {
                 </HeaderGrid>
             </SectionHeader>
 
-            {/* Type Filters */}
+            {/* Type Filters. */}
                 <TypeFilters>
                     <TypeFilter 
                         $active={selectedType === 'all'} 
@@ -243,13 +255,13 @@ const AccountList = ({ myStats, myAccounts, onUpload, onRefresh, id }) => {
                     })}
                 </TypeFilters>
 
-            {/* Account List */}
+            {/* Account List. */}
             <AccountListContainer $isAnimating={isAnimating}>
                 {accounts.length > 0 ? (
                     accounts
                         .filter(acc => selectedType === 'all' || acc.type === selectedType)
                         .map((acc, index) => {
-                            // Handle Cash account (null ID) with special logic
+                            // Handle Cash Account (Null ID) W/ A Special Logic.
                             const isExpanded = acc.id === null 
                                 ? expandedAccount === 'CASH_ACCOUNT'
                                 : expandedAccount === acc.id;
@@ -296,7 +308,7 @@ const AccountList = ({ myStats, myAccounts, onUpload, onRefresh, id }) => {
                 )}
             </AccountListContainer>
 
-            {/* Plaid Modal */}
+            {/* Plaid Modal. */}
             { plaidModal && (
                 <PlaidModalWrapper>
                     <PlaidModal 
@@ -304,7 +316,7 @@ const AccountList = ({ myStats, myAccounts, onUpload, onRefresh, id }) => {
                         onClose={() => setPlaidModal(false)}
                         onSuccess={() => {
                             setPlaidModal(false);
-                            // Optionally refresh data or show success message
+                            // Optionally Refresh Data Or Show Success Message.
                         }}
                     />
                 </PlaidModalWrapper>
@@ -315,7 +327,7 @@ const AccountList = ({ myStats, myAccounts, onUpload, onRefresh, id }) => {
 
 // ------------------------------------------------------------------------------------------------ Styled Components.
 
-// -------------------------------------------------------- Keyframes for animations.
+// -------------------------------------------------------- Keyframes For Animations.
 const fadeIn = keyframes`
     from {
         opacity: 0;
@@ -796,4 +808,5 @@ const Split = styled.div`
     position: relative;
 `;
 
+// -------------------------------------------------------- Export The AccountList Component.
 export default AccountList;

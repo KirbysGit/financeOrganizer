@@ -1,3 +1,8 @@
+# Parser Utils.
+#
+# Functions :
+#   - 'parse_chase_csv' - Parse Chase CSV File.
+
 # Imports.
 import pandas as pd
 from io import BytesIO

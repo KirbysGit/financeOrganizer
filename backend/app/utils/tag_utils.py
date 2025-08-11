@@ -1,8 +1,17 @@
+# Tag Utils.
+#
+# Functions :
+#   - 'create_default_tags' - Create Default Tags For A New User.
+#   - 'get_user_tags' - Get All Tags For A User.
+#   - 'get_tag_by_name' - Get A Specific Tag By Name For A User.
+
+# Imports.
 from sqlalchemy.orm import Session
 from app.database import Tag
 
+# -------------------------------------------------------- Create Default Tags.
 def create_default_tags(db: Session, user_id: int):
-    """Create default tags for a new user."""
+    """Create Default Tags For A New User."""
     
     default_tags = [
         {"name": "Travel", "emoji": "✈️", "color": "#9AA2E9"},
@@ -22,9 +31,10 @@ def create_default_tags(db: Session, user_id: int):
         {"name": "Utilities", "emoji": "⚡", "color": "#f59e0b"}
     ]
     
+    # Create Default Tags.
     created_tags = []
     for tag_data in default_tags:
-        # Check if tag already exists for this user
+        # Check If Tag Already Exists For This User.
         existing_tag = db.query(Tag).filter(
             Tag.user_id == user_id,
             Tag.name == tag_data["name"]
@@ -44,12 +54,14 @@ def create_default_tags(db: Session, user_id: int):
     db.commit()
     return created_tags
 
+# -------------------------------------------------------- Get User Tags.
 def get_user_tags(db: Session, user_id: int):
-    """Get all tags for a user."""
+    """Get All Tags For A User."""
     return db.query(Tag).filter(Tag.user_id == user_id).all()
 
+# -------------------------------------------------------- Get Tag By Name.
 def get_tag_by_name(db: Session, user_id: int, tag_name: str):
-    """Get a specific tag by name for a user."""
+    """Get A Specific Tag By Name For A User."""
     return db.query(Tag).filter(
         Tag.user_id == user_id,
         Tag.name == tag_name

@@ -1,3 +1,12 @@
+// TableHeader.jsx
+
+// This is the major sub-component for the Table, it serves to shorten the main TransactionTable file just becasue it
+// was getting too long, and when I started implementing the filters too the logic was too complex all in one file. So,
+// I modularized it a bunch, but this serves to have the title, refresh button, add menu with the add manual tx and 
+// upload file options, as well as t he search bar, an active count display, entries per page dropdown, and then all of
+// the filter dropdowns. I think it looks great, and I really like the way its set up, pretty simple and communicates
+// the filters well.
+
 // Imports.
 import React, { useRef, useState, useEffect } from 'react';
 import { styled } from 'styled-components';
@@ -17,17 +26,18 @@ import TagFilter from './TagFilter';
 
 // -------------------------------------------------------- AnimatedNumber Component.
 const AnimatedNumber = ({ value, duration = 1.5 }) => {
-    const prev = useRef(value); // remember the last shown number
+    // Remember The Last Shown Number.
+    const prev = useRef(value);
 
     return (
         <CountUp
-            start={prev.current} // ← animate *from* the last value
+            start={prev.current} // ← Animate *From* The Last Value.
             end={value}
             duration={duration}
             useEasing={true}
             separator=","
-            onEnd={() => (prev.current = value)} // keep the new value for next time
-            preserveValue // keeps the DOM text until next run
+            onEnd={() => (prev.current = value)} // Keep The New Value For Next Time.
+            preserveValue // Keeps The DOM Text Until Next Run.
         />
     );
 };
@@ -71,23 +81,23 @@ const TableHeader = ({
     tagFilter,
     onTagFilterChange
 }) => {
-    // Upload States
+    // Upload States.
     const [uploadModal, setUploadModal] = useState(false);
     const [uploadResult, setUploadResult] = useState(null);
 
-    // Date Filter States
+    // Date Filter States.
     const [showDateFilter, setShowDateFilter] = useState(false);
 
-    // Amount Filter States
+    // Amount Filter States.
     const [showAmountFilter, setShowAmountFilter] = useState(false);
 
-    // Account Filter States
+    // Account Filter States.
     const [showAccountFilter, setShowAccountFilter] = useState(false);
 
-    // Type Filter States
+    // Type Filter States.
     const [showTypeFilter, setShowTypeFilter] = useState(false);
 
-    // Tag Filter States
+    // Tag Filter States.
     const [showTagFilter, setShowTagFilter] = useState(false);
 
     // -------------------------------------------------------- Handle Click Outside Dropdown.
@@ -123,7 +133,7 @@ const TableHeader = ({
     const handleUpload = async (formData) => {
         try {
             const result = await onUpload(formData);
-            return result.data; // Return the data, not the full result
+            return result.data; // Return The Data, Not The Full Result.
         } catch (error) {
             console.error("Upload failed:", error);
             throw error;
@@ -134,7 +144,7 @@ const TableHeader = ({
     const handleUploadSuccess = (result) => {
         setUploadResult(result);
         setUploadModal(false);
-        // Show results modal instead of closing immediately
+        // Show Results Modal Instead Of Closing Immediately.
     };
 
     // -------------------------------------------------------- Handle Closing Upload Modal.
@@ -145,7 +155,7 @@ const TableHeader = ({
     // -------------------------------------------------------- Handle Results Close.
     const handleResultsClose = () => {
         setUploadResult(null);
-        // Optionally refresh data or show success message
+        // Optionally Refresh Data Or Show Success Message.
     };
 
     // -------------------------------------------------------- Handle Date Filter Apply.
@@ -175,21 +185,21 @@ const TableHeader = ({
 
     // -------------------------------------------------------- Handle Clear All Filters.
     const handleClearAllFilters = () => {
-        // Clear all filter states
+        // Clear All Filter States.
         setShowDateFilter(false);
         setShowAmountFilter(false);
         setShowAccountFilter(false);
         setShowTypeFilter(false);
         setShowTagFilter(false);
         
-        // Clear all filter data
+        // Clear All Filter Data.
         onDateFilterChange(null);
         onAmountFilterChange(null);
         onAccountFilterChange(null);
         onTypeFilterChange(null);
         onTagFilterChange(null);
         
-        // Reset search term
+        // Reset Search Term.
         setSearchTerm('');
     };
 
@@ -278,7 +288,7 @@ const TableHeader = ({
         <>
             <TableHeaderContainer>
                 <HeaderTitle>{title}</HeaderTitle>
-                {/* Add Menu - Moved outside TableContainer */}
+                {/* Add Menu - Moved Outside TableContainer. */}
                 <AddMenuWrapper className="add-menu-wrapper">
                     <RefreshButton 
                         onClick={handleRefresh} 
@@ -324,7 +334,7 @@ const TableHeader = ({
             </TableHeaderContainer>
 
             <HeaderControls>
-                {/* Search Row */}
+                {/* Search Row. */}
                 <SearchRow>
                     <ResultsInfo $maxWidth={resultsInfoWidth}>
                         Showing <b><AnimatedNumber value={indexOfFirst + 1} /></b> to <b><AnimatedNumber value={Math.min(indexOfLast, sortedTransactionsLength)} /></b> of <b><AnimatedNumber value={sortedTransactionsLength} /></b> transactions
@@ -347,7 +357,7 @@ const TableHeader = ({
                     </SearchContainer>
                 </SearchRow>
 
-                {/* Controls Row */}
+                {/* Controls Row. */}
                 <ControlsRow>
                     <EntriesSelector>
                         <span>Show</span>
@@ -366,6 +376,7 @@ const TableHeader = ({
                         <span>entries</span>
                     </EntriesSelector>
                     
+                    {/* Sorting Pills. */}
                     <SortingPills>
                         <PillWrapper className="date-filter-wrapper">
                             <FilterPill 
@@ -474,7 +485,7 @@ const TableHeader = ({
                 </ControlsRow>
             </HeaderControls>
 
-            {/* Upload Modal */}
+            {/* Upload Modal. */}
             { uploadModal && (
                 <FileUploadModal
                     isOpen={uploadModal}
@@ -485,7 +496,7 @@ const TableHeader = ({
                 />
             )}
 
-            {/* Upload Results Modal */}
+            {/* Upload Results Modal. */}
             { uploadResult && (
                 <UploadResultModal
                     isOpen={!!uploadResult}
@@ -497,9 +508,9 @@ const TableHeader = ({
     );
 };
 
-// -------------------------------------------------------- Styled Components.
+// ------------------------------------------------------------------------------------------------ Styled Components.
 
-// -------------------------------------------------------- Table Header.
+// -------------------------------------------------------- Table Header Container.
 const TableHeaderContainer = styled.div`
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -509,7 +520,7 @@ const TableHeaderContainer = styled.div`
     overflow: visible;
     padding: 2rem 2rem 0 2rem; /* Match AccountList padding */
 `;
-// -------------------------------------------------------- Header Title. ("Transaction History")
+// -------------------------------------------------------- Header Title. ("Transaction History").
 const HeaderTitle = styled.h2`
     font-size: 3rem;
     font-weight: 700;
@@ -523,7 +534,7 @@ const HeaderTitle = styled.h2`
     position: relative;
     z-index: 1;
 `;
-// -------------------------------------------------------- Header Controls (Search Row & Controls Row)
+// -------------------------------------------------------- Header Controls (Search Row & Controls Row).
 const HeaderControls = styled.div`
     width: 100%;
     padding: 1rem 2rem;
@@ -534,7 +545,7 @@ const HeaderControls = styled.div`
     z-index: 1;
     margin-right: 4rem; /* Make room for the AddMenuWrapper */
 `;
-// -------------------------------------------------------- Search Row. (ResultsInfo & SearchContainer)
+// -------------------------------------------------------- Search Row. (ResultsInfo & SearchContainer).
 const SearchRow = styled.div`
     display: grid;
     grid-template-columns: max-content 1fr;
@@ -544,7 +555,7 @@ const SearchRow = styled.div`
     position: relative;
     z-index: 1;
 `;
-// -------------------------------------------------------- ResultsInfo. (Showing #1 to #10 of #100 transactions)
+// -------------------------------------------------------- ResultsInfo. (Showing #1 to #10 of #100 transactions).
 const ResultsInfo = styled.div`
     padding: 0.75rem 1.5rem;
     border: 2px solid transparent;
@@ -572,7 +583,7 @@ const ResultsInfo = styled.div`
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
     }
 `;
-// -------------------------------------------------------- SearchContainer. (SearchIcon & SearchInput)
+// -------------------------------------------------------- SearchContainer. (SearchIcon & SearchInput).
 const SearchContainer = styled.div`
     position: relative;
     display: flex;
@@ -590,7 +601,7 @@ const SearchContainer = styled.div`
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
     }
 `;
-// -------------------------------------------------------- SearchIcon. (FontAwesomeIcon)
+// -------------------------------------------------------- SearchIcon. (FontAwesomeIcon).
 const SearchIcon = styled.div`
     font-size: 1rem;
     color: var(--text-secondary);
@@ -598,7 +609,7 @@ const SearchIcon = styled.div`
     pointer-events: none;
     z-index: 2;
 `;
-// -------------------------------------------------------- SearchInput. (FontAwesomeIcon)
+// -------------------------------------------------------- SearchInput. (FontAwesomeIcon).
 const SearchInput = styled.input`
     font: inherit;
     width: 100%;
@@ -619,7 +630,7 @@ const SearchInput = styled.input`
         border: none;
     }
 `;
-// -------------------------------------------------------- ControlsRow. (EntriesSelector & SortingPills)
+// -------------------------------------------------------- ControlsRow. (EntriesSelector & SortingPills).
 const ControlsRow = styled.div`
     display: grid;
     grid-template-columns: max-content 1fr;

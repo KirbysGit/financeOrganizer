@@ -1,7 +1,15 @@
+// StrengthIndicator.jsx
+
+// This is the main component of the CentiScore component, it is the component that displays the user's
+// Centi Score data in a card format. It also has a prompt card that displays a message to the user
+// to calculate their score, and a loading card that displays a loading message to the user. It also
+// has a results card that displays the user's Centi Score data in a card format.
+
 // Imports.
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import MeterGauge from './MeterGauge';
+
+// Local Imports.
 import ResultsCard from './ResultsCard';
 import { calculateWeeklyScore } from '../../../services/api';
 
@@ -21,21 +29,19 @@ const StrengthIndicator = ({ id, myStats, myCentiScore, myCentiScoreHistory, myC
     const [countdown, setCountdown] = useState('');                 // State 4 Countdown Display.
     const [growthData, setGrowthData] = useState(null);             // State 4 Growth Analysis Data.
 
-    // Check if there's enough data to calculate a score
+    // Check If There's Enough Data To Calculate A Score.
     const hasEnoughData = () => {
-        // Check if we have stats with meaningful data
+        // Check If We Have Stats With Meaningful Data.
         if (!myStats) {
             console.log('StrengthIndicator: myStats is null/undefined');
             return false;
         }
         
-        console.log('StrengthIndicator: myStats object:', myStats);
-        
-        // Check for transactions, accounts, or files
-        // The backend returns totals.transactions, totals.accounts, but we need to check if totals exists
+        // Check For Transactions, Accounts, Or Files.
+        // The Backend Returns Totals.Transactions, Totals.Accounts, But We Need To Check If Totals Exists.
         const hasTransactions = myStats.totals?.transactions > 0;
         const hasAccounts = myStats.totals?.accounts > 0;
-        const hasFiles = myStats.total_files > 0; // This might not exist in the backend response
+        const hasFiles = myStats.total_files > 0; // This Might Not Exist In The Backend Response.
         
         console.log('StrengthIndicator: Data checks:', {
             hasTransactions,
@@ -49,7 +55,7 @@ const StrengthIndicator = ({ id, myStats, myCentiScore, myCentiScoreHistory, myC
         return hasTransactions || hasAccounts || hasFiles;
     };
 
-    // Typewriter tagline messages
+    // Typewriter Tagline Messages.
     const stageMessages = [
         'Grabbing your data …',
         'Crunching the numbers …',
@@ -58,7 +64,7 @@ const StrengthIndicator = ({ id, myStats, myCentiScore, myCentiScoreHistory, myC
 
     const [tagline, setTagline] = useState(stageMessages[0]);
 
-    // Typewriter effect for loading messages
+    // Typewriter Effect For Loading Messages.
     useEffect(() => {
         if (isLoading && loadingStage > 0 && loadingStage <= stageMessages.length) {
             setTagline(stageMessages[loadingStage - 1]);
@@ -70,7 +76,7 @@ const StrengthIndicator = ({ id, myStats, myCentiScore, myCentiScoreHistory, myC
         const now = new Date();
         const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
         
-        // Calculate days until next Monday
+        // Calculate Days Until Next Monday.
         let daysUntilNextMonday;
         if (currentDay === 1) { // If it's Monday
             daysUntilNextMonday = 7; // Next Monday is 7 days away
@@ -80,7 +86,7 @@ const StrengthIndicator = ({ id, myStats, myCentiScore, myCentiScoreHistory, myC
         
         const nextMonday = new Date(now);
         nextMonday.setDate(now.getDate() + daysUntilNextMonday);
-        nextMonday.setHours(0, 0, 0, 0); // Set to 12:00 AM
+        nextMonday.setHours(0, 0, 0, 0); // Set To 12:00 AM.
         return nextMonday;
     };
 
@@ -114,7 +120,7 @@ const StrengthIndicator = ({ id, myStats, myCentiScore, myCentiScoreHistory, myC
         };
         
         updateCountdown();
-        const interval = setInterval(updateCountdown, 60000); // Update every minute
+        const interval = setInterval(updateCountdown, 60000); // Update Every Minute.
         
         return () => clearInterval(interval);
     }, [nextUpdate]);
@@ -137,22 +143,22 @@ const StrengthIndicator = ({ id, myStats, myCentiScore, myCentiScoreHistory, myC
         const startTime = Date.now();
         
         try {
-            // Stage 1: Grabbing your data
+            // Stage 1: Grabbing Your Data.
             setLoadingStage(1);
             setLoadingProgress(20);
             await new Promise(resolve => setTimeout(resolve, 1000));
             
-            // Stage 2: Calculating the score
+            // Stage 2: Calculating The Score.
             setLoadingStage(2);
             setLoadingProgress(60);
             await new Promise(resolve => setTimeout(resolve, 1200));
             
-            // Stage 3: Generating insights
+            // Stage 3: Generating Insights.
             setLoadingStage(3);
             setLoadingProgress(85);
             await new Promise(resolve => setTimeout(resolve, 800));
             
-            // Call backend API to calculate and store weekly score
+            // Call Backend API To Calculate And Store Weekly Score.
             const response = await calculateWeeklyScore();
             const scoreData = response.data;
             
@@ -171,15 +177,15 @@ const StrengthIndicator = ({ id, myStats, myCentiScore, myCentiScoreHistory, myC
             setLoadingProgress(100);
             await new Promise(resolve => setTimeout(resolve, 200));
 
-            // Set Score and show results
+            // Set Score And Show Results.
             setScore(scoreData.total_score);
             setShowResults(true);
             setLastCalculated(new Date(scoreData.created_at));
             
-            // Set next update time
+            // Set Next Update Time.
             setNextUpdate(getNextMonday12AM());
             
-            // Load the updated score data for breakdown and growth
+            // Load The Updated Score Data For Breakdown And Growth.
             await loadCurrentScore();
             await loadGrowthData();
             
@@ -201,7 +207,7 @@ const StrengthIndicator = ({ id, myStats, myCentiScore, myCentiScoreHistory, myC
                 setLastCalculated(myCentiScore.last_updated ? new Date(myCentiScore.last_updated) : new Date());
                 setIsWeeklyScore(myCentiScore.is_weekly_score || false);
                 
-                // Set next update time if we have a last calculated date
+                // Set Next Update Time If We Have A Last Calculated Date.
                 if (myCentiScore.last_updated) {
                     setNextUpdate(getNextMonday12AM());
                 }
@@ -220,6 +226,7 @@ const StrengthIndicator = ({ id, myStats, myCentiScore, myCentiScoreHistory, myC
     // -------------------------------------------------------- Return.
     return (
         <StrengthIndicatorContainer id={id}>
+            {/* Prompt Card. */}
             {showPrompt && !showResults && (
                 <PromptCard>
                     <LeftSide>
@@ -237,8 +244,8 @@ const StrengthIndicator = ({ id, myStats, myCentiScore, myCentiScoreHistory, myC
                         <PromptButton 
                             onClick={() => {
                                 if (hasEnoughData()) {
-                                    setShowPrompt(false);
-                                    handleCalculateClick();
+                            setShowPrompt(false);
+                            handleCalculateClick();
                                 }
                             }}
                             $hasData={hasEnoughData()}
@@ -249,6 +256,7 @@ const StrengthIndicator = ({ id, myStats, myCentiScore, myCentiScoreHistory, myC
                 </PromptCard>
             )}
 
+            {/* Loading Card. */}
             {isLoading && (
                 <LoadingCard isLoading={isLoading} showResults={showResults}>
                     <LoadingSpinner />
@@ -259,6 +267,7 @@ const StrengthIndicator = ({ id, myStats, myCentiScore, myCentiScoreHistory, myC
                 </LoadingCard>
             )}
 
+            {/* Results Card. */}
             {showResults && score !== null && (
                 <ResultsCard
                     score={score}
@@ -613,5 +622,5 @@ const LeftEmoji = styled.div`
 const RightText = styled.div`
     font-size: 1.25rem;
 `;
-// Export Component.
+// Export The StrengthIndicator Component.
 export default StrengthIndicator;

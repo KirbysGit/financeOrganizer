@@ -69,7 +69,7 @@ const slideUp = keyframes`
 `;
 
 // Dashboard Component.
-const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHasConnectedData, onLogout }) => {
+const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHasConnectedData, onLogout, onClearDataFlags }) => {
 
     const [loading, setLoading] = useState(true);               // State 4 Loading State.
     const [stats, setStats] = useState({});                     // State 4 Stats Data.
@@ -150,6 +150,33 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
         }
     }, []);
 
+    // -------------------------------------------------------- Check If User Actually Has Data.
+    useEffect(() => {
+        const checkForActualData = async () => {
+            // Only check after loading is complete
+            if (!loading && (transactions.length === 0 && files.length === 0 && accounts.length === 0)) {
+                // Check if user intentionally skipped setup
+                const userSkippedSetup = localStorage.getItem('userSkippedSetup') === 'true';
+                
+                if (userSkippedSetup) {
+                    console.log('Dashboard: User intentionally skipped setup, allowing dashboard access...');
+                    // Don't redirect - user can explore the dashboard
+                    return;
+                } else {
+                    console.log('Dashboard: No actual data found and user didn\'t skip, redirecting to FinanceConnect...');
+                    // Clear data flags since there's no actual data
+                    if (onClearDataFlags) {
+                        onClearDataFlags();
+                    }
+                    // Redirect to FinanceConnect
+                    window.location.href = '/';
+                }
+            }
+        };
+
+        checkForActualData();
+    }, [loading, transactions.length, files.length, accounts.length, onClearDataFlags]);
+
     // -------------------------------------------------------- Load All Data.
     const loadAllData = async () => {
         // Guard Against Double Loading.
@@ -189,6 +216,11 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
             // Set Loading To False.
             setLoading(false);
             isLoadingRef.current = false;
+            
+            // Check if we actually loaded any data
+            if (transactions.length === 0 && files.length === 0 && accounts.length === 0) {
+                console.log('Dashboard: No data loaded, user should be redirected to FinanceConnect');
+            }
         }
     };
 

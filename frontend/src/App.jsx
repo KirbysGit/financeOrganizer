@@ -87,22 +87,20 @@ function App() {
         
         clearProblematicStorage();
         
-        // Only Check For Existing Data If We Haven't Already Navigated From Login.
-        if (!hasNavigatedFromLogin) {
-          // Check For Existing Data And Determine Navigation.
-          const hasExistingData = await checkForExistingData();
-          
-          console.log('App: Navigation decision:', { hasExistingData });
-          
-          if (hasExistingData) {
-            // User Has Connected Data, Go To Dashboard.
-            console.log('App: User has existing data, navigating to dashboard...');
-            setCurrentPage('dashboard');
-          } else {
-            // User Is Authenticated But No Data, Go To Finance Connect.
-            console.log('App: User has no existing data, navigating to finance connect...');
-            setCurrentPage('finance-connect');
-          }
+        // Always check for existing data on page refresh/load
+        // Check For Existing Data And Determine Navigation.
+        const hasExistingData = await checkForExistingData();
+        
+        console.log('App: Navigation decision:', { hasExistingData });
+        
+        if (hasExistingData) {
+          // User Has Connected Data, Go To Dashboard.
+          console.log('App: User has existing data, navigating to dashboard...');
+          setCurrentPage('dashboard');
+        } else {
+          // User Is Authenticated But No Data, Go To Finance Connect.
+          console.log('App: User has no existing data, navigating to finance connect...');
+          setCurrentPage('finance-connect');
         }
       } else {
         // No User Found, Go To Welcome.
@@ -141,78 +139,72 @@ function App() {
   const checkForExistingData = async () => {
     try {
       console.log('App: Checking for existing data...');
-      // First Check LocalStorage For Quick Indicators.
-      const hasTransactions = localStorage.getItem('hasTransactions') === 'true';
-      const hasFiles = localStorage.getItem('hasFiles') === 'true';
-      const hasAccounts = localStorage.getItem('hasAccounts') === 'true';
-      const hasConnectedData = localStorage.getItem('hasConnectedData') === 'true';
-      const hasEverHadData = localStorage.getItem('hasEverHadData') === 'true';
       
-      console.log('App: localStorage indicators:', { hasTransactions, hasFiles, hasAccounts, hasConnectedData, hasEverHadData });
-      
-      // If User Has Ever Completed The FinanceConnect Flow (HasEverHadData), They Should Go To Dashboard.
-      if (hasEverHadData) {
-        console.log('App: User has completed setup before, going to dashboard...');
-        return true;
-      }
-      
-      // If LocalStorage Indicates We Have Data, Verify With API Calls.
-      if (hasConnectedData || hasTransactions || hasFiles || hasAccounts) {
-        console.log('App: LocalStorage Indicates Data Exists, Verifying With API Calls...');
-        // Make API Calls To Verify Data Actually Exists.
-        try {
-          // Import API Module More Reliably.
-          const apiModule = await import('./services/api');
+      // Always make API calls to check for current data, regardless of localStorage flags
+      try {
+        // Import API Module More Reliably.
+        const apiModule = await import('./services/api');
+        
+        // Check For Transactions.
+        const transactionsResponse = await apiModule.fetchTransactions();
+        const hasActualTransactions = transactionsResponse.data && transactionsResponse.data.length > 0;
+        
+        // Check For Accounts.
+        const accountsResponse = await apiModule.getAccounts();
+        const hasActualAccounts = accountsResponse.data && accountsResponse.data.length > 0;
+        
+        // Check For Files.
+        const filesResponse = await apiModule.getFiles();
+        const hasActualFiles = filesResponse.data && filesResponse.data.length > 0;
+        
+        console.log('App: API verification results:', { hasActualTransactions, hasActualAccounts, hasActualFiles });
+        
+        // If Any Of These Have Data, User Has Connected Data.
+        if (hasActualTransactions || hasActualAccounts || hasActualFiles) {
+          console.log('App: API confirms user has data, setting flags...');
+          localStorage.setItem('hasConnectedData', 'true');
+          localStorage.setItem('hasEverHadData', 'true');
+          localStorage.removeItem('userSkippedSetup'); // Remove skip flag since user now has data
+          setHasConnectedData(true);
+          setHasEverHadData(true);
+          return true;
+        } else {
+          // Check if user intentionally skipped setup
+          const userSkippedSetup = localStorage.getItem('userSkippedSetup') === 'true';
           
-          // Check For Transactions.
-          const transactionsResponse = await apiModule.fetchTransactions();
-          const hasActualTransactions = transactionsResponse.data && transactionsResponse.data.length > 0;
-          
-          // Check For Accounts.
-          const accountsResponse = await apiModule.getAccounts();
-          const hasActualAccounts = accountsResponse.data && accountsResponse.data.length > 0;
-          
-          // Check For Files.
-          const filesResponse = await apiModule.getFiles();
-          const hasActualFiles = filesResponse.data && filesResponse.data.length > 0;
-          
-          console.log('App: API verification results:', { hasActualTransactions, hasActualAccounts, hasActualFiles });
-          
-          // If Any Of These Have Data, User Has Connected Data.
-          if (hasActualTransactions || hasActualAccounts || hasActualFiles) {
-            console.log('App: API confirms user has data, setting flags...');
-            localStorage.setItem('hasConnectedData', 'true');
-            localStorage.setItem('hasEverHadData', 'true');
-            setHasConnectedData(true);
-            setHasEverHadData(true);
+          if (userSkippedSetup) {
+            console.log('App: User intentionally skipped setup, allowing dashboard access...');
+            // Keep the skip flag but don't set data flags
             return true;
           } else {
-            console.log('App: API shows no data, but user has localStorage flags - trusting localStorage...');
-            // Trust LocalStorage Flags If API Calls Fail Or Show No Data.
-            // This Prevents Users From Being Stuck In A Loop.
-            return true;
+            console.log('App: API shows no current data and user didn\'t skip, redirecting to FinanceConnect...');
+            // Clear localStorage flags since there's no actual data
+            localStorage.removeItem('hasConnectedData');
+            localStorage.removeItem('hasEverHadData');
+            localStorage.removeItem('hasTransactions');
+            localStorage.removeItem('hasFiles');
+            localStorage.removeItem('hasAccounts');
+            setHasConnectedData(false);
+            setHasEverHadData(false);
+            return false;
           }
-        } catch (apiError) {
-          console.error('Error checking data via API:', apiError);
-          // If API Calls Fail, Trust LocalStorage Flags.
-          console.log('App: API calls failed, trusting localStorage flags...');
-          return hasConnectedData || hasTransactions || hasFiles || hasAccounts;
+        }
+      } catch (apiError) {
+        console.error('Error checking data via API:', apiError);
+        // If API calls fail, check localStorage as fallback
+        const hasTransactions = localStorage.getItem('hasTransactions') === 'true';
+        const hasFiles = localStorage.getItem('hasFiles') === 'true';
+        const hasAccounts = localStorage.getItem('hasAccounts') === 'true';
+        const hasConnectedData = localStorage.getItem('hasConnectedData') === 'true';
+        
+        if (hasConnectedData || hasTransactions || hasFiles || hasAccounts) {
+          console.log('App: API failed but localStorage indicates data exists, trusting localStorage...');
+          return true;
+        } else {
+          console.log('App: API failed and no localStorage data, user should go to FinanceConnect...');
+          return false;
         }
       }
-      
-      // Also Check If User Has A Plaid Access Token (Indicates They've Connected A Bank).
-      const hasPlaidToken = localStorage.getItem('plaid_access_token');
-      console.log('App: Checking for Plaid token:', hasPlaidToken);
-      if (hasPlaidToken) {
-        console.log('App: User has Plaid token, assuming they have data...');
-        localStorage.setItem('hasConnectedData', 'true');
-        setHasConnectedData(true);
-        return true;
-      }
-      
-      // If We Get Here, User Has No Data Indicators.
-      console.log('App: No data indicators found, user should go to FinanceConnect...');
-      return false;
     } catch (error) {
       console.error('Error in checkForExistingData:', error);
       return false;
@@ -331,6 +323,18 @@ function App() {
     setCurrentPage('finance-connect');
   };
 
+  // Clear localStorage flags when user has no data
+  const clearDataFlags = () => {
+    localStorage.removeItem('hasConnectedData');
+    localStorage.removeItem('hasEverHadData');
+    localStorage.removeItem('hasTransactions');
+    localStorage.removeItem('hasFiles');
+    localStorage.removeItem('hasAccounts');
+    localStorage.removeItem('userSkippedSetup');
+    setHasConnectedData(false);
+    setHasEverHadData(false);
+  };
+
   // Handle Finance Connection Completion.
   const handleFinanceConnectComplete = (hasActualData = false) => {
     console.log('App: Finance connection completed, navigating to dashboard...');
@@ -348,9 +352,10 @@ function App() {
       setHasConnectedData(true);
       setHasEverHadData(true); // User Now Has Data.
     } else {
-      // User Skipped - Still Mark That They've Completed The Setup Flow.
-      console.log('App: User skipped setup, but marking as completed...');
+      // User Skipped - Mark That They've Completed The Setup Flow But Don't Set Data Flags.
+      console.log('App: User skipped setup, marking as completed but no data...');
       localStorage.setItem('hasEverHadData', 'true'); // User Has Completed Setup Flow.
+      localStorage.setItem('userSkippedSetup', 'true'); // Mark that user intentionally skipped
       setHasEverHadData(true);
     }
     
@@ -374,6 +379,8 @@ function App() {
     localStorage.removeItem('hasTransactions');
     localStorage.removeItem('hasFiles');
     localStorage.removeItem('hasAccounts');
+    localStorage.removeItem('plaid_access_token');
+    localStorage.removeItem('userSkippedSetup');
     sessionStorage.removeItem('hasNavigatedFromFinanceConnect'); // Clear Session Flag.
     setIsAuthenticated(false);
     setHasConnectedData(false);
@@ -484,6 +491,7 @@ function App() {
           hasConnectedData={hasConnectedData}
           setHasConnectedData={setHasConnectedData}
           onLogout={handleLogout}
+          onClearDataFlags={clearDataFlags}
         />
       )}
       

@@ -33,7 +33,7 @@ import AboutCenti from './AboutCenti';
 const WelcomeScreen = ({ onShowAccountSetUp }) => {
 
     // -------------------------------------------------------- State Declarations.
-    
+
     const [activeStep, setActiveStep] = useState(0);                // State 4 Active Step.
     const [showAboutCenti, setShowAboutCenti] = useState(false);    // State 4 About Centi Modal.
 
@@ -106,7 +106,7 @@ const WelcomeScreen = ({ onShowAccountSetUp }) => {
                             >
                                 <source src={dashboardVideo} type="video/mp4" />
                                 {/* Fallback For Browsers That Don't Support Video. */}
-                                <HeroImage src={centiLogo} alt="Centi Dashboard Preview" />
+                        <HeroImage src={centiLogo} alt="Centi Dashboard Preview" />
                             </HeroVideo>
                             <VideoOverlay>
                                 <PlayIndicator>

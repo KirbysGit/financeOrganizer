@@ -8,7 +8,7 @@
 import axios from 'axios';
 
 // Create API Instance.
-const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const baseURL = import.meta.env.VITE_API_URL || 'https://financeorganizer-production.up.railway.app';
 
 // Add A Refresh Lock To Prevent Multiple Simultaneous Refresh Attempts.
 let isRefreshing = false;

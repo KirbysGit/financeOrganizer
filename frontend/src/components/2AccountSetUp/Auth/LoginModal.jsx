@@ -137,6 +137,7 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp, onShowForgotPassword }) => {
             const hasData = await checkUserHasData();
             
             // Call OnLoginSuccess Callback with data status
+            console.log('LoginModal: Regular login - calling onLoginSuccess with hasData:', hasData);
             onLoginSuccess(hasData);
         } catch (error) {
             // Log Login Failure.
@@ -209,6 +210,7 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp, onShowForgotPassword }) => {
             const hasData = await checkUserHasData();
             
             // Call OnLoginSuccess Callback with data status
+            console.log('LoginModal: Google login - calling onLoginSuccess with hasData:', hasData);
             onLoginSuccess(hasData);
             
         } catch (error) {

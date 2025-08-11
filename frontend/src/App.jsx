@@ -251,6 +251,8 @@ function App() {
   // Sets 'hasEverHadData' To True And Sets Current Page To 'finance-connect'.
   const handleLoginSuccess = async (hasDataFromLogin = null) => {
     console.log('App: Login successful, checking for existing data...');
+    console.log('App: hasDataFromLogin parameter received:', hasDataFromLogin);
+    console.log('App: typeof hasDataFromLogin:', typeof hasDataFromLogin);
     
     // Set Navigation Flag To Prevent Double-Checking.
     setHasNavigatedFromLogin(true);

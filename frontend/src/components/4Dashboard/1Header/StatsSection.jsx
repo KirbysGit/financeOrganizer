@@ -13,7 +13,7 @@ import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 // Bank Logo Imports.
 import bankOfAmericaLogo from '../../../images/bankLogos/bankOfAmerica.png';
 import chaseLogo from '../../../images/bankLogos/chase.png';
-import wellsFargoLogo from '../../../images/bankLogos/wellsfargo.png';
+import wellsFargoLogo from '../../../images/bankLogos/wellsFargo.png';
 import citibankLogo from '../../../images/bankLogos/citibank.png';
 import amexLogo from '../../../images/bankLogos/amex.png';
 import capitalOneLogo from '../../../images/bankLogos/capitalOne.png';
@@ -46,6 +46,25 @@ const BankCarousel = () => {
         { name: 'Truist', logo: truistLogo, color: '#1E3A8A' }
     ];
 
+    // Debug logging
+    console.log('BankCarousel: Imported logos:', {
+        bankOfAmericaLogo,
+        chaseLogo,
+        wellsFargoLogo,
+        citibankLogo,
+        amexLogo,
+        capitalOneLogo,
+        usBankLogo,
+        pncBankLogo,
+        fifthThirdBankLogo,
+        keyBankLogo,
+        sofiLogo,
+        tdBankLogo,
+        truistLogo
+    });
+    
+    console.log('BankCarousel: Banks array:', banks);
+
     // Duplicate Banks For Seamless Infinite Scroll (Double Duplication For Smoother Loop).
     const duplicatedBanks = [...banks, ...banks];
 
@@ -55,14 +74,22 @@ const BankCarousel = () => {
         <CarouselWrapper>
             <SliderContainer>
                 <SlideTrack>
-                    {duplicatedBanks.map((bank, index) => (
-                        <Slide 
-                            key={index} 
-                            $position={index % 3}
-                        >
-                            <BankLogo src={bank.logo} alt={bank.name} />
-                        </Slide>
-                    ))}
+                    {duplicatedBanks.map((bank, index) => {
+                        console.log(`BankCarousel: Rendering bank ${index}:`, bank);
+                        return (
+                            <Slide 
+                                key={index} 
+                                $position={index % 3}
+                            >
+                                <BankLogo 
+                                src={bank.logo} 
+                                alt={bank.name}
+                                onLoad={() => console.log(`BankCarousel: Image loaded successfully: ${bank.name}`)}
+                                onError={(e) => console.error(`BankCarousel: Image failed to load: ${bank.name}`, e)}
+                            />
+                            </Slide>
+                        );
+                    })}
                 </SlideTrack>
             </SliderContainer>
         </CarouselWrapper>

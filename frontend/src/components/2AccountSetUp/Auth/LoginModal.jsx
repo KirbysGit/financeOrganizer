@@ -22,7 +22,7 @@ import googleLogo from '../../../images/googleLogo.png';            // Google Lo
 import colorScheme from '../../../images/colorSchemeIcon.png';      // Centi Logo Used In Modal.
 
 // API Imports.
-import { loginUser, googleAuthCode, getFiles, getAccounts, getTransactions } from '../../../services/api';
+import { loginUser, googleAuthCode, getFiles, getAccounts, fetchTransactions } from '../../../services/api';
 
 // -------------------------------------------------------- LoginModal Component.
 const LoginModal = ({ onLoginSuccess, onShowSignUp, onShowForgotPassword }) => {
@@ -163,7 +163,7 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp, onShowForgotPassword }) => {
             const [filesResponse, accountsResponse, transactionsResponse] = await Promise.allSettled([
                 getFiles(),
                 getAccounts(),
-                getTransactions()
+                fetchTransactions()
             ]);
             
             // User has data if any of these endpoints return data
@@ -176,13 +176,13 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp, onShowForgotPassword }) => {
             console.log('LoginModal: Data check results:', { hasFiles, hasAccounts, hasTransactions, hasData });
             
             // Store the data status in localStorage for future reference
-            localStorage.setItem('userHasData', JSON.stringify(hasData));
+            localStorage.setItem('hasData', JSON.stringify(hasData));
             
             return hasData;
         } catch (error) {
             console.error('LoginModal: Error checking user data:', error);
             // Default to false if there's an error
-            localStorage.setItem('userHasData', 'false');
+            localStorage.setItem('hasData', 'false');
             return false;
         }
     };

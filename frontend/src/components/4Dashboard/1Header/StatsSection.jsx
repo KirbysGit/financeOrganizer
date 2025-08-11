@@ -10,20 +10,20 @@ import { styled, keyframes } from 'styled-components';
 import { useEffect, useState } from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
-// Bank Logo Imports.
-import bankOfAmericaLogo from '../../../images/bankLogos/bankOfAmerica.png';
-import chaseLogo from '../../../images/bankLogos/chase.png';
-import wellsFargoLogo from '../../../images/bankLogos/wellsFargo.png';
-import citibankLogo from '../../../images/bankLogos/citibank.png';
-import amexLogo from '../../../images/bankLogos/amex.png';
-import capitalOneLogo from '../../../images/bankLogos/capitalOne.png';
-import usBankLogo from '../../../images/bankLogos/usbank.png';
-import pncBankLogo from '../../../images/bankLogos/pncbank.png';
-import fifthThirdBankLogo from '../../../images/bankLogos/fifththirdBank.png';
-import keyBankLogo from '../../../images/bankLogos/keybank.png';
-import sofiLogo from '../../../images/bankLogos/sofi.png';
-import tdBankLogo from '../../../images/bankLogos/tdBank.png';
-import truistLogo from '../../../images/bankLogos/truistLogo.png';
+// Bank Logo Imports - Using public folder for production compatibility.
+const bankOfAmericaLogo = '/images/bankLogos/bankOfAmerica.png';
+const chaseLogo = '/images/bankLogos/chase.png';
+const wellsFargoLogo = '/images/bankLogos/wellsFargo.png';
+const citibankLogo = '/images/bankLogos/citibank.png';
+const amexLogo = '/images/bankLogos/amex.png';
+const capitalOneLogo = '/images/bankLogos/capitalOne.png';
+const usBankLogo = '/images/bankLogos/usbank.png';
+const pncBankLogo = '/images/bankLogos/pncbank.png';
+const fifthThirdBankLogo = '/images/bankLogos/fifththirdBank.png';
+const keyBankLogo = '/images/bankLogos/keybank.png';
+const sofiLogo = '/images/bankLogos/sofi.png';
+const tdBankLogo = '/images/bankLogos/tdBank.png';
+const truistLogo = '/images/bankLogos/truistLogo.png';
 
 // -------------------------------------------------------- Bank Carousel Component.
 const BankCarousel = () => {

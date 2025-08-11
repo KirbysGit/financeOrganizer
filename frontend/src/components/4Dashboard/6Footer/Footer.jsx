@@ -21,7 +21,7 @@ const Footer = ({ user }) => {
     // States.
     const currentYear = new Date().getFullYear();
     const [showContactModal, setShowContactModal] = useState(false);
-    
+
     // -------------------------------------------------------- Handle Contact Click.
 
     const handleContactClick = () => {
@@ -83,132 +83,132 @@ const Footer = ({ user }) => {
     // -------------------------------------------------------- Return The Footer Component.
     return (
         <>
-            <FooterWrapper>
-                <FooterContent>
-                    {/* Main Footer Section */}
-                    <MainFooterSection>
-                        {/* Brand Section */}
-                        <BrandSection>
-                            <BrandLogo src={centiLogo} alt="Centi Logo" />
-                            <BrandDescription>
-                                Your personal finance companion. Track, analyze, and optimize your financial journey with intelligent insights and beautiful visualizations.
-                            </BrandDescription>
-                            <BrandTagline>
-                                Making cents of your finances <span style={{ color: 'var(--amount-positive)' }}>💚</span>
-                            </BrandTagline>
-                        </BrandSection>
+        <FooterWrapper>
+            <FooterContent>
+                {/* Main Footer Section */}
+                <MainFooterSection>
+                    {/* Brand Section */}
+                    <BrandSection>
+                        <BrandLogo src={centiLogo} alt="Centi Logo" />
+                        <BrandDescription>
+                            Your personal finance companion. Track, analyze, and optimize your financial journey with intelligent insights and beautiful visualizations.
+                        </BrandDescription>
+                        <BrandTagline>
+                            Making cents of your finances <span style={{ color: 'var(--amount-positive)' }}>💚</span>
+                        </BrandTagline>
+                    </BrandSection>
 
-                        {/* Quick Links Section */}
-                        <QuickLinksSection>
-                            <SectionTitle>Quick Links</SectionTitle>
-                            <QuickLinksList>
-                                <QuickLink onClick={() => {
-                                    const element = document.getElementById('recent-section');
-                                    if (element) {
-                                        const offset = 30;
-                                        const elementPosition = element.offsetTop - offset;
-                                        window.scrollTo({ top: elementPosition, behavior: 'smooth' });
-                                    }
-                                }}>
-                                    Recent Activity
-                                </QuickLink>
-                                <QuickLink onClick={() => {
-                                    const element = document.getElementById('centi-score-section');
-                                    if (element) {
-                                        const elementRect = element.getBoundingClientRect();
-                                        const elementHeight = elementRect.height;
-                                        const windowHeight = window.innerHeight;
-                                        const offset = (windowHeight - elementHeight) / 2;
-                                        const elementPosition = element.offsetTop - offset;
-                                        window.scrollTo({ top: elementPosition, behavior: 'smooth' });
-                                    }
-                                }}>
-                                    Centi Score
-                                </QuickLink>
-                                <QuickLink onClick={() => {
-                                    const element = document.getElementById('accounts-section');
-                                    if (element) {
-                                        const offset = 30;
-                                        const elementPosition = element.offsetTop - offset;
-                                        window.scrollTo({ top: elementPosition, behavior: 'smooth' });
-                                    }
-                                }}>
-                                    Accounts
-                                </QuickLink>
-                                <QuickLink onClick={() => {
-                                    const element = document.getElementById('transactions-section');
-                                    if (element) {
-                                        const offset = 30;
-                                        const elementPosition = element.offsetTop - offset;
-                                        window.scrollTo({ top: elementPosition, behavior: 'smooth' });
-                                    }
-                                }}>
-                                    Transactions
-                                </QuickLink>
-                            </QuickLinksList>
-                        </QuickLinksSection>
+                    {/* Quick Links Section */}
+                    <QuickLinksSection>
+                        <SectionTitle>Quick Links</SectionTitle>
+                        <QuickLinksList>
+                            <QuickLink onClick={() => {
+                                const element = document.getElementById('recent-section');
+                                if (element) {
+                                    const offset = 30;
+                                    const elementPosition = element.offsetTop - offset;
+                                    window.scrollTo({ top: elementPosition, behavior: 'smooth' });
+                                }
+                            }}>
+                                Recent Activity
+                            </QuickLink>
+                            <QuickLink onClick={() => {
+                                const element = document.getElementById('centi-score-section');
+                                if (element) {
+                                    const elementRect = element.getBoundingClientRect();
+                                    const elementHeight = elementRect.height;
+                                    const windowHeight = window.innerHeight;
+                                    const offset = (windowHeight - elementHeight) / 2;
+                                    const elementPosition = element.offsetTop - offset;
+                                    window.scrollTo({ top: elementPosition, behavior: 'smooth' });
+                                }
+                            }}>
+                                Centi Score
+                            </QuickLink>
+                            <QuickLink onClick={() => {
+                                const element = document.getElementById('accounts-section');
+                                if (element) {
+                                    const offset = 30;
+                                    const elementPosition = element.offsetTop - offset;
+                                    window.scrollTo({ top: elementPosition, behavior: 'smooth' });
+                                }
+                            }}>
+                                Accounts
+                            </QuickLink>
+                            <QuickLink onClick={() => {
+                                const element = document.getElementById('transactions-section');
+                                if (element) {
+                                    const offset = 30;
+                                    const elementPosition = element.offsetTop - offset;
+                                    window.scrollTo({ top: elementPosition, behavior: 'smooth' });
+                                }
+                            }}>
+                                Transactions
+                            </QuickLink>
+                        </QuickLinksList>
+                    </QuickLinksSection>
 
-                        {/* Features Section */}
-                        <FeaturesSection>
-                            <SectionTitle>Features</SectionTitle>
-                            <FeaturesList>
-                                <FeatureItem>
-                                    <FeatureIcon>
-                                        <FontAwesomeIcon icon={faShieldAlt} />
-                                    </FeatureIcon>
-                                    <FeatureText>Secure Data</FeatureText>
-                                </FeatureItem>
-                                <FeatureItem>
-                                    <FeatureIcon>
-                                        <FontAwesomeIcon icon={faLock} />
-                                    </FeatureIcon>
-                                    <FeatureText>Privacy First</FeatureText>
-                                </FeatureItem>
-                                <FeatureItem>
-                                    <FeatureIcon>
-                                        <FontAwesomeIcon icon={faHeart} />
-                                    </FeatureIcon>
-                                    <FeatureText>Personal Finance</FeatureText>
-                                </FeatureItem>
-                            </FeaturesList>
-                        </FeaturesSection>
+                    {/* Features Section */}
+                    <FeaturesSection>
+                        <SectionTitle>Features</SectionTitle>
+                        <FeaturesList>
+                            <FeatureItem>
+                                <FeatureIcon>
+                                    <FontAwesomeIcon icon={faShieldAlt} />
+                                </FeatureIcon>
+                                <FeatureText>Secure Data</FeatureText>
+                            </FeatureItem>
+                            <FeatureItem>
+                                <FeatureIcon>
+                                    <FontAwesomeIcon icon={faLock} />
+                                </FeatureIcon>
+                                <FeatureText>Privacy First</FeatureText>
+                            </FeatureItem>
+                            <FeatureItem>
+                                <FeatureIcon>
+                                    <FontAwesomeIcon icon={faHeart} />
+                                </FeatureIcon>
+                                <FeatureText>Personal Finance</FeatureText>
+                            </FeatureItem>
+                        </FeaturesList>
+                    </FeaturesSection>
 
-                        {/* Contact Section */}
-                        <ContactSection>
-                            <SectionTitle>Get In Touch</SectionTitle>
-                            <ContactButton onClick={handleContactClick}>
-                                <FontAwesomeIcon icon={faEnvelope} />
-                                Contact Us
-                            </ContactButton>
-                            <SocialLinks>
-                                <SocialLink onClick={handleGitHubClick} title="GitHub">
-                                    <FontAwesomeIcon icon={faGithub} />
-                                </SocialLink>
-                                <SocialLink onClick={handleLinkedInClick} title="LinkedIn">
-                                    <FontAwesomeIcon icon={faLinkedin} />
-                                </SocialLink>
-                            </SocialLinks>
-                        </ContactSection>
-                    </MainFooterSection>
+                    {/* Contact Section */}
+                    <ContactSection>
+                        <SectionTitle>Get In Touch</SectionTitle>
+                        <ContactButton onClick={handleContactClick}>
+                            <FontAwesomeIcon icon={faEnvelope} />
+                            Contact Us
+                        </ContactButton>
+                        <SocialLinks>
+                            <SocialLink onClick={handleGitHubClick} title="GitHub">
+                                <FontAwesomeIcon icon={faGithub} />
+                            </SocialLink>
+                            <SocialLink onClick={handleLinkedInClick} title="LinkedIn">
+                                <FontAwesomeIcon icon={faLinkedin} />
+                            </SocialLink>
+                        </SocialLinks>
+                    </ContactSection>
+                </MainFooterSection>
 
-                    {/* Bottom Footer Section */}
-                    <BottomFooterSection>
-                        <BottomFooterContent>
-                            <CopyrightText>
-                                © {currentYear} Centi. Made with <FontAwesomeIcon icon={faHeart} style={{ color: '#dc3545' }} /> for personal finance enthusiasts.
-                            </CopyrightText>
-                            <LegalLinks>
-                                <LegalLink onClick={handlePrivacyClick}>
-                                    Privacy Policy
-                                </LegalLink>
-                                <LegalLink onClick={handleTermsClick}>
-                                    Terms of Service
-                                </LegalLink>
-                            </LegalLinks>
-                        </BottomFooterContent>
-                    </BottomFooterSection>
-                </FooterContent>
-            </FooterWrapper>
+                {/* Bottom Footer Section */}
+                <BottomFooterSection>
+                    <BottomFooterContent>
+                        <CopyrightText>
+                            © {currentYear} Centi. Made with <FontAwesomeIcon icon={faHeart} style={{ color: '#dc3545' }} /> for personal finance enthusiasts.
+                        </CopyrightText>
+                        <LegalLinks>
+                            <LegalLink onClick={handlePrivacyClick}>
+                                Privacy Policy
+                            </LegalLink>
+                            <LegalLink onClick={handleTermsClick}>
+                                Terms of Service
+                            </LegalLink>
+                        </LegalLinks>
+                    </BottomFooterContent>
+                </BottomFooterSection>
+            </FooterContent>
+        </FooterWrapper>
 
             {/* Contact Us Modal */}
             <ContactUsModal 

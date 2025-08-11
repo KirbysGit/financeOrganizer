@@ -75,7 +75,7 @@ const FinanceConnect = ({ onBack, onComplete, user }) => {
 
     // Check localStorage for existing data status on component mount
     useEffect(() => {
-        const storedDataStatus = localStorage.getItem('userHasData');
+        const storedDataStatus = localStorage.getItem('hasData');
         if (storedDataStatus) {
             const hasStoredData = JSON.parse(storedDataStatus);
             if (hasStoredData) {

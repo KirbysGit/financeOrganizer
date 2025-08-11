@@ -115,7 +115,7 @@ const AccountSetUpScreen = ({ onBack, onSignUpSuccess, onLoginSuccess, onEmailVe
                 <FontAwesomeIcon icon={faArrowLeft} />
                 Back to Welcome Page
             </BackButton>
-        
+            
             {/* Auth Container. */}
             <AuthContainer>
                 {/* Left Side - Auth Form. */}

@@ -69,7 +69,7 @@ const slideUp = keyframes`
 `;
 
 // Dashboard Component.
-const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHasConnectedData, onLogout, onClearDataFlags, onClearSkipFlag }) => {
+const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHasConnectedData, onLogout }) => {
 
     const [loading, setLoading] = useState(true);               // State 4 Loading State.
     const [stats, setStats] = useState({});                     // State 4 Stats Data.
@@ -156,26 +156,62 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
             // Only check after loading is complete
             if (!loading && (transactions.length === 0 && files.length === 0 && accounts.length === 0)) {
                 // Check if user intentionally skipped setup
-                const userSkippedSetup = localStorage.getItem('userSkippedSetup') === 'true';
+                const userSkipped = localStorage.getItem('userSkipped') === 'true';
+                const hasData = localStorage.getItem('hasData') === 'true';
                 
-                if (userSkippedSetup) {
-                    console.log('Dashboard: User intentionally skipped setup, allowing dashboard access...');
-                    // Don't redirect - user can explore the dashboard
+                // If user skipped setup and has no data, allow them to explore Dashboard first
+                // Only redirect to FinanceConnect on page refresh, not immediately
+                if (userSkipped && !hasData) {
+                    console.log('Dashboard: User skipped setup and has no data, allowing dashboard exploration...');
+                    // User skipped setup but has no data - allow them to explore Dashboard first
+                    // They will only be redirected to FinanceConnect on page refresh
                     return;
-                } else {
+                } else if (userSkipped && hasData) {
+                    console.log('Dashboard: User skipped setup but has data, allowing dashboard access...');
+                    // User skipped setup but somehow has data - allow dashboard access
+                    return;
+                } else if (!userSkipped && !hasData) {
                     console.log('Dashboard: No actual data found and user didn\'t skip, redirecting to FinanceConnect...');
-                    // Clear data flags since there's no actual data
-                    if (onClearDataFlags) {
-                        onClearDataFlags();
-                    }
-                    // Redirect to FinanceConnect
+                    // Clear localStorage and redirect
+                    localStorage.removeItem('hasData');
+                    localStorage.removeItem('userSkipped');
                     window.location.href = '/';
                 }
             }
         };
 
         checkForActualData();
-    }, [loading, transactions.length, files.length, accounts.length, onClearDataFlags]);
+    }, [loading, transactions.length, files.length, accounts.length]);
+
+    // -------------------------------------------------------- Handle Page Refresh/Refresh Button Logic.
+    useEffect(() => {
+        // This effect handles the refresh logic for users who skipped setup
+        // It only runs when the component mounts (page refresh) or when refresh buttons are clicked
+        const handleRefreshLogic = () => {
+            const userSkipped = localStorage.getItem('userSkipped') === 'true';
+            const hasData = localStorage.getItem('hasData') === 'true';
+            
+            if (userSkipped && !hasData) {
+                console.log('Dashboard: Page refresh detected - user skipped setup and has no data, redirecting to FinanceConnect...');
+                // User skipped setup and has no data - redirect to FinanceConnect on refresh
+                localStorage.removeItem('hasData');
+                localStorage.removeItem('userSkipped');
+                window.location.href = '/';
+            } else if (userSkipped && hasData) {
+                console.log('Dashboard: Page refresh detected - user skipped setup but has data, staying on Dashboard...');
+                // User skipped setup but has data - stay on Dashboard
+                return;
+            }
+        };
+
+        // Check if this is a page refresh by checking if we have the session flag
+        const hasNavigatedFromFinanceConnect = sessionStorage.getItem('hasNavigatedFromFinanceConnect') === 'true';
+        
+        if (!hasNavigatedFromFinanceConnect) {
+            // This is likely a page refresh, check the refresh logic
+            handleRefreshLogic();
+        }
+    }, []);
 
     // -------------------------------------------------------- Load All Data.
     const loadAllData = async () => {
@@ -219,12 +255,25 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
             
             // Check if we actually loaded any data
             if (transactions.length === 0 && files.length === 0 && accounts.length === 0) {
-                console.log('Dashboard: No data loaded, user should be redirected to FinanceConnect');
-            } else {
-                // User has actual data, clear the skip flag
-                if (onClearSkipFlag) {
-                    onClearSkipFlag();
+                // Check if user intentionally skipped setup
+                const userSkipped = localStorage.getItem('userSkipped') === 'true';
+                const hasData = localStorage.getItem('hasData') === 'true';
+                
+                if (userSkipped && !hasData) {
+                    console.log('Dashboard: No financial data loaded, user skipped setup and has no data - allowing dashboard exploration first');
+                    // User skipped setup but has no data - allow them to explore Dashboard first
+                    // They will only be redirected to FinanceConnect on page refresh
+                    return;
+                } else if (userSkipped && hasData) {
+                    console.log('Dashboard: No financial data loaded, but user skipped setup and has data - allowing dashboard exploration');
+                } else if (!userSkipped && !hasData) {
+                    console.log('Dashboard: No data loaded, user should be redirected to FinanceConnect');
                 }
+            } else {
+                // User has actual data, set hasData flag
+                localStorage.setItem('hasData', 'true');
+                localStorage.setItem('userSkipped', 'false'); // Clear skip flag since user now has data
+                console.log('Dashboard: User has data, setting hasData flag and clearing userSkipped');
             }
         }
     };
@@ -234,10 +283,6 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
         try {
             const transactionsData = await fetchTransactions();
             setTransactions(transactionsData.data);
-            // Set LocalStorage Flag If We Have Transactions.
-            if (transactionsData.data.length > 0) {
-                localStorage.setItem('hasTransactions', 'true');
-            }
         } catch (err) {
             console.error("Load Failed:", err);
         }
@@ -248,10 +293,6 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
         try {
             const filesData = await getFiles();
             setFiles(filesData.data);
-            // Set LocalStorage Flag If We Have Files.
-            if (filesData.data.length > 0) {
-                localStorage.setItem('hasFiles', 'true');
-            }
         } catch (err) {
             console.error("Load Failed:", err);
         }
@@ -262,10 +303,6 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
         try {
             const accountsData = await getAccounts();
             setAccounts(accountsData.data);
-            // Set LocalStorage Flag If We Have Accounts.
-            if (accountsData.data.length > 0) {
-                localStorage.setItem('hasAccounts', 'true');
-            }
         } catch (err) {
             console.error("Load Failed:", err);
         }
@@ -327,17 +364,24 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
         try {                                           // Try.
             await loadAllData();                            // Load All Data.
             
-            // Only Update 'hasEverHadData' If It's Currently False And We Have Data.
-            // This Prevents Overriding The State When A User Has Just Signed Up.
-            if (!hasEverHadData && (transactions.length > 0 || files.length > 0)) {
-                localStorage.setItem('hasEverHadData', 'true');
+            // Update hasData flag if we have any data
+            if (transactions.length > 0 || files.length > 0 || accounts.length > 0) {
+                localStorage.setItem('hasData', 'true');
+                localStorage.setItem('userSkipped', 'false');
                 setHasEverHadData(true);
-            }
-            
-            // Update HasConnectedData If We Have Any Data.
-            if ((transactions.length > 0 || files.length > 0 || accounts.length > 0) && !hasConnectedData) {
-                localStorage.setItem('hasConnectedData', 'true');
                 setHasConnectedData(true);
+            } else {
+                // Check if user skipped setup and has no data after refresh
+                const userSkipped = localStorage.getItem('userSkipped') === 'true';
+                const hasData = localStorage.getItem('hasData') === 'true';
+                
+                if (userSkipped && !hasData) {
+                    console.log('Dashboard: Refresh detected - user skipped setup and has no data, redirecting to FinanceConnect...');
+                    // User skipped setup and has no data - redirect to FinanceConnect
+                    localStorage.removeItem('hasData');
+                    localStorage.removeItem('userSkipped');
+                    window.location.href = '/';
+                }
             }
         } catch (err) {                                 // If Error.
             console.error('Load Failed:', err);             // Display Error To Console.
@@ -348,9 +392,9 @@ const Dashboard = ({ hasEverHadData, setHasEverHadData, hasConnectedData, setHas
     const clearDB = async () => {
         try {                                           // Try.
             await emptyDatabase();                          // API Request For Clearing Database.
-            localStorage.setItem('hasEverHadData', 'false');
+            localStorage.setItem('hasData', 'false');
+            localStorage.removeItem('userSkipped');
             setHasEverHadData(false);
-            localStorage.setItem('hasConnectedData', 'false');
             setHasConnectedData(false);
             hasLoadedRef.current = false; // Reset The Ref So Data Can Be Loaded Again If Needed.
             // Don't Reload Data Here - Let The Component Handle It.

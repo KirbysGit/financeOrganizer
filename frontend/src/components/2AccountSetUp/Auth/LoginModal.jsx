@@ -199,6 +199,10 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp, onShowForgotPassword }) => {
                 redirect_uri: window.location.origin
             };
             
+            console.log('LoginModal: Google auth data being sent:', authData);
+            console.log('LoginModal: response.code type:', typeof response.code);
+            console.log('LoginModal: response.code length:', response.code?.length);
+            
             // Send Authorization Code To Backend For Authentication/Registration.
             const authResponse = await googleAuthCode(authData);
             const authResult = authResponse.data;
@@ -217,7 +221,7 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp, onShowForgotPassword }) => {
             // Log Google Authentication Failure.
             console.error('Google authentication failed:', error);
 
-            // If There Are Errors, Set Errors.
+                        // If There Are Errors, Set Errors.
             if (error.response?.status === 409) {
                 // Account Already Exists With Password - Show Specific Message.
                 setErrors({ 
@@ -228,20 +232,28 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp, onShowForgotPassword }) => {
                 setErrors({ 
                     general: error.response.data.detail || 'Authentication failed. Please check your credentials and try again.'
                 });
+            } else if (error.response?.status === 422) {
+                // Validation Error - Handle gracefully
+                const errorDetail = error.response.data?.detail;
+                if (typeof errorDetail === 'string') {
+                    setErrors({ general: errorDetail });
+                } else {
+                    setErrors({ general: 'Invalid request data. Please try again.' });
+                }
             } else if (error.response?.status === 500) {
                 // Server Error - Likely Account Conflict.
                 setErrors({ 
-                    general: 'This email is already registered. Please sign in with your password instead.'
+                    general: 'This email is already registered. Please sign in with your password instead.' 
                 });
             } else if (error.response?.data?.detail) {
                 setErrors({ general: error.response.data.detail });
             } else if (error.response?.data?.message) {
                 setErrors({ general: error.response.data.message });
-            } else if (error.message && error.message.includes('Failed to process Google authentication')) {
+            } else if (error.message && typeof error.message === 'string' && error.message.includes('Failed to process Google authentication')) {
                 setErrors({ 
-                    general: 'This email is already registered with a password. Please sign in with your password instead.'
+                    general: 'This email is already registered with a password. Please sign in with your password instead.' 
                 });
-            } else if (error.message) {
+            } else if (error.message && typeof error.message === 'string') {
                 setErrors({ general: error.message });
             } else {
                 setErrors({ general: 'Google authentication failed. Please try again.' });

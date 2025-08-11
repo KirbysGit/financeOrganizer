@@ -10,6 +10,13 @@ import axios from 'axios';
 // Create API Instance.
 const baseURL = import.meta.env.VITE_API_URL || 'https://financeorganizer-production.up.railway.app';
 
+// Debug logging to see what's happening
+console.log('🔍 API Debug Info:');
+console.log('  - VITE_API_URL:', import.meta.env.VITE_API_URL);
+console.log('  - Final baseURL:', baseURL);
+console.log('  - Environment:', import.meta.env.MODE);
+console.log('  - All env vars:', import.meta.env);
+
 // Add A Refresh Lock To Prevent Multiple Simultaneous Refresh Attempts.
 let isRefreshing = false;
 let failedQueue = [];

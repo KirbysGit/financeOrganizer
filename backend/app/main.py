@@ -23,6 +23,19 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Force HTTPS in production - but be more careful with Railway
+if os.getenv('ENVIRONMENT') == 'production':
+    from fastapi.middleware.trustedhost import TrustedHostMiddleware
+    
+    # Trust Railway's proxy headers
+    app.add_middleware(
+        TrustedHostMiddleware, 
+        allowed_hosts=["*"]  # Allow all hosts in production for now
+    )
+    
+    # Don't force HTTPS redirects in Railway - let Railway handle it
+    # The HTTPSRedirectMiddleware was causing 307 redirects that broke the frontend
+
 # Configure CORS.
 origins = [
     'http://localhost:5173',
@@ -58,8 +71,19 @@ app.add_middleware(
 # Add Specific CORS Handler For Auth Routes To Handle Railway Proxy Issues.
 @app.options("/auth/{path:path}")
 async def auth_cors_handler(path: str):
-    """Handle CORS preflight for auth routes specifically"""
+    """Handle CORS preflight for auth route specifically"""
     return {"message": "CORS preflight handled for auth route"}
+
+# Add Specific CORS Handler For Files Routes To Handle Railway Proxy Issues.
+@app.options("/files/{path:path}")
+async def files_cors_handler(path: str):
+    """Handle CORS preflight for files routes specifically"""
+    return {"message": "CORS preflight handled for files route"}
+
+@app.options("/files/")
+async def files_root_cors_handler():
+    """Handle CORS preflight for files root route specifically"""
+    return {"message": "CORS preflight handled for files root route"}
 
 # Register Modular Route Groups.
 app.include_router(files.router)

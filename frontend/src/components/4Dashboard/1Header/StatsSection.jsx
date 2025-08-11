@@ -10,25 +10,40 @@ import { styled, keyframes } from 'styled-components';
 import { useEffect, useState } from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
+// Bank Logo Imports.
+import bankOfAmericaLogo from '../../../images/bankLogos/bankOfAmerica.png';
+import chaseLogo from '../../../images/bankLogos/chase.png';
+import wellsFargoLogo from '../../../images/bankLogos/wellsfargo.png';
+import citibankLogo from '../../../images/bankLogos/citibank.png';
+import amexLogo from '../../../images/bankLogos/amex.png';
+import capitalOneLogo from '../../../images/bankLogos/capitalOne.png';
+import usBankLogo from '../../../images/bankLogos/usbank.png';
+import pncBankLogo from '../../../images/bankLogos/pncbank.png';
+import fifthThirdBankLogo from '../../../images/bankLogos/fifththirdBank.png';
+import keyBankLogo from '../../../images/bankLogos/keybank.png';
+import sofiLogo from '../../../images/bankLogos/sofi.png';
+import tdBankLogo from '../../../images/bankLogos/tdBank.png';
+import truistLogo from '../../../images/bankLogos/truistLogo.png';
+
 // -------------------------------------------------------- Bank Carousel Component.
 const BankCarousel = () => {
     // Animated Carousel With Bank Logos In Top Right Corner Of Dashboard.
 
     // Bank Data With Logos And Names.
     const banks = [
-        { name: 'Bank of America', logo: '/src/images/bankLogos/bankOfAmerica.png', color: '#D70015' },
-        { name: 'Chase', logo: '/src/images/bankLogos/chase.png', color: '#117ACA' },
-        { name: 'Wells Fargo', logo: '/src/images/bankLogos/wellsFargo.png', color: '#D71E28' },
-        { name: 'Citibank', logo: '/src/images/bankLogos/citibank.png', color: '#0066CC' },
-        { name: 'American Express', logo: '/src/images/bankLogos/amex.png', color: '#2E77BB' },
-        { name: 'Capital One', logo: '/src/images/bankLogos/capitalOne.png', color: '#004990' },
-        { name: 'US Bank', logo: '/src/images/bankLogos/usbank.png', color: '#FDB913' },
-        { name: 'PNC Bank', logo: '/src/images/bankLogos/pncbank.png', color: '#F47920' },
-        { name: 'Fifth Third Bank', logo: '/src/images/bankLogos/fifththirdBank.png', color: '#E31837' },
-        { name: 'KeyBank', logo: '/src/images/bankLogos/keybank.png', color: '#FF6600' },
-        { name: 'SoFi', logo: '/src/images/bankLogos/sofi.png', color: '#00A3E0' },
-        { name: 'TD Bank', logo: '/src/images/bankLogos/tdBank.png', color: '#53A51E' },
-        { name: 'Truist', logo: '/src/images/bankLogos/truistLogo.png', color: '#1E3A8A' }
+        { name: 'Bank of America', logo: bankOfAmericaLogo, color: '#D70015' },
+        { name: 'Chase', logo: chaseLogo, color: '#117ACA' },
+        { name: 'Wells Fargo', logo: wellsFargoLogo, color: '#D71E28' },
+        { name: 'Citibank', logo: citibankLogo, color: '#0066CC' },
+        { name: 'American Express', logo: amexLogo, color: '#2E77BB' },
+        { name: 'Capital One', logo: capitalOneLogo, color: '#004990' },
+        { name: 'US Bank', logo: usBankLogo, color: '#FDB913' },
+        { name: 'PNC Bank', logo: pncBankLogo, color: '#F47920' },
+        { name: 'Fifth Third Bank', logo: fifthThirdBankLogo, color: '#E31837' },
+        { name: 'KeyBank', logo: keyBankLogo, color: '#FF6600' },
+        { name: 'SoFi', logo: sofiLogo, color: '#00A3E0' },
+        { name: 'TD Bank', logo: tdBankLogo, color: '#53A51E' },
+        { name: 'Truist', logo: truistLogo, color: '#1E3A8A' }
     ];
 
     // Duplicate Banks For Seamless Infinite Scroll (Double Duplication For Smoother Loop).

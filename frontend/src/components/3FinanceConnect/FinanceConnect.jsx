@@ -73,6 +73,18 @@ const FinanceConnect = ({ onBack, onComplete, user }) => {
     const [hoveredMethod, setHoveredMethod] = useState(null);
     const [showWelcomeAnimation, setShowWelcomeAnimation] = useState(true);
 
+    // Check localStorage for existing data status on component mount
+    useEffect(() => {
+        const storedDataStatus = localStorage.getItem('userHasData');
+        if (storedDataStatus) {
+            const hasStoredData = JSON.parse(storedDataStatus);
+            if (hasStoredData) {
+                // User already has data, redirect to dashboard
+                onComplete(true);
+            }
+        }
+    }, [onComplete]);
+
     // -------------------------------------------------------- Welcome Animation Effect.
     useEffect(() => {
         const timer = setTimeout(() => {

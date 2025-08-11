@@ -22,7 +22,7 @@ import googleLogo from '../../../images/googleLogo.png';            // Google Lo
 import colorScheme from '../../../images/colorSchemeIcon.png';      // Centi Logo Used In Modal.
 
 // API Imports.
-import { loginUser, googleAuthCode } from '../../../services/api';
+import { loginUser, googleAuthCode, getFiles, getAccounts, getTransactions } from '../../../services/api';
 
 // -------------------------------------------------------- LoginModal Component.
 const LoginModal = ({ onLoginSuccess, onShowSignUp, onShowForgotPassword }) => {
@@ -133,8 +133,11 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp, onShowForgotPassword }) => {
             // Store User Data In Local Storage. (Cookies Handle The Token Automatically)
             localStorage.setItem('user', JSON.stringify(response.data.user));
             
-            // Call OnLoginSuccess Callback.
-            onLoginSuccess();
+            // Check if user has data before redirecting
+            const hasData = await checkUserHasData();
+            
+            // Call OnLoginSuccess Callback with data status
+            onLoginSuccess(hasData);
         } catch (error) {
             // Log Login Failure.
             console.error('Login failed:', error);
@@ -147,6 +150,39 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp, onShowForgotPassword }) => {
             }
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    // -------------------------------------------------------- Check If User Has Data.
+    const checkUserHasData = async () => {
+        try {
+            console.log('LoginModal: Checking if user has data...');
+            
+            // Check for files, accounts, and transactions
+            const [filesResponse, accountsResponse, transactionsResponse] = await Promise.allSettled([
+                getFiles(),
+                getAccounts(),
+                getTransactions()
+            ]);
+            
+            // User has data if any of these endpoints return data
+            const hasFiles = filesResponse.status === 'fulfilled' && filesResponse.value?.data?.length > 0;
+            const hasAccounts = accountsResponse.status === 'fulfilled' && accountsResponse.value?.data?.length > 0;
+            const hasTransactions = transactionsResponse.status === 'fulfilled' && transactionsResponse.value?.data?.length > 0;
+            
+            const hasData = hasFiles || hasAccounts || hasTransactions;
+            
+            console.log('LoginModal: Data check results:', { hasFiles, hasAccounts, hasTransactions, hasData });
+            
+            // Store the data status in localStorage for future reference
+            localStorage.setItem('userHasData', JSON.stringify(hasData));
+            
+            return hasData;
+        } catch (error) {
+            console.error('LoginModal: Error checking user data:', error);
+            // Default to false if there's an error
+            localStorage.setItem('userHasData', 'false');
+            return false;
         }
     };
 
@@ -169,8 +205,11 @@ const LoginModal = ({ onLoginSuccess, onShowSignUp, onShowForgotPassword }) => {
             // Store User Data In Local Storage. (Cookies Handle The Token Automatically)
             localStorage.setItem('user', JSON.stringify(authResult.user));
             
-            // Call OnLoginSuccess Callback.
-            onLoginSuccess();
+            // Check if user has data before redirecting
+            const hasData = await checkUserHasData();
+            
+            // Call OnLoginSuccess Callback with data status
+            onLoginSuccess(hasData);
             
         } catch (error) {
             // Log Google Authentication Failure.

@@ -33,6 +33,8 @@ origins = [
     'https://financeorganizer-production.up.railway.app',  # Railway domain
     'https://financeorganizer.vercel.app',  # Alternative Vercel domain
     'https://centi-dev.vercel.app',  # Another possible domain
+    'https://centi.dev',  # Another possible domain
+    'https://www.centi.dev',  # Another possible domain
 ]
 
 # Add Any Railway-Specific Origins.

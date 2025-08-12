@@ -99,10 +99,40 @@ async def test_simple():
     """Simple test endpoint with no dependencies"""
     return {
         "message": "Simple test successful",
-        "timestamp": "2024-01-01",
-        "port": os.getenv('PORT', 'Not set'),
-        "environment": os.getenv('ENVIRONMENT', 'development')
+        "timestamp": "2024-01-01T00:00:00Z"
     }
+
+@app.get("/test-db")
+async def test_database():
+    """Test database connection"""
+    try:
+        from app.database import get_engine, create_tables
+        
+        engine = get_engine()
+        if engine is None:
+            return {
+                "status": "error",
+                "message": "Database engine is None - connection failed",
+                "database_url": os.getenv("DATABASE_URL", "Not set")[:20] + "..." if os.getenv("DATABASE_URL") else "Not set"
+            }
+        
+        # Test basic connection
+        with engine.connect() as conn:
+            result = conn.execute("SELECT 1 as test")
+            test_value = result.fetchone()[0]
+        
+        return {
+            "status": "success",
+            "message": "Database connected successfully",
+            "test_value": test_value,
+            "database_url": os.getenv("DATABASE_URL", "Not set")[:20] + "..." if os.getenv("DATABASE_URL") else "Not set"
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Database test failed: {str(e)}",
+            "database_url": os.getenv("DATABASE_URL", "Not set")[:20] + "..." if os.getenv("DATABASE_URL") else "Not set"
+        }
 
 # -------------------------------------------------------- Root Endpoint.
 @app.get("/")
@@ -167,6 +197,20 @@ async def auth_cors_test_options():
 @app.on_event("startup")
 async def startup_event():
     try:
+        print("Starting Finance Organizer API...")
+        
+        # Check database connection first
+        from app.database import get_engine, get_database_url
+        database_url = get_database_url()
+        print(f"Database URL: {database_url[:20]}..." if database_url else "No database URL set")
+        
+        engine = get_engine()
+        if engine is None:
+            print("WARNING: Database engine is None - database connection failed!")
+            print("The app will start but database operations will fail")
+        else:
+            print("Database engine created successfully")
+        
         # Initialize Database Tables.
         from app.database import create_tables
         create_tables()
@@ -174,6 +218,8 @@ async def startup_event():
         # Start Scheduler.
         from app.utils.scheduler import start_scheduler
         start_scheduler()
+        
+        print("Finance Organizer API started successfully!")
         
     except Exception as e:
         print(f"Failed to start application: {e}")

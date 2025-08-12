@@ -327,6 +327,9 @@ def get_database_url():
     if not database_url:
         # Fallback for local development
         database_url = "sqlite:///./finance_organizer.db"
+        print("No DATABASE_URL found, using SQLite fallback")
+    else:
+        print(f"Using DATABASE_URL: {database_url[:20]}...")
     return database_url
 
 # -------------------------------------------------------- Create Engine Safe.
@@ -336,8 +339,13 @@ def create_engine_safe():
         database_url = get_database_url()
         print(f"Connecting to database: {database_url[:20]}...")  # Log partial URL for security
         
-        # Only handle SQLite for now
-        engine = create_engine(database_url, connect_args={"check_same_thread": False})
+        # Handle both SQLite and PostgreSQL
+        if database_url.startswith("sqlite"):
+            # SQLite configuration
+            engine = create_engine(database_url, connect_args={"check_same_thread": False})
+        else:
+            # PostgreSQL configuration
+            engine = create_engine(database_url, pool_pre_ping=True, pool_recycle=300)
         
         # Test the connection
         with engine.connect() as conn:
@@ -347,6 +355,8 @@ def create_engine_safe():
         return engine
     except Exception as e:
         print(f"Database connection failed: {e}")
+        print(f"Error type: {type(e).__name__}")
+        print(f"Error details: {str(e)}")
         # Return None so the app can still start without database
         return None
 

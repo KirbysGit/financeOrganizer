@@ -344,8 +344,23 @@ def create_engine_safe():
             # SQLite configuration
             engine = create_engine(database_url, connect_args={"check_same_thread": False})
         else:
-            # PostgreSQL configuration
-            engine = create_engine(database_url, pool_pre_ping=True, pool_recycle=300)
+            # PostgreSQL configuration - try different drivers
+            try:
+                # First try with psycopg2
+                engine = create_engine(database_url, pool_pre_ping=True, pool_recycle=300)
+                print("Using psycopg2 driver")
+            except ImportError:
+                # Fallback to asyncpg if psycopg2 is not available
+                try:
+                    import asyncpg
+                    # Convert asyncpg URL to SQLAlchemy format
+                    if database_url.startswith("postgresql://"):
+                        engine = create_engine(database_url, pool_pre_ping=True, pool_recycle=300)
+                        print("Using asyncpg driver")
+                    else:
+                        raise Exception("Unsupported database URL format")
+                except ImportError:
+                    raise Exception("Neither psycopg2 nor asyncpg are available")
         
         # Test the connection
         with engine.connect() as conn:

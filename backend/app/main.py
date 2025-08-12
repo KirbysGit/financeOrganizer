@@ -134,6 +134,44 @@ async def test_database():
             "database_url": os.getenv("DATABASE_URL", "Not set")[:20] + "..." if os.getenv("DATABASE_URL") else "Not set"
         }
 
+@app.get("/check-packages")
+async def check_packages():
+    """Check if required packages are installed"""
+    packages_status = {}
+    
+    # Check PostgreSQL drivers
+    try:
+        import psycopg2
+        packages_status["psycopg2"] = "installed"
+    except ImportError:
+        packages_status["psycopg2"] = "not installed"
+    
+    try:
+        import asyncpg
+        packages_status["asyncpg"] = "installed"
+    except ImportError:
+        packages_status["asyncpg"] = "not installed"
+    
+    # Check core packages
+    core_packages = ["fastapi", "sqlalchemy", "uvicorn", "pydantic", "jwt"]
+    for package in core_packages:
+        try:
+            __import__(package)
+            packages_status[package] = "installed"
+        except ImportError:
+            packages_status[package] = "not installed"
+    
+    # Check database URL
+    database_url = os.getenv("DATABASE_URL", "Not set")
+    packages_status["database_url_set"] = bool(database_url and database_url != "Not set")
+    packages_status["database_url_preview"] = database_url[:20] + "..." if database_url and database_url != "Not set" else "Not set"
+    
+    return {
+        "status": "package_check_complete",
+        "packages": packages_status,
+        "timestamp": "2024-01-01T00:00:00Z"
+    }
+
 # -------------------------------------------------------- Root Endpoint.
 @app.get("/")
 async def root():
@@ -226,3 +264,5 @@ async def startup_event():
         import traceback
         traceback.print_exc()
         # Don't Fail The App If Startup Fails.
+
+

@@ -14,8 +14,6 @@ cd Desktop / financeOrganizer / Frontend
 npm run dev
 
 
-
-
 # Libraries In Use.
 
 jwt - PyJWT Library - Responsible for Encoding / Decoding JSON Web Tokens for Stateless Auth.
@@ -47,10 +45,6 @@ fastapi -
     - status - Enum-like constants for status codes. Something like "status.HTTP_201_CREATED" is clearer than magic number "201".
     - Response - Raw Object you can mutate / send manually. Sets cookies, custom headers, stream bytes, etc.
     - Request - Incoming request object. 
-
-
-
-
 
 
 Overall Notes : 

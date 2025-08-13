@@ -5,6 +5,9 @@ venv/
 env/
 .venv/
 
+sample_data/chase.csv
+sample_data/wellsfargo.csv
+
 # Python Cache Files
 __pycache__/
 *.py[cod]

@@ -15,7 +15,7 @@ load_dotenv()
 # -------------------------------------------------------- Settings.
 class Settings:
     # Database.
-    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./finance_organizer.db")
+    DATABASE_URL = os.getenv("DATABASE_URL")
     
     # JWT.
     SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")

@@ -322,14 +322,11 @@ class TransactionTag(Base):
 
 # -------------------------------------------------------- Database Setup.
 def get_database_url():
-    """Get database URL with fallback for Railway"""
+    """Get database URL from environment"""
     database_url = os.getenv("DATABASE_URL")
     if not database_url:
-        # Fallback for local development
-        database_url = "sqlite:///./finance_organizer.db"
-        print("No DATABASE_URL found, using SQLite fallback")
-    else:
-        print(f"Using DATABASE_URL: {database_url[:20]}...")
+        raise ValueError("DATABASE_URL environment variable is required")
+    print(f"Using DATABASE_URL: {database_url[:20]}...")
     return database_url
 
 # -------------------------------------------------------- Create Engine Safe.
@@ -339,28 +336,23 @@ def create_engine_safe():
         database_url = get_database_url()
         print(f"Connecting to database: {database_url[:20]}...")  # Log partial URL for security
         
-        # Handle both SQLite and PostgreSQL
-        if database_url.startswith("sqlite"):
-            # SQLite configuration
-            engine = create_engine(database_url, connect_args={"check_same_thread": False})
-        else:
-            # PostgreSQL configuration - try different drivers
+        # PostgreSQL configuration - try different drivers
+        try:
+            # First try with psycopg2
+            engine = create_engine(database_url, pool_pre_ping=True, pool_recycle=300)
+            print("Using psycopg2 driver")
+        except ImportError:
+            # Fallback to asyncpg if psycopg2 is not available
             try:
-                # First try with psycopg2
-                engine = create_engine(database_url, pool_pre_ping=True, pool_recycle=300)
-                print("Using psycopg2 driver")
+                import asyncpg
+                # Convert asyncpg URL to SQLAlchemy format
+                if database_url.startswith("postgresql://"):
+                    engine = create_engine(database_url, pool_pre_ping=True, pool_recycle=300)
+                    print("Using asyncpg driver")
+                else:
+                    raise Exception("Unsupported database URL format")
             except ImportError:
-                # Fallback to asyncpg if psycopg2 is not available
-                try:
-                    import asyncpg
-                    # Convert asyncpg URL to SQLAlchemy format
-                    if database_url.startswith("postgresql://"):
-                        engine = create_engine(database_url, pool_pre_ping=True, pool_recycle=300)
-                        print("Using asyncpg driver")
-                    else:
-                        raise Exception("Unsupported database URL format")
-                except ImportError:
-                    raise Exception("Neither psycopg2 nor asyncpg are available")
+                raise Exception("Neither psycopg2 nor asyncpg are available")
         
         # Test the connection
         with engine.connect() as conn:

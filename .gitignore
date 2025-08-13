@@ -122,7 +122,6 @@ dmypy.json
 *.db
 *.sqlite
 *.sqlite3
-finance_organizer.db
 
 # ================================================================= NODE.JS FRONTEND
 # Dependencies

@@ -47,40 +47,6 @@ After the closure of Mint, I realized how much I missed having a simple, friendl
 - **Authentication**: JWT, Google OAuth
 - **Financial Data**: Plaid API
 
-## 🚀 Getting Started
-
-### **Prerequisites**
-- Node.js (v16 or higher)
-- Python 3.8+
-- Plaid account (for bank connections)
-
-### **Quick Start**
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/finance-organizer.git
-cd finance-organizer
-
-# Frontend setup
-cd frontend
-npm install
-npm run dev
-
-# Backend setup
-cd ../backend
-pip install -r requirements.txt
-python -m uvicorn app.main:app --reload
-```
-
-### **Environment Variables**
-Create a `.env` file in the backend directory:
-```env
-PLAID_CLIENT_ID=your_plaid_client_id
-PLAID_SECRET=your_plaid_secret
-SECRET_KEY=your_jwt_secret
-GOOGLE_CLIENT_ID=your_google_oauth_id
-GOOGLE_CLIENT_SECRET=your_google_oauth_secret
-```
-
 ## 🎨 Design Philosophy
 
 ### **The Centi Approach**
@@ -106,6 +72,27 @@ This is just the beginning! Centi is designed to grow into a comprehensive finan
 - **Budget Planning**: Intelligent budget recommendations
 - **Mobile App**: Native mobile experience
 - **Community Features**: Share insights with trusted friends/family
+
+## 📋 Future To-Dos
+
+- After connection of Plaid Modal in PlaidConnect/PlaidLink, refresh Accounts/Transactions to show new data
+- Update "Success" design with Plaid Link - remove "Attempts" and show data pulled from connected accounts
+- Better styled emails with new fonts and improved graphics
+- Handle different accounts properly in backend (currently messy with frontend options grouped together)
+- Handle growth data with Plaid API per account
+- Clear error messages in ForgotPasswordPage.jsx
+- Handle transaction details with different bank accounts
+- Proper footer integration into WelcomeScreen.jsx
+- Personalized feedback file for centi score
+- Different scale for Centi Score (not 1-100) - more representative value
+- More robust file handling system (currently very strict)
+- Merge user-created and Plaid-imported accounts
+- Better loading animation for Centi Score Modal
+- Sorting by UploadedFiles in TransactionTable or new component
+- Exporting selected transactions to .csv
+- More personalized navbar with user details, settings, etc.
+- Set up website .env vars for easy swap between dev to prod
+- LOTS OF OTHER THINGS
 
 ## 🤝 Contributing
 
@@ -133,12 +120,4 @@ financeOrganizer/
 └── docs/             # Documentation
 ```
 
-## 📄 License
-
-This project is open source and available under the [MIT License](LICENSE).
-
 ---
-
-**Built with ❤️ by Colin Kirby**
-
-*Centi: Where financial tracking meets friendly design.*

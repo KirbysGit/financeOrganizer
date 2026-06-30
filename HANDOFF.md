@@ -14,7 +14,7 @@ _Last updated: 2026-06-30_
 |-------|-------|---------|
 | Frontend | React 19, Vite, Styled Components | Vercel (`finance-organizer-wine.vercel.app`) |
 | Backend | FastAPI, SQLAlchemy | Railway (`financeorganizer-production.up.railway.app`), Dockerized |
-| Database | PostgreSQL (`DATABASE_URL` required) | Railway |
+| Database | SQLite (local dev) / PostgreSQL (prod), via `DATABASE_URL` | Railway |
 | Auth | JWT (HTTP-only cookies) + Google OAuth | — |
 | Bank data | Plaid API (sandbox default) | — |
 
@@ -80,7 +80,7 @@ See `CLAUDE.md` for the full developer guide.
 - **CSV/file handling is very strict** — needs a more robust/forgiving parser.
 - **Centi Score scale (1–100)** isn't very representative; author wants a better scale + personalized feedback file.
 - **Leftover debug/test endpoints** in `main.py` (`/test-*`, `/cors-test`, `/debug-auth`, `/ping`, etc.) should be removed.
-- **Docs vs reality:** README/notes mention SQLite, but the code requires a Postgres `DATABASE_URL` with no SQLite fallback.
+- **Production site is live but basically unused** — prod is low-stakes; active development happens locally on SQLite. Database backend is selected by `DATABASE_URL` (SQLite local, Postgres prod).
 - Growth/balance-history data per Plaid account is incomplete.
 - Error messages in `ForgotPasswordPage.jsx` need to be clearer.
 - `.env`-based dev/prod URL swapping not fully wired up.

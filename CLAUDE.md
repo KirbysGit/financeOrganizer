@@ -8,7 +8,7 @@ Guidance for Claude / AI agents working in this repository. Read this before mak
 
 - **Frontend:** React 19 + Vite + Styled Components (deployed on **Vercel**)
 - **Backend:** FastAPI + SQLAlchemy (deployed on **Railway**, Dockerized)
-- **Database:** PostgreSQL in production (`DATABASE_URL` required). Note: the README/notes mention SQLite, but the running code requires a Postgres `DATABASE_URL` and ships `psycopg2`/`asyncpg`.
+- **Database:** Driven entirely by `DATABASE_URL`. **SQLite for local dev** (e.g. `DATABASE_URL=sqlite:///./transactions.db`), **PostgreSQL in production** (Railway; ships `psycopg2`/`asyncpg`). `DATABASE_URL` is required either way — there is no hard-coded default.
 - **Auth:** JWT (in HTTP-only cookies) + Google OAuth
 - **Financial data:** Plaid API (sandbox by default)
 
@@ -59,7 +59,7 @@ Routers are registered in `main.py` via `app.include_router(...)`. The auth rout
 ## Backend Notes
 
 - **Two model layers:** `database.py` = SQLAlchemy ORM tables (`User`, `Account`, `Transaction`, `Institution`, `FileUpload`, `MonthlySnapshot`, `WeeklyCentiScore`, `AccountBalanceHistory`, `Tag`, `TransactionTag`). `models.py` = Pydantic schemas for request validation / response shaping. Keep them in sync when adding fields.
-- **DB connection is lazy and failure-tolerant:** `get_engine()` returns `None` on failure and the app still boots (operations then fail). `DATABASE_URL` is required — there is no SQLite fallback in code despite older notes.
+- **DB connection is lazy and failure-tolerant:** `get_engine()` returns `None` on failure and the app still boots (operations then fail). `DATABASE_URL` is required and selects the backend (SQLite locally, Postgres in prod); there is no hard-coded default URL. Local dev uses a SQLite file (`del transactions.db` to reset — see `notes.txt`).
 - **Duplicate prevention:** `Transaction` auto-generates a SHA-256 `transaction_hash` from key fields in `__init__`; `FileUpload` uses a `content_hash`.
 - **Scheduler:** `utils/scheduler.py` starts on app startup (`@app.on_event("startup")`) to compute weekly Centi Scores. Centi Score logic lives in `utils/centi_score_utils.py` (components: net worth, assets, liabilities, cash flow → total, currently 1–100).
 - **utils/** breakdown: `auth_utils` (JWT/password hashing via passlib+bcrypt), `email_utils` (verification/reset/contact emails), `parser` (CSV parsing — currently strict), `account_utils`, `vendor_utils`, `tag_utils`, `type_label_map`, `snapshot_utils`, `db_utils`.
@@ -83,7 +83,7 @@ Routers are registered in `main.py` via `app.include_router(...)`. The auth rout
 venv\Scripts\activate            # Windows
 uvicorn app.main:app --reload    # http://localhost:8000
 ```
-Requires `backend/.env` with `DATABASE_URL`, `SECRET_KEY`, `PLAID_CLIENT_ID`, `PLAID_SECRET`, `PLAID_ENV`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`.
+Requires `backend/.env` with `DATABASE_URL` (use `sqlite:///./transactions.db` for local dev), `SECRET_KEY`, `PLAID_CLIENT_ID`, `PLAID_SECRET`, `PLAID_ENV`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`.
 
 **Frontend** (from `frontend/`):
 ```bash

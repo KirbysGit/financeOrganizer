@@ -11,7 +11,22 @@ import React from 'react';
 import { styled } from 'styled-components';
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChartLine, faShieldAlt, faRocket, faArrowRight, faCheckCircle, faUser, faChartBar, faPiggyBank, faSmile, faCheck, faInfoCircle } from '@fortawesome/free-solid-svg-icons';
+import {
+    faChartLine,
+    faShieldAlt,
+    faRocket,
+    faArrowRight,
+    faCheckCircle,
+    faUser,
+    faChartBar,
+    faPiggyBank,
+    faSmile,
+    faCheck,
+    faLock,
+    faSyncAlt,
+    faPlay,
+    faStar,
+} from '@fortawesome/free-solid-svg-icons';
 
 
 // Image Imports.
@@ -21,12 +36,54 @@ import chaseLogo from '../../images/chaseLogo.png';     // Chase Logo In How It 
 import googleLogo from '../../images/googleLogo.png';   // Google Logo In How It Works Section.
 import centiLogo from '../../images/colorScheme.png';   // Centi Logo In Navbar.
 
-// Video Imports.
-import dashboardVideo from '../../images/vids/uiSnippet.mp4'; // Dashboard UI Preview Video.
+// Bank Logos For Hero Trust Strip.
+import chaseBank from '../../images/bankLogos/chase.png';
+import bankOfAmericaBank from '../../images/bankLogos/bankOfAmerica.png';
+import wellsFargoBank from '../../images/bankLogos/wellsFargo.png';
+import citibankBank from '../../images/bankLogos/citibank.png';
 
 // Local Imports.
 import '../../styles/colors.css';
 import AboutCenti from './AboutCenti';
+import HeroProductMock from './HeroProductMock';
+
+
+// -------------------------------------------------------- Hero Wave Config.
+// Adjust These Knobs To Tune The Decorative Sine Wave Under The Hero.
+// Shape Values Are In The SVG viewBox Coordinate System (600 Wide x 200 Tall).
+const HERO_WAVE = {
+    // ---- Shape ----
+    wavelength: 600,    // Length Of One Full Wave (viewBox Units). Higher = More Spread Out / Fewer Waves.
+    // (Frequency Is Just The Inverse: cycles = 600 / wavelength. Set wavelength = 300 For 2 Waves, 200 For 3, Etc.)
+    amplitude: 40,      // Wave Height From Center (viewBox Units). Higher = Taller Peaks/Troughs.
+    phase: 0,           // Horizontal Shift Of The Wave (Radians). Nudges Crests Left/Right.
+
+    // ---- Position & Size On Screen (CSS) ----
+    x: '-7rem',       // Horizontal Position (CSS left).
+    y: '2.5rem',       // Vertical Position (CSS bottom).
+    width: '44%',       // On-Screen Width.
+    height: '240px',    // On-Screen Height.
+};
+
+// -------------------------------------------------------- Sine Wave Path Builder.
+// Samples A Sine Curve Across The viewBox Width And Returns An SVG Path "d" String.
+const buildSineWavePath = ({
+    width = 600,        // viewBox Width.
+    baselineY = 100,    // Vertical Center Of The Wave (viewBox Units).
+    wavelength = 600,   // Length Of One Full Cycle (viewBox Units).
+    amplitude = 60,     // Peak Height From Center (viewBox Units).
+    phase = 0,          // Horizontal Shift (Radians).
+    samples = 120,      // Curve Smoothness (More = Smoother).
+}) => {
+    const points = [];
+    for (let i = 0; i <= samples; i++) {
+        const x = (i / samples) * width;
+        const theta = (x / wavelength) * Math.PI * 2 + phase;
+        const y = baselineY - Math.sin(theta) * amplitude;
+        points.push(`${x.toFixed(2)},${y.toFixed(2)}`);
+    }
+    return `M${points[0]} L${points.slice(1).join(' L')}`;
+};
 
 
 // -------------------------------------------------------- WelcomeScreen Component.
@@ -61,18 +118,35 @@ const WelcomeScreen = ({ onShowAccountSetUp }) => {
         setShowAboutCenti(true);
     };
 
+    // -------------------------------------------------------- Handle See How It Works.
+    const handleSeeHowItWorks = () => {
+        document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    // -------------------------------------------------------- Scroll To A Landing Section By Id.
+    const scrollToSection = (id) => {
+        document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    // -------------------------------------------------------- Scroll Back To Top (Logo Click).
+    const scrollToTop = () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
     // -------------------------------------------------------- Return JSX.
     return (
         <>
             {/* Navbar */}
             <NavBar>
-                <NavLogo src={centiLogo} alt="Centi Logo" />
+                <NavLogo src={centiLogo} alt="Centi" onClick={scrollToTop} />
+                <NavLinks>
+                    <NavLink onClick={() => scrollToSection('features')}>Features</NavLink>
+                    <NavLink onClick={() => scrollToSection('how-it-works')}>How It Works</NavLink>
+                    <NavLink onClick={handleAboutCenti}>About</NavLink>
+                </NavLinks>
                 <NavActions>
-                    <AboutCentiButton onClick={handleAboutCenti}>
-                        <FontAwesomeIcon icon={faInfoCircle} />
-                        About Centi
-                    </AboutCentiButton>
                     <SignInButton onClick={handleSignIn}>Sign In</SignInButton>
+                    <NavGetStarted onClick={handleGetStarted}>Get Started</NavGetStarted>
                 </NavActions>
             </NavBar>
 
@@ -80,42 +154,117 @@ const WelcomeScreen = ({ onShowAccountSetUp }) => {
             <LandingContainer>
                 {/* Hero Section */}
                 <HeroSection>
-                    {/* Left Side Of Hero */}
-                    <HeroContent>
-                        <HeroTitle>Take Control of Your Finances</HeroTitle>
-                        <HeroSubtitle>
-                            Centi helps you track, analyze, and optimize your spending with powerful insights and intuitive tools. 
-                        </HeroSubtitle>
-                        <HeroCTA>
-                            <GetStartedButton onClick={handleGetStarted}>
-                                Get Started
-                                <FontAwesomeIcon icon={faArrowRight} />
-                            </GetStartedButton>
-                            <HeroSubtext>Free forever • No credit card required</HeroSubtext>
-                        </HeroCTA>
-                    </HeroContent>
-                    {/* Right Side Of Hero */}
-                    <HeroVisual>
-                        <HeroVideoContainer>
-                            <HeroVideo 
-                                autoPlay 
-                                muted 
-                                loop 
-                                playsInline
-                                poster={centiLogo} // Fallback Image While Video Loads.
-                            >
-                                <source src={dashboardVideo} type="video/mp4" />
-                                {/* Fallback For Browsers That Don't Support Video. */}
-                        <HeroImage src={centiLogo} alt="Centi Dashboard Preview" />
-                            </HeroVideo>
-                            <VideoOverlay>
-                                <PlayIndicator>
-                                    <FontAwesomeIcon icon={faChartLine} />
-                                    <span>Live Dashboard Preview</span>
-                                </PlayIndicator>
-                            </VideoOverlay>
-                        </HeroVideoContainer>
-                    </HeroVisual>
+                    <HeroMain>
+                        {/* Left Side Of Hero */}
+                        <HeroContent>
+                            <HeroBadge>
+                                <FontAwesomeIcon icon={faShieldAlt} />
+                                <span>Your money. Your future. Your way.</span>
+                            </HeroBadge>
+                            <HeroTitle>
+                                Take Control of Your <HeroGradientWord>Finances</HeroGradientWord>
+                            </HeroTitle>
+                            <HeroSubtitle>
+                                Track every purchase, see exactly where your money goes, and make smarter
+                                spending decisions that help you reach your goals.
+                            </HeroSubtitle>
+                            <HeroCTA>
+                                <GetStartedButton onClick={handleGetStarted}>
+                                    Get Started
+                                    <FontAwesomeIcon icon={faArrowRight} />
+                                </GetStartedButton>
+                                <SecondaryCTAButton onClick={handleSeeHowItWorks}>
+                                    <FontAwesomeIcon icon={faPlay} />
+                                    See How It Works
+                                </SecondaryCTAButton>
+                            </HeroCTA>
+                            <TrustRow>
+                                <TrustItem>
+                                    <TrustIcon $color="#198754">
+                                        <FontAwesomeIcon icon={faLock} />
+                                    </TrustIcon>
+                                    <span>Bank-level security</span>
+                                </TrustItem>
+                                <TrustItem>
+                                    <TrustIcon $color="#0d6efd">
+                                        <FontAwesomeIcon icon={faSyncAlt} />
+                                    </TrustIcon>
+                                    <span>Auto transaction sync</span>
+                                </TrustItem>
+                                <TrustItem>
+                                    <TrustIcon $color="#00a896">
+                                        <FontAwesomeIcon icon={faShieldAlt} />
+                                    </TrustIcon>
+                                    <span>No credit card required</span>
+                                </TrustItem>
+                            </TrustRow>
+                        </HeroContent>
+
+                        {/* Right Side Of Hero — Large Product Mock */}
+                        <HeroVisual>
+                            <HeroProductMock />
+                        </HeroVisual>
+
+                        {/* Hero Footer Strip */}
+                        <SocialProof>
+                            <AvatarStack>
+                                <Avatar $bg="#0d6efd">C</Avatar>
+                                <Avatar $bg="#198754">M</Avatar>
+                                <Avatar $bg="#00a896">A</Avatar>
+                            </AvatarStack>
+                            <SocialProofText>
+                                <Stars>
+                                    <FontAwesomeIcon icon={faStar} />
+                                    <FontAwesomeIcon icon={faStar} />
+                                    <FontAwesomeIcon icon={faStar} />
+                                    <FontAwesomeIcon icon={faStar} />
+                                    <FontAwesomeIcon icon={faStar} />
+                                </Stars>
+                                <span>Built for people who want to see where their money goes.</span>
+                            </SocialProofText>
+                        </SocialProof>
+
+                        <BankStrip>
+                            <BankStripLabel>Securely connected to your favorite banks</BankStripLabel>
+                            <BankLogos>
+                                <BankLogoImg src={chaseBank} alt="Chase" />
+                                <BankLogoImg src={bankOfAmericaBank} alt="Bank of America" />
+                                <BankLogoImg src={wellsFargoBank} alt="Wells Fargo" />
+                                <BankLogoImg src={citibankBank} alt="Citibank" />
+                            </BankLogos>
+                        </BankStrip>
+                    </HeroMain>
+
+                    {/* Sine Wave — Adjust Shape/Position Via The HERO_WAVE Config At The Top Of This File. */}
+                    <HeroWave
+                        aria-hidden="true"
+                        viewBox="0 0 600 200"
+                        preserveAspectRatio="none"
+                        $x={HERO_WAVE.x}
+                        $y={HERO_WAVE.y}
+                        $width={HERO_WAVE.width}
+                        $height={HERO_WAVE.height}
+                    >
+                        <defs>
+                            <linearGradient id="heroSineGradient" x1="0" y1="0" x2="1" y2="0">
+                                <stop offset="0%" stopColor="#0d6efd" stopOpacity="0.25" />
+                                <stop offset="45%" stopColor="#0d6efd" />
+                                <stop offset="100%" stopColor="#00a896" />
+                            </linearGradient>
+                        </defs>
+                        <path
+                            d={buildSineWavePath({
+                                wavelength: HERO_WAVE.wavelength,
+                                amplitude: HERO_WAVE.amplitude,
+                                phase: HERO_WAVE.phase,
+                            })}
+                            fill="none"
+                            stroke="url(#heroSineGradient)"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                            vectorEffect="non-scaling-stroke"
+                        />
+                    </HeroWave>
                 </HeroSection>
 
                 {/* Wave Divider */}
@@ -130,7 +279,7 @@ const WelcomeScreen = ({ onShowAccountSetUp }) => {
                 </WaveDivider>
 
                 {/* Features Section */}
-                <FeaturesSection>
+                <FeaturesSection id="features">
                     <SectionTitle>
                         Unlock Your Financial Potential with Centi
                         <SectionSubtitle>
@@ -182,7 +331,7 @@ const WelcomeScreen = ({ onShowAccountSetUp }) => {
                 </WaveDivider>
 
                 {/* How It Works Section With Auto-Scrolling Steps. */}
-                <HowItWorksSection>
+                <HowItWorksSection id="how-it-works">
                     <SectionTitle>
                         Your Journey to Financial Freedom
                         <SectionSubtitle>
@@ -334,84 +483,159 @@ const WelcomeScreen = ({ onShowAccountSetUp }) => {
 // -------------------------------------------------------- Landing Container.
 const LandingContainer = styled.div`
     width: 100%;
-    padding: 2rem 6rem 0 6rem;
+    padding: 2rem 2.5rem 0 3.5rem;
+
+    @media (max-width: 900px) {
+        padding: 2rem 1.25rem 0 1.25rem;
+    }
 `;
 
 // -------------------------------------------------------- Hero Section.
 const HeroSection = styled.div`
-    display: grid;
-    grid-template-columns: 3fr 5fr;
-    align-items: center;
-    padding: 4rem 0;
-    min-height: 70vh;
+    position: relative;
+    padding: 4.5rem 0 2.25rem 0;
+    min-height: 90vh;
+    background: #ffffff;
+    overflow: visible;
+`;
 
-    @media (max-width: 768px) {
+const HeroMain = styled.div`
+    display: grid;
+    grid-template-columns: minmax(280px, 0.35fr) minmax(0, 0.65fr);
+    grid-template-rows: auto auto;
+    grid-template-areas:
+        "copy mock"
+        "proof banks";
+    column-gap: 1.5rem;
+    row-gap: 1.35rem;
+    align-items: start;
+    position: relative;
+    z-index: 2;
+
+    @media (max-width: 980px) {
         grid-template-columns: 1fr;
+        grid-template-areas:
+            "copy"
+            "mock"
+            "proof"
+            "banks";
         text-align: center;
-        gap: 2rem;
+        row-gap: 1.5rem;
     }
 `;
+
 const HeroContent = styled.div`
+    grid-area: copy;
     display: flex;
     flex-direction: column;
-    padding-top: 5rem;
-    gap: 1.5rem;
+    gap: 1.6rem;
+    z-index: 1;
+    padding-top: 1.5rem;
+
+    @media (max-width: 980px) {
+        align-items: center;
+        padding-top: 0;
+    }
 `;
+
+const HeroBadge = styled.div`
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: fit-content;
+    padding: 0.5rem 1rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, rgba(13, 110, 253, 0.12), rgba(25, 135, 84, 0.12));
+    border: 1px solid rgba(13, 110, 253, 0.22);
+    font-size: 0.85rem;
+    font-weight: 600;
+
+    /* Gradient Text. */
+    background-clip: padding-box;
+    color: transparent;
+    span {
+        background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        color: transparent;
+    }
+
+    svg {
+        font-size: 0.8rem;
+        color: var(--button-primary);
+    }
+`;
+
 const HeroTitle = styled.h1`
-    font-size: 3.5rem;
+    font-size: 3.6rem;
     font-weight: 700;
     margin: 0;
+    color: #0b1f3a;
+    line-height: 1.12;
+    letter-spacing: -0.02em;
+    text-align: left;
+
+    @media (max-width: 980px) {
+        text-align: center;
+        font-size: 2.5rem;
+    }
+`;
+
+const HeroGradientWord = styled.span`
     background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    line-height: 1.2;
+`;
+
+const HeroSubtitle = styled.p`
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin: 0;
+    max-width: 520px;
     text-align: left;
 
-    @media (max-width: 768px) {
-        font-size: 2.5rem;
+    @media (max-width: 980px) {
+        text-align: center;
+        font-size: 1.05rem;
     }
 `;
-const HeroSubtitle = styled.p`
-    font-size: 1.3rem;
-    color: var(--text-secondary);
-    line-height: 1.6;
-    margin: 0;
-    max-width: 500px;
-    text-align: justify;
 
-    @media (max-width: 768px) {
-        font-size: 1.1rem;
-    }
-`;
 const HeroCTA = styled.div`
     display: flex;
-    flex-direction: column;
-    gap: 1rem;
+    align-items: center;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+
+    @media (max-width: 980px) {
+        justify-content: center;
+    }
 `;
+
 const GetStartedButton = styled.button`
     font: inherit;
     background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
     color: white;
     border: none;
-    border-radius: 12px;
-    padding: 1rem 2rem;
-    font-size: 1.1rem;
+    border-radius: 999px;
+    padding: 0.95rem 1.6rem;
+    font-size: 1.05rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
-    width: fit-content;
+    gap: 0.55rem;
+    box-shadow: 0 8px 22px rgba(13, 110, 253, 0.28);
     position: relative;
     overflow: hidden;
 
     &:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(0, 123, 255, 0.4);
+        box-shadow: 0 12px 28px rgba(13, 110, 253, 0.35);
     }
 
     &:active {
@@ -432,103 +656,208 @@ const GetStartedButton = styled.button`
     }
 
     @keyframes glimmer {
-        0% {
-            left: -60%;
-        }
-        70% {
-            left: 120%;
-        }
-        100% {
-            left: 120%;
-        }
+        0% { left: -60%; }
+        70% { left: 120%; }
+        100% { left: 120%; }
     }
 `;
-const HeroSubtext = styled.p`
+
+const SecondaryCTAButton = styled.button`
+    font: inherit;
+    background: #ffffff;
+    color: #0b1f3a;
+    border: 1.5px solid var(--border-medium);
+    border-radius: 999px;
+    padding: 0.9rem 1.35rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+
+    svg {
+        color: var(--button-primary);
+        font-size: 0.85rem;
+    }
+
+    &:hover {
+        border-color: rgba(13, 110, 253, 0.45);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+    }
+`;
+
+const TrustRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    margin-top: 0.35rem;
+
+    @media (max-width: 980px) {
+        justify-content: center;
+    }
+`;
+
+const TrustItem = styled.div`
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+`;
+
+const TrustIcon = styled.span`
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    background: ${props => `${props.$color}18`};
+    color: ${props => props.$color};
+    font-size: 0.75rem;
+`;
+
+const HeroVisual = styled.div`
+    grid-area: mock;
+    display: flex;
+    justify-content: stretch;
+    align-items: stretch;
+    width: 100%;
+    min-width: 0;
+    position: relative;
+    z-index: 3;
+    margin-top: 2.5rem;
+    margin-bottom: -1.25rem;
+
+    @media (max-width: 980px) {
+        margin-top: 0;
+    }
+`;
+
+const SocialProof = styled.div`
+    grid-area: proof;
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    align-self: end;
+    position: relative;
+    z-index: 2;
+
+    @media (max-width: 980px) {
+        justify-content: center;
+    }
+`;
+
+const AvatarStack = styled.div`
+    display: flex;
+    align-items: center;
+`;
+
+const Avatar = styled.div`
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: ${props => props.$bg};
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: grid;
+    place-items: center;
+    border: 2px solid white;
+    margin-left: -8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+    &:first-child {
+        margin-left: 0;
+    }
+`;
+
+const SocialProofText = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
     font-size: 0.9rem;
     color: var(--text-secondary);
-    margin: 0;
+    max-width: 200px;
+    text-align: left;
+
+    @media (max-width: 980px) {
+        text-align: center;
+        align-items: center;
+    }
 `;
-const HeroVisual = styled.div`
+
+const Stars = styled.div`
     display: flex;
+    gap: 0.15rem;
+    color: #f5b301;
+    font-size: 0.75rem;
+`;
+
+const BankStrip = styled.div`
+    grid-area: banks;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
     justify-content: center;
-    align-items: center;
-`;
-const VideoOverlay = styled.div`
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) scale(0.9);
-    background: linear-gradient(135deg, rgba(0, 123, 255, 0.9), rgba(40, 167, 69, 0.9));
-    border-radius: 12px;
-    padding: 0.75rem 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    backdrop-filter: blur(10px);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    z-index: 10;
-    opacity: 0;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    pointer-events: none;
-`;
-const HeroVideoContainer = styled.div`
+    gap: 1.5rem;
+    align-self: end;
+    justify-self: center;
+    margin-top: 1.5rem;
+    padding: 0.85rem 1.5rem;
+    background: #ffffff;
+    border: 1px solid var(--border-light);
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(13, 110, 253, 0.06);
     position: relative;
-    width: 100%;
-    max-width: 700px;
-    height: auto;
-    border-radius: 20px;
-    overflow: hidden;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
-    
-    &:hover {
-        transform: translateY(-5px) scale(1.02);
-        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
-    }
-    
-    &:hover ${VideoOverlay} {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
+    z-index: 2;
+    flex-wrap: wrap;
+
+    @media (max-width: 980px) {
+        margin-top: 0.5rem;
     }
 `;
-const HeroVideo = styled.video`
-    width: 100%;
-    height: auto;
-    object-fit: cover;
-    border-radius: 20px;
+
+const BankStripLabel = styled.div`
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    white-space: nowrap;
 `;
-const PlayIndicator = styled.div`
+
+const BankLogos = styled.div`
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    color: white;
-    font-size: 0.9rem;
-    font-weight: 600;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-    
-    svg {
-        font-size: 1.2rem;
-        animation: pulse 2s ease-in-out infinite;
-    }
-    
-    @keyframes pulse {
-        0%, 100% { 
-            transform: scale(1);
-            opacity: 1;
-        }
-        50% { 
-            transform: scale(1.1);
-            opacity: 0.8;
-        }
-    }
+    gap: 1.75rem;
+    flex-wrap: wrap;
 `;
-const HeroImage = styled.img`
-    width: 100%;
-    max-width: 500px;
-    height: auto;
-    border-radius: 20px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+
+const BankLogoImg = styled.img`
+    height: 26px;
+    width: auto;
+    max-width: 110px;
+    object-fit: contain;
+`;
+
+const HeroWave = styled.svg`
+    position: absolute;
+    left: ${(props) => props.$x || '-3.5rem'};
+    bottom: ${(props) => props.$y || '4.75rem'};
+    width: ${(props) => props.$width || '44%'};
+    height: ${(props) => props.$height || '120px'};
+    pointer-events: none;
+    z-index: 1;
+
+    @media (max-width: 980px) {
+        left: -1.25rem;
+        width: 70%;
+        height: 90px;
+        bottom: 8rem;
+    }
 `;
 
 // -------------------------------------------------------- Features Section.
@@ -550,6 +879,7 @@ const FeaturesSection = styled.div`
     border-radius: 0;
     position: relative;
     z-index: 1;
+    scroll-margin-top: 90px;
 `;
 const SectionTitle = styled.h2`
     font-size: 2.5rem;
@@ -655,6 +985,7 @@ const FeatureDescription = styled.p`
 // -------------------------------------------------------- How It Works Section.
 const HowItWorksSection = styled.div`
     padding: 6rem 0;
+    scroll-margin-top: 100px;
 `;
 const StepsContainer = styled.div`
     margin-top: 2rem;
@@ -1016,67 +1347,113 @@ const NavBar = styled.nav`
     top: 0;
     left: 0;
     width: 100%;
-    height: 80px;
-    background: rgba(255, 255, 255, 0.35);
+    height: 72px;
+    background: rgba(255, 255, 255, 0.75);
     backdrop-filter: blur(16px) saturate(180%);
     -webkit-backdrop-filter: blur(16px) saturate(180%);
-    border-bottom: 1.5px solid rgba(255,255,255,0.18);
+    border-bottom: 1px solid var(--border-light);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    box-shadow: 0 1px 12px rgba(13, 110, 253, 0.05);
     z-index: 100;
-    padding: 0 5.5rem;
+    padding: 0 3rem;
+
+    @media (max-width: 900px) {
+        padding: 0 1.25rem;
+    }
 `;
 const NavLogo = styled.img`
-    height: 100px;
+    height: 62px;
     width: auto;
-    border-radius: 8px;
+    cursor: pointer;
+`;
+const NavLinks = styled.div`
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 2.25rem;
+
+    @media (max-width: 860px) {
+        display: none;
+    }
+`;
+const NavLink = styled.button`
+    font: inherit;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    padding: 0.35rem 0;
+    position: relative;
+    transition: color 0.2s ease;
+
+    &::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: -2px;
+        width: 0;
+        height: 2px;
+        border-radius: 2px;
+        background: linear-gradient(90deg, var(--button-primary), var(--amount-positive));
+        transition: width 0.25s ease;
+    }
+
+    &:hover {
+        color: var(--button-primary);
+    }
+
+    &:hover::after {
+        width: 100%;
+    }
 `;
 const NavActions = styled.div`
     display: flex;
     align-items: center;
-    gap: 1.5rem;
-`;
-const AboutCentiButton = styled.button`
-    font: inherit;
-    background: rgba(255, 255, 255, 0.2);
-    color: var(--text-primary);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 8px;
-    padding: 0.7em 1.6em;
-    font-size: 1.05rem;
-    font-weight: 600;
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    
-    &:hover {
-        background: rgba(255, 255, 255, 0.3);
-        border-color: rgba(255, 255, 255, 0.5);
-        transform: translateY(-2px) scale(1.04);
-    }
+    gap: 1.25rem;
 `;
 
 const SignInButton = styled.button`
     font: inherit;
+    background: none;
+    color: var(--text-primary);
+    border: none;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0.5rem 0.35rem;
+    transition: color 0.2s ease;
+
+    &:hover {
+        color: var(--button-primary);
+    }
+`;
+
+const NavGetStarted = styled.button`
+    font: inherit;
     background: linear-gradient(135deg, var(--button-primary), var(--amount-positive));
     color: #fff;
     border: none;
-    border-radius: 8px;
-    padding: 0.7em 1.6em;
-    font-size: 1.05rem;
+    border-radius: 999px;
+    padding: 0.6rem 1.4rem;
+    font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    transition: background 0.4s, transform 0.2s;
-    
+    box-shadow: 0 4px 14px rgba(13, 110, 253, 0.25);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+
     &:hover {
-        background: linear-gradient(135deg, var(--amount-positive), var(--button-primary));
-        transform: translateY(-2px) scale(1.04);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(13, 110, 253, 0.35);
+    }
+
+    &:active {
+        transform: translateY(0);
     }
 `;
 

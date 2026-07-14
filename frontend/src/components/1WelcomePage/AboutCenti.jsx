@@ -4,10 +4,10 @@
 // It features a modal design with particle backdrop similar to other authentication pages.
 
 // Imports.
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import { styled } from 'styled-components';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes, faHeart, faRocket, faCode, faChartLine, faShieldAlt, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
+import { faTimes, faHeart, faRocket, faCode, faChartLine, faShieldAlt } from '@fortawesome/free-solid-svg-icons';
 import { faGithub, faLinkedin } from '@fortawesome/free-brands-svg-icons';
 
 // Local Imports.
@@ -21,6 +21,24 @@ const AboutCenti = ({ isOpen, onClose }) => {
     const handleClose = () => {
         onClose();
     };
+
+    // -------------------------------------------------------- Escape-To-Close + Lock Body Scroll While Open.
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') onClose();
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+            document.body.style.overflow = previousOverflow;
+        };
+    }, [isOpen, onClose]);
 
     // -------------------------------------------------------- Handle GitHub Click.
     const handleGitHubClick = () => {
@@ -318,34 +336,6 @@ const SocialButton = styled.button`
     
     &:active {
         transform: translateY(0);
-    }
-`;
-
-const ModalFooter = styled.div`
-    padding: 1rem 2rem 2rem 2rem;
-    border-top: 1px solid rgba(0, 0, 0, 0.1);
-    display: flex;
-    justify-content: center;
-`;
-
-const BackButton = styled.button`
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    background: rgba(0, 0, 0, 0.05);
-    color: var(--text-secondary);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 12px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    
-    &:hover {
-        background: rgba(0, 0, 0, 0.1);
-        color: var(--text-primary);
-        transform: translateY(-1px);
     }
 `;
 

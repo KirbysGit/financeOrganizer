@@ -14,9 +14,8 @@ from fastapi import HTTPException, Depends, status, Request
 from ..database import User
 from ..utils.db_utils import get_db
 
-# JWT Settings.
-SECRET_KEY = "your-secret-key-here"  # In Production, Use Environment Variable.
-ALGORITHM = "HS256"
+# JWT Settings — signing secret & algorithm resolved from env in app.config.
+from ..config import SECRET_KEY, ALGORITHM
 
 # -------------------------------------------------------- Verify Token.
 def verify_token(token: str) -> Optional[dict]:

@@ -3,6 +3,7 @@
 
 # Imports.
 import os
+import secrets
 import plaid
 from dotenv import load_dotenv
 from plaid.api import plaid_api
@@ -12,14 +13,52 @@ from plaid.configuration import Configuration
 # Load .env Variables.
 load_dotenv()
 
+# -------------------------------------------------------- Secret Resolution.
+# Single source of truth for JWT signing secrets. Previously these were
+# hard-coded literals scattered across routes/utils (and committed to a public
+# repo), which meant anyone could forge session or verification tokens.
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development").lower()
+ALGORITHM = "HS256"
+
+def _resolve_secret(env_var, fallback=None):
+    """Resolve a signing secret from the environment.
+
+    - If the env var is set, use it.
+    - In production, fail fast when it is missing (never fall back to a known
+      default key).
+    - In development, use `fallback` if given, else generate a random ephemeral
+      key so local runs work out-of-the-box (sessions reset on restart).
+    """
+    value = os.getenv(env_var)
+    if value:
+        return value
+    if fallback:
+        return fallback
+    if ENVIRONMENT == "production":
+        raise RuntimeError(
+            f"{env_var} environment variable is required in production. "
+            f"Generate one with: python -c \"import secrets; print(secrets.token_urlsafe(64))\""
+        )
+    print(
+        f"⚠️  {env_var} not set — using a random ephemeral key for development "
+        f"(sessions reset on restart). Set {env_var} in your .env for stable sessions."
+    )
+    return secrets.token_urlsafe(64)
+
+# Primary JWT signing secret (auth/session tokens).
+SECRET_KEY = _resolve_secret("SECRET_KEY")
+# Secret for email verification / password-reset tokens. Falls back to the
+# primary SECRET_KEY if a dedicated one isn't provided.
+VERIFICATION_SECRET_KEY = _resolve_secret("VERIFICATION_SECRET_KEY", fallback=SECRET_KEY)
+
 # -------------------------------------------------------- Settings.
 class Settings:
     # Database.
     DATABASE_URL = os.getenv("DATABASE_URL")
     
-    # JWT.
-    SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
-    ALGORITHM = "HS256"
+    # JWT. (Secret resolved above from environment; prod-required.)
+    SECRET_KEY = SECRET_KEY
+    ALGORITHM = ALGORITHM
     ACCESS_TOKEN_EXPIRE_MINUTES = 30
     
     # Plaid.

@@ -23,9 +23,8 @@ SMTP_PORT = 587
 SENDER_EMAIL = "user-support@centi.dev"
 SENDER_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
-# JWT Settings for Verification Tokens.
-VERIFICATION_SECRET_KEY = "your-verification-secret-key-here"
-VERIFICATION_ALGORITHM = "HS256"
+# JWT Settings for Verification Tokens — secret resolved from env in app.config.
+from app.config import VERIFICATION_SECRET_KEY, ALGORITHM as VERIFICATION_ALGORITHM
 VERIFICATION_EXPIRE_HOURS = 24
 
 # Frontend URL for Email Verification.

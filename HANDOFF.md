@@ -4,6 +4,8 @@ A living document tracking the current state of the project, what's done, what's
 
 _Last updated: 2026-06-30_
 
+> **⚠️ Deployment action required after the 2026-06-30 security hardening:** set a strong `SECRET_KEY` (and optionally `VERIFICATION_SECRET_KEY`) in the Railway environment. If `ENVIRONMENT=production` and `SECRET_KEY` is unset, the backend will now intentionally refuse to boot. This change also invalidates all existing sessions/tokens (users must log in again) — expected, since prod is basically unused.
+
 ---
 
 ## 1. Snapshot
@@ -79,7 +81,9 @@ See `CLAUDE.md` for the full developer guide.
 - **Account handling is messy** — user-created and Plaid-imported accounts are not cleanly merged; backend groups frontend options together awkwardly.
 - **CSV/file handling is very strict** — needs a more robust/forgiving parser.
 - **Centi Score scale (1–100)** isn't very representative; author wants a better scale + personalized feedback file.
-- **Leftover debug/test endpoints** in `main.py` (`/test-*`, `/cors-test`, `/debug-auth`, `/ping`, etc.) should be removed.
+- ~~**Leftover debug/test endpoints** in `main.py`~~ ✅ Removed 2026-06-30 (only `/` and `/health` remain).
+- ~~**Hard-coded JWT secrets** committed to the repo~~ ✅ Fixed 2026-06-30 (centralized + env-resolved in `config.py`).
+- **Plaid access tokens are stored plaintext** (`institutions.access_token`) and passed in **URL paths** (`/plaid/fetch_transactions/{access_token}`) — should be encrypted at rest and moved to request bodies/headers. **Highest remaining security item.**
 - **Production site is live but basically unused** — prod is low-stakes; active development happens locally on SQLite. Database backend is selected by `DATABASE_URL` (SQLite local, Postgres prod).
 - Growth/balance-history data per Plaid account is incomplete.
 - Error messages in `ForgotPasswordPage.jsx` need to be clearer.
@@ -112,5 +116,6 @@ See `CLAUDE.md` for the full developer guide.
 | Date | Who | Summary |
 |------|-----|---------|
 | 2026-06-30 | Claude | Explored full repo; added `CLAUDE.md` (developer/AI guide) and this `HANDOFF.md` status tracker. Documented the route-file naming quirk and the two-model-layer pattern. |
+| 2026-06-30 | Claude | **Security hardening:** removed dev debug/test endpoints from `main.py` (incl. `/debug-auth`, which leaked cookies/headers); slimmed `/health`. Centralized JWT signing secrets into `config.py` (`SECRET_KEY`/`VERIFICATION_SECRET_KEY`, env-resolved, prod fail-fast) — replaced hard-coded literals in `accounts.py`, `auth_utils.py`, `email_utils.py`. Verified all modules import & share the resolved secret. **Requires `SECRET_KEY` in Railway env (see note at top).** |
 
 > Add a new row each working session so the next person (or agent) can pick up cold.

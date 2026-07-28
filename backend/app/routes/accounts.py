@@ -59,9 +59,8 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 # Password Hashing Context. 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# JWT Settings.
-SECRET_KEY = "your-secret-key-here"  # In Production, Use Environment Variable.
-ALGORITHM = "HS256"
+# JWT Settings — signing secret & algorithm resolved from env in app.config.
+from app.config import SECRET_KEY, ALGORITHM
 
 # Access Token Expires Every Week.
 ACCESS_TOKEN_EXPIRE_MINUTES = 10080

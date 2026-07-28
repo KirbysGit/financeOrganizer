@@ -63,7 +63,8 @@ Routers are registered in `main.py` via `app.include_router(...)`. The auth rout
 - **Duplicate prevention:** `Transaction` auto-generates a SHA-256 `transaction_hash` from key fields in `__init__`; `FileUpload` uses a `content_hash`.
 - **Scheduler:** `utils/scheduler.py` starts on app startup (`@app.on_event("startup")`) to compute weekly Centi Scores. Centi Score logic lives in `utils/centi_score_utils.py` (components: net worth, assets, liabilities, cash flow → total, currently 1–100).
 - **utils/** breakdown: `auth_utils` (JWT/password hashing via passlib+bcrypt), `email_utils` (verification/reset/contact emails), `parser` (CSV parsing — currently strict), `account_utils`, `vendor_utils`, `tag_utils`, `type_label_map`, `snapshot_utils`, `db_utils`.
-- **Lots of debug/test endpoints** in `main.py` (`/test-*`, `/ping`, `/debug-auth`, `/cors-test`, etc.) — left over from deployment debugging on Railway. Safe to clean up eventually (see README to-dos).
+- **JWT signing secrets are centralized in `config.py`** (`SECRET_KEY`, `VERIFICATION_SECRET_KEY`, resolved from env via `_resolve_secret`). Auth routes/utils import from there — do **not** reintroduce hard-coded secret literals. Production **fails fast** if `SECRET_KEY` is unset; dev generates a random ephemeral key. Set `SECRET_KEY` (and optionally `VERIFICATION_SECRET_KEY`) in the deployment environment.
+- **Debug/test endpoints were removed** from `main.py`; only `/` and `/health` remain as public liveness probes (no internal config is exposed). Don't re-add debug endpoints that echo cookies/headers/origins.
 - **CORS** is configured with an explicit origins list in `main.py` plus extra `OPTIONS` handlers added to work around Railway proxy preflight issues.
 
 ## Frontend Notes
@@ -109,5 +110,5 @@ See `README.md` "Future To-Dos" and `HANDOFF.md`. Highlights:
 - Account handling is "messy" — user-created and Plaid-imported accounts aren't cleanly merged.
 - CSV/file handling is very strict.
 - Centi Score uses a 1–100 scale the author wants to rework into something more representative.
-- Many leftover debug endpoints to remove.
 - `.env`-based dev/prod swapping not fully set up.
+- **Remaining security work:** Plaid access tokens are still stored plaintext in `institutions.access_token` and passed in URL paths (`/plaid/fetch_transactions/{access_token}`) — should be encrypted at rest and moved out of URLs.
